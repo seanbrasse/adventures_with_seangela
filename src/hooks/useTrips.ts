@@ -31,18 +31,51 @@ function isAtHomeBase(lat: number, lng: number, homeBase: HomeBase): boolean {
   return distance <= homeBase.radius;
 }
 
-// Determine which travelers went to a location (those not at their home)
+// Get unique person IDs from home bases
+function getUniquePersonIds(homeBases: HomeBase[]): string[] {
+  return [...new Set(homeBases.map((hb) => hb.personId))];
+}
+
+// Find the active home base for a person at a given date
+function getActiveHomeBase(
+  personId: string,
+  date: Date,
+  homeBases: HomeBase[]
+): HomeBase | null {
+  const personHomeBases = homeBases.filter((hb) => hb.personId === personId);
+  if (personHomeBases.length === 0) return null;
+
+  // First, check for a temporary home base that's active at this date
+  for (const hb of personHomeBases) {
+    if (!hb.isPermanent && hb.startDate && hb.endDate) {
+      if (date >= hb.startDate && date <= hb.endDate) {
+        return hb;
+      }
+    }
+  }
+
+  // Fall back to permanent home base
+  const permanent = personHomeBases.find((hb) => hb.isPermanent);
+  return permanent || personHomeBases[0];
+}
+
+// Determine which travelers went to a location (those not at their home at that time)
 function determineTravelers(
   locationLat: number,
   locationLng: number,
+  tripDate: Date,
   homeBases: HomeBase[]
 ): string[] {
   const travelers: string[] = [];
+  const personIds = getUniquePersonIds(homeBases);
 
-  for (const hb of homeBases) {
-    // If the location is NOT at this person's home, they traveled there
-    if (!isAtHomeBase(locationLat, locationLng, hb)) {
-      travelers.push(hb.id);
+  for (const personId of personIds) {
+    const activeHome = getActiveHomeBase(personId, tripDate, homeBases);
+    if (!activeHome) continue;
+
+    // If the location is NOT at this person's active home, they traveled there
+    if (!isAtHomeBase(locationLat, locationLng, activeHome)) {
+      travelers.push(personId);
     }
   }
 
@@ -88,13 +121,13 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[]): Trip[] {
         currentTrip.photos.push(photo);
       } else {
         // Finalize current trip and start a new one
+        const startDate = currentTrip.photos[0].date;
         const travelers = determineTravelers(
           currentTrip.lat,
           currentTrip.lng,
+          startDate,
           homeBases
         );
-
-        const startDate = currentTrip.photos[0].date;
         const endDate = currentTrip.photos[currentTrip.photos.length - 1].date;
         const locationName =
           currentTrip.photos[0].location.name ||
@@ -126,13 +159,13 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[]): Trip[] {
 
   // Don't forget the last trip
   if (currentTrip && currentTrip.photos.length > 0) {
+    const startDate = currentTrip.photos[0].date;
     const travelers = determineTravelers(
       currentTrip.lat,
       currentTrip.lng,
+      startDate,
       homeBases
     );
-
-    const startDate = currentTrip.photos[0].date;
     const endDate = currentTrip.photos[currentTrip.photos.length - 1].date;
     const locationName =
       currentTrip.photos[0].location.name ||
@@ -304,28 +337,29 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       const destLng =
         tripPhotos.reduce((sum, p) => sum + p.location.lng, 0) / tripPhotos.length;
 
-      // Create lines for each traveler
-      for (const travelerId of trip.travelers) {
-        const homeBase = homeBases.find((hb) => hb.id === travelerId);
-        if (!homeBase) continue;
+      // Create lines for each traveler (now using personId)
+      for (const personId of trip.travelers) {
+        // Find the active home base for this person at the trip's start date
+        const activeHome = getActiveHomeBase(personId, trip.startDate, homeBases);
+        if (!activeHome) continue;
 
         // Check if there's a custom start point for this traveler
         const customStart = trip.customStartPoints?.find(
-          (sp) => sp.homeBaseId === travelerId
+          (sp) => sp.homeBaseId === personId
         );
 
         const from = customStart
           ? { lat: customStart.lat, lng: customStart.lng, name: customStart.name }
-          : { lat: homeBase.lat, lng: homeBase.lng, name: homeBase.city };
+          : { lat: activeHome.lat, lng: activeHome.lng, name: activeHome.city };
 
         lines.push({
-          id: `${trip.id}-${travelerId}`,
+          id: `${trip.id}-${personId}`,
           tripId: trip.id,
           tripName: trip.name,
           from,
           to: { lat: destLat, lng: destLng, name: trip.locationName },
-          color: homeBase.color,
-          travelerId,
+          color: activeHome.color,
+          travelerId: personId,
         });
       }
     }
@@ -347,4 +381,4 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
   };
 }
 
-export { getDistanceKm, isAtHomeBase };
+export { getDistanceKm, isAtHomeBase, getActiveHomeBase, getUniquePersonIds };

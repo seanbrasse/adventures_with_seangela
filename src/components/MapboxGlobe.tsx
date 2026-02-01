@@ -1,7 +1,7 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
-import { Heart, Plane } from 'lucide-react';
+import { Heart, Plane, Globe, Map as MapIcon } from 'lucide-react';
 import type { Photo, HomeBase } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -130,6 +130,13 @@ export default function MapboxGlobe({
   const mapRef = useRef<MapRef>(null);
   const [hoveredPoint, setHoveredPoint] = useState<PointData | null>(null);
   const [hoveredLine, setHoveredLine] = useState<(FlightLine & { midpoint: { lat: number; lng: number }; bearing: number }) | null>(null);
+  const [isMinimalStyle, setIsMinimalStyle] = useState(true); // Minimal is default
+
+  // Map style URLs
+  const MAP_STYLES = {
+    minimal: 'mapbox://styles/mapbox/dark-v11',
+    detailed: 'mapbox://styles/mapbox/satellite-streets-v12',
+  };
 
   // Group photos by location
   const pointsData = useMemo<PointData[]>(() => {
@@ -257,7 +264,28 @@ export default function MapboxGlobe({
   }, []);
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
+      {/* Map style toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => setIsMinimalStyle(!isMinimalStyle)}
+          className="flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-sm rounded-lg text-white text-sm hover:bg-black/80 transition-colors border border-white/20"
+          title={isMinimalStyle ? 'Switch to detailed view' : 'Switch to minimal view'}
+        >
+          {isMinimalStyle ? (
+            <>
+              <MapIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Detailed</span>
+            </>
+          ) : (
+            <>
+              <Globe className="w-4 h-4" />
+              <span className="hidden sm:inline">Minimal</span>
+            </>
+          )}
+        </button>
+      </div>
+
       <Map
         ref={mapRef}
         mapboxAccessToken={accessToken}
@@ -267,15 +295,25 @@ export default function MapboxGlobe({
           zoom: 1.5,
         }}
         style={{ width: '100%', height: '100%' }}
-        mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
+        mapStyle={isMinimalStyle ? MAP_STYLES.minimal : MAP_STYLES.detailed}
         projection={{ name: 'globe' }}
-        fog={{
-          color: 'rgb(186, 210, 235)',
-          'high-color': 'rgb(36, 92, 223)',
-          'horizon-blend': 0.02,
-          'space-color': 'rgb(11, 11, 25)',
-          'star-intensity': 0.6,
-        }}
+        fog={
+          isMinimalStyle
+            ? {
+                color: 'rgb(20, 20, 30)',
+                'high-color': 'rgb(40, 40, 60)',
+                'horizon-blend': 0.02,
+                'space-color': 'rgb(5, 5, 15)',
+                'star-intensity': 0.8,
+              }
+            : {
+                color: 'rgb(186, 210, 235)',
+                'high-color': 'rgb(36, 92, 223)',
+                'horizon-blend': 0.02,
+                'space-color': 'rgb(11, 11, 25)',
+                'star-intensity': 0.6,
+              }
+        }
       >
         <NavigationControl position="bottom-right" />
 

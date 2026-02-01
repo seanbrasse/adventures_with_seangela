@@ -4,6 +4,34 @@ import { DEFAULT_HOME_BASES } from '../types/photo';
 
 const SETTINGS_KEY = 'photo-map-settings';
 
+// Stored home base with dates as strings
+interface StoredHomeBase extends Omit<HomeBase, 'startDate' | 'endDate'> {
+  startDate?: string;
+  endDate?: string;
+}
+
+interface StoredSettings {
+  homeBases: StoredHomeBase[];
+}
+
+// Convert stored home base to runtime format
+function parseHomeBase(stored: StoredHomeBase): HomeBase {
+  return {
+    ...stored,
+    startDate: stored.startDate ? new Date(stored.startDate) : undefined,
+    endDate: stored.endDate ? new Date(stored.endDate) : undefined,
+  };
+}
+
+// Convert runtime home base to stored format
+function serializeHomeBase(hb: HomeBase): StoredHomeBase {
+  return {
+    ...hb,
+    startDate: hb.startDate?.toISOString(),
+    endDate: hb.endDate?.toISOString(),
+  };
+}
+
 export function useSettings() {
   const [settings, setSettings] = useState<AppSettings>({
     homeBases: DEFAULT_HOME_BASES,
@@ -15,8 +43,10 @@ export function useSettings() {
     try {
       const stored = localStorage.getItem(SETTINGS_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        setSettings(parsed);
+        const parsed: StoredSettings = JSON.parse(stored);
+        setSettings({
+          homeBases: parsed.homeBases.map(parseHomeBase),
+        });
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -29,7 +59,10 @@ export function useSettings() {
   useEffect(() => {
     if (!isLoading) {
       try {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        const toStore: StoredSettings = {
+          homeBases: settings.homeBases.map(serializeHomeBase),
+        };
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(toStore));
       } catch (error) {
         console.error('Error saving settings:', error);
       }
