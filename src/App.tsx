@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
-import { Plus, Menu, X, Heart } from 'lucide-react';
-import Globe from './components/Globe';
+import { Plus, Menu, X, Heart, Key } from 'lucide-react';
+import MapboxGlobe from './components/MapboxGlobe';
 import PhotoGallery from './components/PhotoGallery';
 import PhotoUpload from './components/PhotoUpload';
 import Sidebar from './components/Sidebar';
 import { usePhotoStorage } from './hooks/usePhotoStorage';
 import type { Photo } from './types/photo';
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
 
 function App() {
   const { photos, isLoading, addPhotos, removePhoto } = usePhotoStorage();
@@ -14,6 +16,8 @@ function App() {
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [apiKey, setApiKey] = useState(MAPBOX_TOKEN || '');
+  const [showApiKeyInput, setShowApiKeyInput] = useState(!MAPBOX_TOKEN);
 
   const handleLocationClick = useCallback((locationPhotos: Photo[]) => {
     setSelectedPhotos(locationPhotos);
@@ -128,11 +132,16 @@ function App() {
 
       {/* Main content - Globe */}
       <main className="flex-1 relative">
-        <Globe
-          photos={photos}
-          onLocationClick={handleLocationClick}
-          selectedLocation={selectedLocation}
-        />
+        {apiKey ? (
+          <MapboxGlobe
+            photos={photos}
+            onLocationClick={handleLocationClick}
+            selectedLocation={selectedLocation}
+            accessToken={apiKey}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-b from-gray-900 to-gray-800" />
+        )}
 
         {/* Empty state overlay */}
         {photos.length === 0 && (
@@ -172,6 +181,56 @@ function App() {
           onDeletePhoto={handleDeletePhoto}
           locationName={selectedPhotos[0]?.location.name}
         />
+      )}
+
+      {/* API Key input modal */}
+      {showApiKeyInput && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center">
+                <Key className="w-6 h-6 text-pink-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-white">Mapbox API Key</h2>
+                <p className="text-white/60 text-sm">Required to display the map</p>
+              </div>
+            </div>
+            <p className="text-white/70 text-sm mb-4">
+              Get your free API key from{' '}
+              <a
+                href="https://mapbox.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-pink-400 hover:text-pink-300 underline"
+              >
+                mapbox.com
+              </a>
+              {' '}(free tier includes 50k map loads/month)
+            </p>
+            <input
+              type="text"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="pk.eyJ1Ijo..."
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 mb-4 focus:outline-none focus:border-pink-400"
+            />
+            <button
+              onClick={() => {
+                if (apiKey.trim()) {
+                  setShowApiKeyInput(false);
+                }
+              }}
+              disabled={!apiKey.trim()}
+              className="w-full py-3 rounded-lg bg-pink-500 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white font-medium"
+            >
+              Continue
+            </button>
+            <p className="text-white/50 text-xs mt-3 text-center">
+              Tip: Add VITE_MAPBOX_TOKEN to a .env file to skip this step
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
