@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { Photo, Trip, HomeBase } from '../types/photo';
 
@@ -158,6 +158,7 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[]): Trip[] {
 export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const lastPhotoIdsRef = useRef<string>('');
 
   // Load trips from localStorage on mount
   useEffect(() => {
@@ -195,13 +196,23 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
     }
   }, [trips, isLoading]);
 
-  // Auto-regenerate trips when photos change and no manual trips exist
+  // Auto-regenerate trips when photos change
   useEffect(() => {
-    if (!isLoading && photos.length > 0 && trips.length === 0) {
-      const autoTrips = autoGenerateTrips(photos, homeBases);
-      setTrips(autoTrips);
+    if (!isLoading && photos.length > 0) {
+      // Create a stable key for current photo IDs
+      const currentPhotoIds = photos.map((p) => p.id).sort().join(',');
+
+      // Only process if photos actually changed
+      if (currentPhotoIds !== lastPhotoIdsRef.current) {
+        lastPhotoIdsRef.current = currentPhotoIds;
+
+        // Always regenerate trips when photos change
+        // This ensures new photos get their own trips
+        const autoTrips = autoGenerateTrips(photos, homeBases);
+        setTrips(autoTrips);
+      }
     }
-  }, [photos, homeBases, isLoading, trips.length]);
+  }, [photos, homeBases, isLoading]);
 
   const regenerateTrips = useCallback(() => {
     const autoTrips = autoGenerateTrips(photos, homeBases);
