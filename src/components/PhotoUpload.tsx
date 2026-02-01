@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
-import { Upload, X, MapPin, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Upload, X, MapPin, Check, AlertCircle, Loader2, Clipboard } from 'lucide-react';
 import type { Photo } from '../types/photo';
 import { extractPhotoData, uploadPhotoToStorage } from '../utils/exif';
 import type { ExtractedPhotoData } from '../utils/exif';
@@ -23,8 +23,11 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
   const [manualLat, setManualLat] = useState('');
   const [manualLng, setManualLng] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const processFiles = useCallback(async (files: FileList | File[]) => {
+    if (files.length === 0) return;
+
     setIsProcessing(true);
     const newPhotos: PendingPhoto[] = [];
 
@@ -46,12 +49,60 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
     setIsProcessing(false);
   }, []);
 
+  // Handle paste from clipboard (Cmd+V) - works great with Photos app!
+  const handlePaste = useCallback(async (e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const files: File[] = [];
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          files.push(file);
+        }
+      }
+    }
+
+    if (files.length > 0) {
+      e.preventDefault();
+      processFiles(files);
+    }
+  }, [processFiles]);
+
+  // Add paste listener when modal is open
+  useEffect(() => {
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
+
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault();
       setDragActive(false);
+
+      const files: File[] = [];
+
+      // Try to get files from dataTransfer.files first
       if (e.dataTransfer.files.length > 0) {
-        processFiles(e.dataTransfer.files);
+        files.push(...Array.from(e.dataTransfer.files));
+      }
+
+      // Also try dataTransfer.items for better compatibility
+      if (e.dataTransfer.items) {
+        for (const item of Array.from(e.dataTransfer.items)) {
+          if (item.kind === 'file') {
+            const file = item.getAsFile();
+            if (file && !files.some(f => f.name === file.name && f.size === file.size)) {
+              files.push(file);
+            }
+          }
+        }
+      }
+
+      if (files.length > 0) {
+        processFiles(files);
       }
     },
     [processFiles]
@@ -176,6 +227,7 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
 
           {/* Drop zone */}
           <div
+            ref={dropZoneRef}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -201,9 +253,13 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
             <p className="text-white/80 mb-2">
               Drag & drop photos here, or click to select
             </p>
-            <p className="text-white/50 text-sm">
+            <p className="text-white/50 text-sm mb-3">
               Photos with GPS data will be automatically placed on the map
             </p>
+            <div className="flex items-center justify-center gap-2 text-pink-400 text-sm">
+              <Clipboard className="w-4 h-4" />
+              <span>Tip: Copy photos in Photos app, then paste here (Cmd+V)</span>
+            </div>
           </div>
 
           {/* Processing indicator */}
