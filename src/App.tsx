@@ -272,6 +272,7 @@ function App() {
           onRemoveHomeBase={removeHomeBase}
           onResetToDefaults={resetToDefaults}
           onClose={() => setShowSettings(false)}
+          mapboxToken={apiKey}
         />
       )}
     </div>

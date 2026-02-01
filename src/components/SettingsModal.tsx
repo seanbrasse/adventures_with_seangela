@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { X, MapPin, User, RotateCcw, Plus, Calendar, Home } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { X, MapPin, User, RotateCcw, Plus, Calendar, Home, Search, Loader2 } from 'lucide-react';
 import type { HomeBase } from '../types/photo';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,18 +10,21 @@ interface SettingsModalProps {
   onRemoveHomeBase: (id: string) => void;
   onResetToDefaults: () => void;
   onClose: () => void;
+  mapboxToken?: string;
 }
 
-const PRESET_COLORS = [
-  '#3B82F6', // Blue
-  '#EC4899', // Pink
-  '#10B981', // Green
-  '#F59E0B', // Amber
-  '#8B5CF6', // Purple
-  '#EF4444', // Red
-  '#06B6D4', // Cyan
-  '#F97316', // Orange
+// Fixed people - cannot add or remove
+const PEOPLE = [
+  { id: 'sean', name: 'Sean', color: '#3B82F6' },
+  { id: 'angela', name: 'Angela', color: '#EC4899' },
 ];
+
+interface GeocodingResult {
+  id: string;
+  place_name: string;
+  center: [number, number]; // [lng, lat]
+  text: string;
+}
 
 function formatDateForInput(date?: Date): string {
   if (!date) return '';
@@ -33,6 +36,110 @@ function parseDateInput(value: string): Date | undefined {
   return new Date(value);
 }
 
+// City autocomplete component using Mapbox Geocoding API
+function CityAutocomplete({
+  value,
+  onChange,
+  onSelect,
+  mapboxToken,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSelect: (result: GeocodingResult) => void;
+  mapboxToken?: string;
+}) {
+  const [results, setResults] = useState<GeocodingResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const searchCity = useCallback(
+    async (query: string) => {
+      if (!query || query.length < 2 || !mapboxToken) {
+        setResults([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+            query
+          )}.json?access_token=${mapboxToken}&types=place,locality,region&limit=5`
+        );
+        const data = await response.json();
+        setResults(data.features || []);
+      } catch (error) {
+        console.error('Geocoding error:', error);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [mapboxToken]
+  );
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      searchCity(value);
+    }, 300);
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [value, searchCity]);
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setShowResults(true);
+          }}
+          onFocus={() => setShowResults(true)}
+          onBlur={() => {
+            // Delay hiding to allow click on result
+            setTimeout(() => setShowResults(false), 200);
+          }}
+          placeholder="Search for a city..."
+          className="w-full px-3 py-2 pl-9 bg-white/10 border border-white/20 rounded text-white text-sm placeholder-white/40"
+        />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+        {isLoading && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 animate-spin" />
+        )}
+      </div>
+
+      {showResults && results.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {results.map((result) => (
+            <button
+              key={result.id}
+              className="w-full px-3 py-2 text-left text-white text-sm hover:bg-white/10 transition-colors"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onSelect(result);
+                setShowResults(false);
+              }}
+            >
+              {result.place_name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SettingsModal({
   homeBases,
   onUpdateHomeBase,
@@ -40,83 +147,90 @@ export default function SettingsModal({
   onRemoveHomeBase,
   onResetToDefaults,
   onClose,
+  mapboxToken,
 }: SettingsModalProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newHomeBase, setNewHomeBase] = useState<Partial<HomeBase>>({
-    personId: '',
-    name: '',
+  const [addingForPerson, setAddingForPerson] = useState<string | null>(null);
+  const [newCitySearch, setNewCitySearch] = useState('');
+  const [newHomeBase, setNewHomeBase] = useState<{
+    city: string;
+    lat: number;
+    lng: number;
+    isPermanent: boolean;
+    startDate?: Date;
+    endDate?: Date;
+  }>({
     city: '',
     lat: 0,
     lng: 0,
-    color: PRESET_COLORS[0],
-    radius: 50,
     isPermanent: false,
   });
 
   // Group home bases by person
   const groupedHomeBases = useMemo(() => {
     const groups: Record<string, HomeBase[]> = {};
-    for (const hb of homeBases) {
-      if (!groups[hb.personId]) {
-        groups[hb.personId] = [];
-      }
-      groups[hb.personId].push(hb);
-    }
-    // Sort each group: permanent first, then by start date
-    for (const personId of Object.keys(groups)) {
-      groups[personId].sort((a, b) => {
-        if (a.isPermanent && !b.isPermanent) return -1;
-        if (!a.isPermanent && b.isPermanent) return 1;
-        if (a.startDate && b.startDate) {
-          return a.startDate.getTime() - b.startDate.getTime();
-        }
-        return 0;
-      });
+    for (const person of PEOPLE) {
+      groups[person.id] = homeBases
+        .filter((hb) => hb.personId === person.id)
+        .sort((a, b) => {
+          if (a.isPermanent && !b.isPermanent) return -1;
+          if (!a.isPermanent && b.isPermanent) return 1;
+          if (a.startDate && b.startDate) {
+            return a.startDate.getTime() - b.startDate.getTime();
+          }
+          return 0;
+        });
     }
     return groups;
   }, [homeBases]);
 
-  // Get unique people
-  const people = useMemo(() => {
-    const uniquePeople: { id: string; name: string; color: string }[] = [];
-    const seen = new Set<string>();
-    for (const hb of homeBases) {
-      if (!seen.has(hb.personId)) {
-        seen.add(hb.personId);
-        uniquePeople.push({ id: hb.personId, name: hb.name, color: hb.color });
-      }
-    }
-    return uniquePeople;
-  }, [homeBases]);
+  const handleAddHomeBase = (personId: string) => {
+    if (!newHomeBase.city) return;
 
-  const handleAddHomeBase = () => {
-    if (newHomeBase.name && newHomeBase.city && newHomeBase.personId) {
-      onAddHomeBase({
-        id: uuidv4(),
-        personId: newHomeBase.personId,
-        name: newHomeBase.name,
-        city: newHomeBase.city,
-        lat: newHomeBase.lat || 0,
-        lng: newHomeBase.lng || 0,
-        color: newHomeBase.color || PRESET_COLORS[0],
-        radius: newHomeBase.radius || 50,
-        isPermanent: newHomeBase.isPermanent,
-        startDate: newHomeBase.startDate,
-        endDate: newHomeBase.endDate,
-      });
-      setNewHomeBase({
-        personId: '',
-        name: '',
-        city: '',
-        lat: 0,
-        lng: 0,
-        color: PRESET_COLORS[0],
-        radius: 50,
-        isPermanent: false,
-      });
-      setShowAddForm(false);
-    }
+    const person = PEOPLE.find((p) => p.id === personId);
+    if (!person) return;
+
+    onAddHomeBase({
+      id: uuidv4(),
+      personId,
+      name: person.name,
+      city: newHomeBase.city,
+      lat: newHomeBase.lat,
+      lng: newHomeBase.lng,
+      color: person.color,
+      radius: 40,
+      isPermanent: newHomeBase.isPermanent,
+      startDate: newHomeBase.isPermanent ? undefined : newHomeBase.startDate,
+      endDate: newHomeBase.isPermanent ? undefined : newHomeBase.endDate,
+    });
+
+    // Reset form
+    setNewHomeBase({
+      city: '',
+      lat: 0,
+      lng: 0,
+      isPermanent: false,
+    });
+    setNewCitySearch('');
+    setAddingForPerson(null);
+  };
+
+  const handleCitySelect = (result: GeocodingResult) => {
+    setNewHomeBase((prev) => ({
+      ...prev,
+      city: result.text,
+      lng: result.center[0],
+      lat: result.center[1],
+    }));
+    setNewCitySearch(result.place_name);
+  };
+
+  const handleEditCitySelect = (homeBaseId: string, result: GeocodingResult) => {
+    onUpdateHomeBase(homeBaseId, {
+      city: result.text,
+      lng: result.center[0],
+      lat: result.center[1],
+    });
   };
 
   return (
@@ -150,151 +264,41 @@ export default function SettingsModal({
               </button>
             </div>
             <p className="text-white/60 text-sm mb-4">
-              Set home locations for each person. Temporary homes override permanent ones during their active dates.
+              Manage home locations for each person. Temporary homes override permanent ones during their active dates.
             </p>
 
-            {/* Group by person */}
-            {Object.entries(groupedHomeBases).map(([personId, personHomeBases]) => (
-              <div key={personId} className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
+            {/* People sections */}
+            {PEOPLE.map((person) => (
+              <div key={person.id} className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: personHomeBases[0]?.color }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: person.color }}
                   >
-                    <User className="w-3 h-3 text-white" />
+                    <User className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-white font-medium">{personHomeBases[0]?.name}</span>
+                  <span className="text-white font-medium text-lg">{person.name}</span>
                 </div>
 
-                <div className="space-y-2 ml-8">
-                  {personHomeBases.map((homeBase) => (
+                <div className="space-y-2 ml-10">
+                  {groupedHomeBases[person.id]?.map((homeBase) => (
                     <div
                       key={homeBase.id}
                       className="bg-white/5 rounded-lg p-3"
                     >
                       {editingId === homeBase.id ? (
-                        <div className="space-y-3">
-                          <div className="flex gap-2">
-                            <div className="flex-1">
-                              <label className="text-white/60 text-xs mb-1 block">City</label>
-                              <input
-                                type="text"
-                                value={homeBase.city}
-                                onChange={(e) =>
-                                  onUpdateHomeBase(homeBase.id, { city: e.target.value })
-                                }
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                              />
-                            </div>
-                            <div className="w-24">
-                              <label className="text-white/60 text-xs mb-1 block">Type</label>
-                              <select
-                                value={homeBase.isPermanent ? 'permanent' : 'temporary'}
-                                onChange={(e) =>
-                                  onUpdateHomeBase(homeBase.id, {
-                                    isPermanent: e.target.value === 'permanent',
-                                    startDate: e.target.value === 'permanent' ? undefined : homeBase.startDate,
-                                    endDate: e.target.value === 'permanent' ? undefined : homeBase.endDate,
-                                  })
-                                }
-                                className="w-full px-2 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                              >
-                                <option value="permanent">Permanent</option>
-                                <option value="temporary">Temporary</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {!homeBase.isPermanent && (
-                            <div className="flex gap-2">
-                              <div className="flex-1">
-                                <label className="text-white/60 text-xs mb-1 block">Start Date</label>
-                                <input
-                                  type="date"
-                                  value={formatDateForInput(homeBase.startDate)}
-                                  onChange={(e) =>
-                                    onUpdateHomeBase(homeBase.id, {
-                                      startDate: parseDateInput(e.target.value),
-                                    })
-                                  }
-                                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                                />
-                              </div>
-                              <div className="flex-1">
-                                <label className="text-white/60 text-xs mb-1 block">End Date</label>
-                                <input
-                                  type="date"
-                                  value={formatDateForInput(homeBase.endDate)}
-                                  onChange={(e) =>
-                                    onUpdateHomeBase(homeBase.id, {
-                                      endDate: parseDateInput(e.target.value),
-                                    })
-                                  }
-                                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="flex gap-2">
-                            <div className="flex-1">
-                              <label className="text-white/60 text-xs mb-1 block">Latitude</label>
-                              <input
-                                type="number"
-                                step="any"
-                                value={homeBase.lat}
-                                onChange={(e) =>
-                                  onUpdateHomeBase(homeBase.id, {
-                                    lat: parseFloat(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <label className="text-white/60 text-xs mb-1 block">Longitude</label>
-                              <input
-                                type="number"
-                                step="any"
-                                value={homeBase.lng}
-                                onChange={(e) =>
-                                  onUpdateHomeBase(homeBase.id, {
-                                    lng: parseFloat(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                              />
-                            </div>
-                            <div className="w-20">
-                              <label className="text-white/60 text-xs mb-1 block">Radius</label>
-                              <input
-                                type="number"
-                                value={homeBase.radius}
-                                onChange={(e) =>
-                                  onUpdateHomeBase(homeBase.id, {
-                                    radius: parseInt(e.target.value) || 50,
-                                  })
-                                }
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <button
-                              onClick={() => onRemoveHomeBase(homeBase.id)}
-                              className="px-3 py-1 text-red-400 hover:text-red-300 text-sm"
-                            >
-                              Delete
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="px-3 py-1 bg-pink-500 text-white rounded text-sm hover:bg-pink-600"
-                            >
-                              Done
-                            </button>
-                          </div>
-                        </div>
+                        <EditHomeBaseForm
+                          homeBase={homeBase}
+                          mapboxToken={mapboxToken}
+                          onUpdate={(updates) => onUpdateHomeBase(homeBase.id, updates)}
+                          onCitySelect={(result) => handleEditCitySelect(homeBase.id, result)}
+                          onDelete={() => {
+                            onRemoveHomeBase(homeBase.id);
+                            setEditingId(null);
+                          }}
+                          onDone={() => setEditingId(null)}
+                          canDelete={!homeBase.isPermanent || groupedHomeBases[person.id].length > 1}
+                        />
                       ) : (
                         <div
                           className="flex items-center gap-3 cursor-pointer"
@@ -302,7 +306,7 @@ export default function SettingsModal({
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-white text-sm">{homeBase.city}</span>
+                              <span className="text-white text-sm font-medium">{homeBase.city}</span>
                               {homeBase.isPermanent ? (
                                 <span className="text-xs px-2 py-0.5 bg-pink-500/20 text-pink-300 rounded-full flex items-center gap-1">
                                   <Home className="w-3 h-3" />
@@ -326,233 +330,115 @@ export default function SettingsModal({
                       )}
                     </div>
                   ))}
+
+                  {/* Add home base form for this person */}
+                  {addingForPerson === person.id ? (
+                    <div className="bg-white/5 rounded-lg p-3 border border-dashed border-white/20">
+                      <h4 className="text-white text-sm font-medium mb-3">Add Home Base</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-white/60 text-xs mb-1 block">City</label>
+                          <CityAutocomplete
+                            value={newCitySearch}
+                            onChange={setNewCitySearch}
+                            onSelect={handleCitySelect}
+                            mapboxToken={mapboxToken}
+                          />
+                          {newHomeBase.city && (
+                            <p className="text-green-400 text-xs mt-1">
+                              Selected: {newHomeBase.city} ({newHomeBase.lat.toFixed(4)}, {newHomeBase.lng.toFixed(4)})
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-white/60 text-xs mb-1 block">Type</label>
+                          <select
+                            value={newHomeBase.isPermanent ? 'permanent' : 'temporary'}
+                            onChange={(e) =>
+                              setNewHomeBase((prev) => ({
+                                ...prev,
+                                isPermanent: e.target.value === 'permanent',
+                              }))
+                            }
+                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                          >
+                            <option value="temporary">Temporary</option>
+                            <option value="permanent">Permanent</option>
+                          </select>
+                        </div>
+
+                        {!newHomeBase.isPermanent && (
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <label className="text-white/60 text-xs mb-1 block">Start Date</label>
+                              <input
+                                type="date"
+                                value={formatDateForInput(newHomeBase.startDate)}
+                                onChange={(e) =>
+                                  setNewHomeBase((prev) => ({
+                                    ...prev,
+                                    startDate: parseDateInput(e.target.value),
+                                  }))
+                                }
+                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-white/60 text-xs mb-1 block">End Date</label>
+                              <input
+                                type="date"
+                                value={formatDateForInput(newHomeBase.endDate)}
+                                onChange={(e) =>
+                                  setNewHomeBase((prev) => ({
+                                    ...prev,
+                                    endDate: parseDateInput(e.target.value),
+                                  }))
+                                }
+                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setAddingForPerson(null);
+                              setNewCitySearch('');
+                              setNewHomeBase({
+                                city: '',
+                                lat: 0,
+                                lng: 0,
+                                isPermanent: false,
+                              });
+                            }}
+                            className="px-3 py-1.5 text-white/60 hover:text-white text-sm"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleAddHomeBase(person.id)}
+                            disabled={!newHomeBase.city}
+                            className="px-3 py-1.5 bg-pink-500 text-white rounded text-sm hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAddingForPerson(person.id)}
+                      className="w-full p-3 border border-dashed border-white/20 rounded-lg text-white/60 hover:text-white hover:border-white/40 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Home Base for {person.name}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
-
-            {/* Add new home base */}
-            {showAddForm ? (
-              <div className="bg-white/5 rounded-lg p-4 border border-dashed border-white/20">
-                <h4 className="text-white text-sm font-medium mb-3">Add Home Base</h4>
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="text-white/60 text-xs mb-1 block">Person</label>
-                      <select
-                        value={newHomeBase.personId}
-                        onChange={(e) => {
-                          const person = people.find((p) => p.id === e.target.value);
-                          setNewHomeBase((prev) => ({
-                            ...prev,
-                            personId: e.target.value,
-                            name: person?.name || prev.name,
-                            color: person?.color || prev.color,
-                          }));
-                        }}
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                      >
-                        <option value="">Select person...</option>
-                        {people.map((person) => (
-                          <option key={person.id} value={person.id}>
-                            {person.name}
-                          </option>
-                        ))}
-                        <option value="new">+ New person</option>
-                      </select>
-                    </div>
-                    {newHomeBase.personId === 'new' && (
-                      <div className="flex-1">
-                        <label className="text-white/60 text-xs mb-1 block">Name</label>
-                        <input
-                          type="text"
-                          value={newHomeBase.name}
-                          onChange={(e) =>
-                            setNewHomeBase((prev) => ({ ...prev, name: e.target.value }))
-                          }
-                          placeholder="Person's name"
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="text-white/60 text-xs mb-1 block">City</label>
-                      <input
-                        type="text"
-                        value={newHomeBase.city}
-                        onChange={(e) =>
-                          setNewHomeBase((prev) => ({ ...prev, city: e.target.value }))
-                        }
-                        placeholder="City name"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                      />
-                    </div>
-                    <div className="w-28">
-                      <label className="text-white/60 text-xs mb-1 block">Type</label>
-                      <select
-                        value={newHomeBase.isPermanent ? 'permanent' : 'temporary'}
-                        onChange={(e) =>
-                          setNewHomeBase((prev) => ({
-                            ...prev,
-                            isPermanent: e.target.value === 'permanent',
-                          }))
-                        }
-                        className="w-full px-2 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                      >
-                        <option value="permanent">Permanent</option>
-                        <option value="temporary">Temporary</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {!newHomeBase.isPermanent && (
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <label className="text-white/60 text-xs mb-1 block">Start Date</label>
-                        <input
-                          type="date"
-                          value={formatDateForInput(newHomeBase.startDate)}
-                          onChange={(e) =>
-                            setNewHomeBase((prev) => ({
-                              ...prev,
-                              startDate: parseDateInput(e.target.value),
-                            }))
-                          }
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-white/60 text-xs mb-1 block">End Date</label>
-                        <input
-                          type="date"
-                          value={formatDateForInput(newHomeBase.endDate)}
-                          onChange={(e) =>
-                            setNewHomeBase((prev) => ({
-                              ...prev,
-                              endDate: parseDateInput(e.target.value),
-                            }))
-                          }
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="text-white/60 text-xs mb-1 block">Latitude</label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={newHomeBase.lat}
-                        onChange={(e) =>
-                          setNewHomeBase((prev) => ({
-                            ...prev,
-                            lat: parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-white/60 text-xs mb-1 block">Longitude</label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={newHomeBase.lng}
-                        onChange={(e) =>
-                          setNewHomeBase((prev) => ({
-                            ...prev,
-                            lng: parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  {newHomeBase.personId === 'new' && (
-                    <div>
-                      <label className="text-white/60 text-xs mb-1 block">Color</label>
-                      <div className="flex gap-1 flex-wrap">
-                        {PRESET_COLORS.map((color) => (
-                          <button
-                            key={color}
-                            onClick={() => setNewHomeBase((prev) => ({ ...prev, color }))}
-                            className={`w-6 h-6 rounded-full border-2 ${
-                              newHomeBase.color === color
-                                ? 'border-white'
-                                : 'border-transparent'
-                            }`}
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setShowAddForm(false)}
-                      className="px-3 py-1 text-white/60 hover:text-white text-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        // If new person, generate a new personId
-                        if (newHomeBase.personId === 'new') {
-                          const newPersonId = uuidv4();
-                          onAddHomeBase({
-                            id: uuidv4(),
-                            personId: newPersonId,
-                            name: newHomeBase.name || '',
-                            city: newHomeBase.city || '',
-                            lat: newHomeBase.lat || 0,
-                            lng: newHomeBase.lng || 0,
-                            color: newHomeBase.color || PRESET_COLORS[0],
-                            radius: newHomeBase.radius || 50,
-                            isPermanent: newHomeBase.isPermanent,
-                            startDate: newHomeBase.startDate,
-                            endDate: newHomeBase.endDate,
-                          });
-                        } else {
-                          handleAddHomeBase();
-                        }
-                        setNewHomeBase({
-                          personId: '',
-                          name: '',
-                          city: '',
-                          lat: 0,
-                          lng: 0,
-                          color: PRESET_COLORS[0],
-                          radius: 50,
-                          isPermanent: false,
-                        });
-                        setShowAddForm(false);
-                      }}
-                      disabled={
-                        !newHomeBase.city ||
-                        (!newHomeBase.personId || (newHomeBase.personId === 'new' && !newHomeBase.name))
-                      }
-                      className="px-3 py-1 bg-pink-500 text-white rounded text-sm hover:bg-pink-600 disabled:opacity-50"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="w-full p-4 border border-dashed border-white/20 rounded-lg text-white/60 hover:text-white hover:border-white/40 transition-colors flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Add Home Base
-              </button>
-            )}
           </div>
         </div>
 
@@ -565,6 +451,123 @@ export default function SettingsModal({
             Done
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Separate component for editing a home base
+function EditHomeBaseForm({
+  homeBase,
+  mapboxToken,
+  onUpdate,
+  onCitySelect,
+  onDelete,
+  onDone,
+  canDelete,
+}: {
+  homeBase: HomeBase;
+  mapboxToken?: string;
+  onUpdate: (updates: Partial<HomeBase>) => void;
+  onCitySelect: (result: GeocodingResult) => void;
+  onDelete: () => void;
+  onDone: () => void;
+  canDelete: boolean;
+}) {
+  const [citySearch, setCitySearch] = useState(homeBase.city);
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="text-white/60 text-xs mb-1 block">City</label>
+        <CityAutocomplete
+          value={citySearch}
+          onChange={setCitySearch}
+          onSelect={(result) => {
+            onCitySelect(result);
+            setCitySearch(result.text);
+          }}
+          mapboxToken={mapboxToken}
+        />
+        <p className="text-white/50 text-xs mt-1">
+          Current: {homeBase.city} ({homeBase.lat.toFixed(4)}, {homeBase.lng.toFixed(4)})
+        </p>
+      </div>
+
+      <div>
+        <label className="text-white/60 text-xs mb-1 block">Type</label>
+        <select
+          value={homeBase.isPermanent ? 'permanent' : 'temporary'}
+          onChange={(e) =>
+            onUpdate({
+              isPermanent: e.target.value === 'permanent',
+              startDate: e.target.value === 'permanent' ? undefined : homeBase.startDate,
+              endDate: e.target.value === 'permanent' ? undefined : homeBase.endDate,
+            })
+          }
+          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+        >
+          <option value="temporary">Temporary</option>
+          <option value="permanent">Permanent</option>
+        </select>
+      </div>
+
+      {!homeBase.isPermanent && (
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="text-white/60 text-xs mb-1 block">Start Date</label>
+            <input
+              type="date"
+              value={formatDateForInput(homeBase.startDate)}
+              onChange={(e) =>
+                onUpdate({ startDate: parseDateInput(e.target.value) })
+              }
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-white/60 text-xs mb-1 block">End Date</label>
+            <input
+              type="date"
+              value={formatDateForInput(homeBase.endDate)}
+              onChange={(e) =>
+                onUpdate({ endDate: parseDateInput(e.target.value) })
+              }
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label className="text-white/60 text-xs mb-1 block">Radius (km)</label>
+          <input
+            type="number"
+            value={homeBase.radius}
+            onChange={(e) => onUpdate({ radius: parseInt(e.target.value) || 40 })}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-between pt-2">
+        {canDelete ? (
+          <button
+            onClick={onDelete}
+            className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm"
+          >
+            Delete
+          </button>
+        ) : (
+          <div />
+        )}
+        <button
+          onClick={onDone}
+          className="px-4 py-1.5 bg-pink-500 text-white rounded text-sm hover:bg-pink-600"
+        >
+          Done
+        </button>
       </div>
     </div>
   );

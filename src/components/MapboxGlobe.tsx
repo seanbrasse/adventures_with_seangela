@@ -317,21 +317,23 @@ export default function MapboxGlobe({
       >
         <NavigationControl position="bottom-right" />
 
-        {/* Home base markers */}
-        {homeBases.map((homeBase) => (
-          <Marker
-            key={`home-${homeBase.id}`}
-            longitude={homeBase.lng}
-            latitude={homeBase.lat}
-            anchor="center"
-          >
-            <div
-              className="w-4 h-4 rounded-full border-2 border-white shadow-lg"
-              style={{ backgroundColor: homeBase.color }}
-              title={`${homeBase.name}'s home: ${homeBase.city}`}
-            />
-          </Marker>
-        ))}
+        {/* Home base markers - only show permanent homes */}
+        {homeBases
+          .filter((hb) => hb.isPermanent)
+          .map((homeBase) => (
+            <Marker
+              key={`home-${homeBase.id}`}
+              longitude={homeBase.lng}
+              latitude={homeBase.lat}
+              anchor="center"
+            >
+              <div
+                className="w-4 h-4 rounded-full border-2 border-white shadow-lg"
+                style={{ backgroundColor: homeBase.color }}
+                title={`${homeBase.name}'s home: ${homeBase.city}`}
+              />
+            </Marker>
+          ))}
 
         {/* Flight lines */}
         {flightLines.length > 0 && (

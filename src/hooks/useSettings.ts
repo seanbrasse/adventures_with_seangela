@@ -3,6 +3,7 @@ import type { AppSettings, HomeBase } from '../types/photo';
 import { DEFAULT_HOME_BASES } from '../types/photo';
 
 const SETTINGS_KEY = 'photo-map-settings';
+const SETTINGS_VERSION = 2; // Bump this when schema changes
 
 // Stored home base with dates as strings
 interface StoredHomeBase extends Omit<HomeBase, 'startDate' | 'endDate'> {
@@ -11,6 +12,7 @@ interface StoredHomeBase extends Omit<HomeBase, 'startDate' | 'endDate'> {
 }
 
 interface StoredSettings {
+  version?: number;
   homeBases: StoredHomeBase[];
 }
 
@@ -32,6 +34,15 @@ function serializeHomeBase(hb: HomeBase): StoredHomeBase {
   };
 }
 
+// Check if stored data is valid (has required fields)
+function isValidStoredData(parsed: StoredSettings): boolean {
+  if (!parsed.homeBases || !Array.isArray(parsed.homeBases)) return false;
+  // Check if all home bases have the new schema fields
+  return parsed.homeBases.every(
+    (hb) => hb.personId && typeof hb.personId === 'string'
+  );
+}
+
 export function useSettings() {
   const [settings, setSettings] = useState<AppSettings>({
     homeBases: DEFAULT_HOME_BASES,
@@ -44,12 +55,20 @@ export function useSettings() {
       const stored = localStorage.getItem(SETTINGS_KEY);
       if (stored) {
         const parsed: StoredSettings = JSON.parse(stored);
-        setSettings({
-          homeBases: parsed.homeBases.map(parseHomeBase),
-        });
+        // Check version and validity - if old schema, reset to defaults
+        if (parsed.version !== SETTINGS_VERSION || !isValidStoredData(parsed)) {
+          console.log('Settings schema changed, resetting to defaults');
+          localStorage.removeItem(SETTINGS_KEY);
+          // Keep defaults
+        } else {
+          setSettings({
+            homeBases: parsed.homeBases.map(parseHomeBase),
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading settings:', error);
+      localStorage.removeItem(SETTINGS_KEY);
     } finally {
       setIsLoading(false);
     }
@@ -60,6 +79,7 @@ export function useSettings() {
     if (!isLoading) {
       try {
         const toStore: StoredSettings = {
+          version: SETTINGS_VERSION,
           homeBases: settings.homeBases.map(serializeHomeBase),
         };
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(toStore));
