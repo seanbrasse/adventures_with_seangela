@@ -1,4 +1,5 @@
 import exifr from 'exifr';
+import heic2any from 'heic2any';
 import { v4 as uuidv4 } from 'uuid';
 import type { Photo } from '../types/photo';
 import { supabase, isSupabaseConfigured } from './supabase';
@@ -13,14 +14,39 @@ export interface ExtractedPhotoData {
   needsLocation: boolean;
 }
 
+async function convertHeicToJpeg(file: File): Promise<File> {
+  if (!file.type.includes('heic') && !file.name.toLowerCase().endsWith('.heic')) {
+    return file;
+  }
+
+  try {
+    const blob = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.9,
+    });
+
+    const jpegBlob = Array.isArray(blob) ? blob[0] : blob;
+    const newName = file.name.replace(/\.heic$/i, '.jpg');
+    return new File([jpegBlob], newName, { type: 'image/jpeg' });
+  } catch (error) {
+    console.error('Error converting HEIC:', error);
+    return file;
+  }
+}
+
 export async function extractPhotoData(file: File): Promise<ExtractedPhotoData | null> {
   try {
+    // Extract EXIF before conversion (HEIC files have EXIF too)
     const exifData = await exifr.parse(file, {
       gps: true,
       pick: ['DateTimeOriginal', 'CreateDate', 'ModifyDate', 'GPSLatitude', 'GPSLongitude'],
     });
 
-    const thumbnail = await createThumbnail(file);
+    // Convert HEIC to JPEG if needed
+    const processedFile = await convertHeicToJpeg(file);
+
+    const thumbnail = await createThumbnail(processedFile);
 
     // Try to get GPS coordinates
     let lat: number | null = null;
@@ -45,26 +71,33 @@ export async function extractPhotoData(file: File): Promise<ExtractedPhotoData |
 
     return {
       id: uuidv4(),
-      file,
+      file: processedFile,
       thumbnail,
       location: { lat: lat ?? 0, lng: lng ?? 0 },
       date,
-      description: file.name,
+      description: file.name.replace(/\.[^/.]+$/, ''),
       needsLocation,
     };
   } catch (error) {
     console.error('Error extracting EXIF data:', error);
-    const thumbnail = await createThumbnail(file);
 
-    return {
-      id: uuidv4(),
-      file,
-      thumbnail,
-      location: { lat: 0, lng: 0 },
-      date: new Date(),
-      description: file.name,
-      needsLocation: true,
-    };
+    try {
+      const processedFile = await convertHeicToJpeg(file);
+      const thumbnail = await createThumbnail(processedFile);
+
+      return {
+        id: uuidv4(),
+        file: processedFile,
+        thumbnail,
+        location: { lat: 0, lng: 0 },
+        date: new Date(),
+        description: file.name.replace(/\.[^/.]+$/, ''),
+        needsLocation: true,
+      };
+    } catch (thumbError) {
+      console.error('Error creating thumbnail:', thumbError);
+      return null;
+    }
   }
 }
 
@@ -82,14 +115,30 @@ export async function uploadPhotoToStorage(
   }
 
   try {
-    const fileExt = file.name.split('.').pop() || 'jpg';
-    const fileName = `${id}.${fileExt}`;
+    // Always save as jpg for consistency
+    const fileName = `${id}.jpg`;
     const thumbnailName = `${id}_thumb.jpg`;
+
+    // Convert file to blob if needed
+    let uploadBlob: Blob = file;
+    if (!file.type.includes('jpeg') && !file.type.includes('jpg')) {
+      // Convert to JPEG
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = await createImageFromFile(file);
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      uploadBlob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.9);
+      });
+    }
 
     // Upload full image
     const { error: uploadError } = await supabase.storage
       .from('photos')
-      .upload(fileName, file, {
+      .upload(fileName, uploadBlob, {
+        contentType: 'image/jpeg',
         cacheControl: '31536000',
         upsert: false,
       });
@@ -104,6 +153,7 @@ export async function uploadPhotoToStorage(
     const { error: thumbError } = await supabase.storage
       .from('photos')
       .upload(thumbnailName, thumbnailBlob, {
+        contentType: 'image/jpeg',
         cacheControl: '31536000',
         upsert: false,
       });
@@ -126,8 +176,17 @@ export async function uploadPhotoToStorage(
   }
 }
 
+function createImageFromFile(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export async function createThumbnail(file: File, maxSize = 200): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -156,8 +215,10 @@ export async function createThumbnail(file: File, maxSize = 200): Promise<string
 
         resolve(canvas.toDataURL('image/jpeg', 0.7));
       };
+      img.onerror = () => reject(new Error('Failed to load image'));
       img.src = e.target?.result as string;
     };
+    reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
 }

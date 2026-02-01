@@ -29,7 +29,12 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
     const newPhotos: PendingPhoto[] = [];
 
     for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/')) continue;
+      // Accept image/* types, HEIC files, and files with image extensions
+      const isImage = file.type.startsWith('image/') ||
+        file.type.includes('heic') ||
+        /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
+
+      if (!isImage) continue;
 
       const photoData = await extractPhotoData(file);
       if (photoData) {
@@ -186,7 +191,7 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               multiple
               onChange={handleFileSelect}
               className="hidden"
