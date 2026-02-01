@@ -1,15 +1,25 @@
 import exifr from 'exifr';
 import { v4 as uuidv4 } from 'uuid';
 import type { Photo } from '../types/photo';
+import { supabase, isSupabaseConfigured } from './supabase';
 
-export async function extractPhotoData(file: File): Promise<Photo | null> {
+export interface ExtractedPhotoData {
+  id: string;
+  file: File;
+  thumbnail: string;
+  location: { lat: number; lng: number };
+  date: Date;
+  description: string;
+  needsLocation: boolean;
+}
+
+export async function extractPhotoData(file: File): Promise<ExtractedPhotoData | null> {
   try {
     const exifData = await exifr.parse(file, {
       gps: true,
       pick: ['DateTimeOriginal', 'CreateDate', 'ModifyDate', 'GPSLatitude', 'GPSLongitude'],
     });
 
-    const url = URL.createObjectURL(file);
     const thumbnail = await createThumbnail(file);
 
     // Try to get GPS coordinates
@@ -31,43 +41,92 @@ export async function extractPhotoData(file: File): Promise<Photo | null> {
       date = new Date(exifData.ModifyDate);
     }
 
-    // If no GPS data, return null (user will need to set location manually)
-    if (lat === null || lng === null) {
-      return {
-        id: uuidv4(),
-        url,
-        thumbnail,
-        location: { lat: 0, lng: 0 },
-        date,
-        description: file.name,
-      };
-    }
+    const needsLocation = lat === null || lng === null;
 
     return {
       id: uuidv4(),
-      url,
+      file,
       thumbnail,
-      location: { lat, lng },
+      location: { lat: lat ?? 0, lng: lng ?? 0 },
       date,
       description: file.name,
+      needsLocation,
     };
   } catch (error) {
     console.error('Error extracting EXIF data:', error);
-    const url = URL.createObjectURL(file);
     const thumbnail = await createThumbnail(file);
 
     return {
       id: uuidv4(),
-      url,
+      file,
       thumbnail,
       location: { lat: 0, lng: 0 },
       date: new Date(),
       description: file.name,
+      needsLocation: true,
     };
   }
 }
 
-async function createThumbnail(file: File, maxSize = 200): Promise<string> {
+export async function uploadPhotoToStorage(
+  id: string,
+  file: File,
+  thumbnail: string
+): Promise<{ url: string; thumbnailUrl: string } | null> {
+  if (!isSupabaseConfigured || !supabase) {
+    // Fallback to object URLs for local storage mode
+    return {
+      url: URL.createObjectURL(file),
+      thumbnailUrl: thumbnail,
+    };
+  }
+
+  try {
+    const fileExt = file.name.split('.').pop() || 'jpg';
+    const fileName = `${id}.${fileExt}`;
+    const thumbnailName = `${id}_thumb.jpg`;
+
+    // Upload full image
+    const { error: uploadError } = await supabase.storage
+      .from('photos')
+      .upload(fileName, file, {
+        cacheControl: '31536000',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('Error uploading photo:', uploadError);
+      return null;
+    }
+
+    // Upload thumbnail (convert base64 to blob)
+    const thumbnailBlob = await fetch(thumbnail).then(r => r.blob());
+    const { error: thumbError } = await supabase.storage
+      .from('photos')
+      .upload(thumbnailName, thumbnailBlob, {
+        cacheControl: '31536000',
+        upsert: false,
+      });
+
+    if (thumbError) {
+      console.error('Error uploading thumbnail:', thumbError);
+    }
+
+    // Get public URLs
+    const { data: urlData } = supabase.storage.from('photos').getPublicUrl(fileName);
+    const { data: thumbUrlData } = supabase.storage.from('photos').getPublicUrl(thumbnailName);
+
+    return {
+      url: urlData.publicUrl,
+      thumbnailUrl: thumbUrlData.publicUrl,
+    };
+  } catch (error) {
+    console.error('Error in uploadPhotoToStorage:', error);
+    return null;
+  }
+}
+
+export async function createThumbnail(file: File, maxSize = 200): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {

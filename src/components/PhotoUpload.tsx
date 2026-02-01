@@ -1,21 +1,23 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, X, MapPin, Check, AlertCircle } from 'lucide-react';
+import { Upload, X, MapPin, Check, AlertCircle, Loader2 } from 'lucide-react';
 import type { Photo } from '../types/photo';
-import { extractPhotoData } from '../utils/exif';
+import { extractPhotoData, uploadPhotoToStorage } from '../utils/exif';
+import type { ExtractedPhotoData } from '../utils/exif';
 
 interface PhotoUploadProps {
   onUpload: (photos: Photo[]) => void;
   onClose: () => void;
 }
 
-interface PendingPhoto extends Photo {
-  needsLocation: boolean;
-  file: File;
+interface PendingPhoto extends ExtractedPhotoData {
+  // ExtractedPhotoData already has all fields we need
 }
 
 export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [editingLocation, setEditingLocation] = useState<string | null>(null);
   const [manualLat, setManualLat] = useState('');
@@ -31,12 +33,7 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
 
       const photoData = await extractPhotoData(file);
       if (photoData) {
-        const needsLocation = photoData.location.lat === 0 && photoData.location.lng === 0;
-        newPhotos.push({
-          ...photoData,
-          needsLocation,
-          file,
-        });
+        newPhotos.push(photoData);
       }
     }
 
@@ -98,12 +95,39 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
     setManualLng('');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const validPhotos = pendingPhotos.filter((p) => !p.needsLocation);
-    if (validPhotos.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const photosToUpload = validPhotos.map(({ needsLocation, file, ...photo }) => photo);
-      onUpload(photosToUpload);
+    if (validPhotos.length === 0) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    const uploadedPhotos: Photo[] = [];
+
+    for (let i = 0; i < validPhotos.length; i++) {
+      const photo = validPhotos[i];
+      setUploadProgress(Math.round(((i + 0.5) / validPhotos.length) * 100));
+
+      const uploadResult = await uploadPhotoToStorage(photo.id, photo.file, photo.thumbnail);
+
+      if (uploadResult) {
+        uploadedPhotos.push({
+          id: photo.id,
+          url: uploadResult.url,
+          thumbnail: uploadResult.thumbnailUrl,
+          location: photo.location,
+          date: photo.date,
+          description: photo.description,
+        });
+      }
+
+      setUploadProgress(Math.round(((i + 1) / validPhotos.length) * 100));
+    }
+
+    setIsUploading(false);
+
+    if (uploadedPhotos.length > 0) {
+      onUpload(uploadedPhotos);
       onClose();
     }
   };
@@ -119,7 +143,8 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
           <h2 className="text-xl font-semibold text-white">Add Photos</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            disabled={isUploading}
+            className="p-2 rounded-full hover:bg-white/10 transition-colors disabled:opacity-50"
           >
             <X className="w-5 h-5 text-white" />
           </button>
@@ -127,16 +152,35 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
+          {/* Uploading overlay */}
+          {isUploading && (
+            <div className="mb-4 p-4 bg-pink-500/20 rounded-lg">
+              <div className="flex items-center gap-3 mb-2">
+                <Loader2 className="w-5 h-5 text-pink-400 animate-spin" />
+                <span className="text-white">Uploading photos...</span>
+              </div>
+              <div className="w-full bg-white/20 rounded-full h-2">
+                <div
+                  className="bg-pink-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <p className="text-white/60 text-sm mt-1">{uploadProgress}% complete</p>
+            </div>
+          )}
+
           {/* Drop zone */}
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-              dragActive
-                ? 'border-pink-400 bg-pink-400/10'
-                : 'border-white/20 hover:border-white/40'
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+              isUploading
+                ? 'opacity-50 cursor-not-allowed border-white/10'
+                : dragActive
+                ? 'border-pink-400 bg-pink-400/10 cursor-pointer'
+                : 'border-white/20 hover:border-white/40 cursor-pointer'
             }`}
           >
             <input
@@ -146,6 +190,7 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
               multiple
               onChange={handleFileSelect}
               className="hidden"
+              disabled={isUploading}
             />
             <Upload className="w-12 h-12 mx-auto mb-4 text-white/60" />
             <p className="text-white/80 mb-2">
@@ -158,7 +203,8 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
 
           {/* Processing indicator */}
           {isProcessing && (
-            <div className="mt-4 text-center text-white/60">
+            <div className="mt-4 flex items-center justify-center gap-2 text-white/60">
+              <Loader2 className="w-4 h-4 animate-spin" />
               Processing photos...
             </div>
           )}
@@ -234,7 +280,8 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
                     </div>
                     <button
                       onClick={() => handleRemove(photo.id)}
-                      className="p-2 rounded-full hover:bg-white/10"
+                      disabled={isUploading}
+                      className="p-2 rounded-full hover:bg-white/10 disabled:opacity-50"
                     >
                       <X className="w-4 h-4 text-white/60" />
                     </button>
@@ -260,16 +307,24 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+              disabled={isUploading}
+              className="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
-              disabled={validCount === 0}
-              className="px-4 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={validCount === 0 || isUploading}
+              className="px-4 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
-              Add {validCount} Photo{validCount !== 1 ? 's' : ''}
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>Add {validCount} Photo{validCount !== 1 ? 's' : ''}</>
+              )}
             </button>
           </div>
         </div>
