@@ -1,18 +1,31 @@
 import { useState, useCallback } from 'react';
-import { Plus, Menu, X, Heart, Key } from 'lucide-react';
+import { Plus, Menu, X, Heart, Key, Settings } from 'lucide-react';
 import MapboxGlobe from './components/MapboxGlobe';
 import PhotoGallery from './components/PhotoGallery';
 import PhotoUpload from './components/PhotoUpload';
 import Sidebar from './components/Sidebar';
+import SettingsModal from './components/SettingsModal';
 import { usePhotoStorage } from './hooks/usePhotoStorage';
+import { useSettings } from './hooks/useSettings';
+import { useTrips } from './hooks/useTrips';
 import type { Photo } from './types/photo';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
 
 function App() {
   const { photos, isLoading, addPhotos, removePhoto } = usePhotoStorage();
+  const {
+    settings,
+    updateHomeBase,
+    addHomeBase,
+    removeHomeBase,
+    resetToDefaults,
+  } = useSettings();
+  const { flightLines } = useTrips(photos, settings.homeBases);
+
   const [showUpload, setShowUpload] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -63,12 +76,20 @@ function App() {
     <div className="w-full h-full flex flex-col md:flex-row relative overflow-hidden">
       {/* Mobile header */}
       <header className="md:hidden flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm z-20 relative">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-        >
-          <Menu className="w-5 h-5 text-white" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            <Menu className="w-5 h-5 text-white" />
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            <Settings className="w-5 h-5 text-white" />
+          </button>
+        </div>
         <h1 className="text-lg font-semibold text-white flex items-center gap-2">
           <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
           Our Photo Map
@@ -118,14 +139,21 @@ function App() {
           <Sidebar photos={photos} onLocationSelect={handleLocationClick} />
         </div>
 
-        {/* Desktop add button */}
-        <div className="hidden md:block p-4 border-t border-white/10">
+        {/* Desktop buttons */}
+        <div className="hidden md:block p-4 border-t border-white/10 space-y-2">
           <button
             onClick={() => setShowUpload(true)}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-pink-500 hover:bg-pink-600 transition-colors text-white font-medium"
           >
             <Plus className="w-5 h-5" />
             Add Photos
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/80"
+          >
+            <Settings className="w-4 h-4" />
+            Settings
           </button>
         </div>
       </aside>
@@ -138,6 +166,8 @@ function App() {
             onLocationClick={handleLocationClick}
             selectedLocation={selectedLocation}
             accessToken={apiKey}
+            flightLines={flightLines}
+            homeBases={settings.homeBases}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-b from-gray-900 to-gray-800" />
@@ -231,6 +261,18 @@ function App() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Settings modal */}
+      {showSettings && (
+        <SettingsModal
+          homeBases={settings.homeBases}
+          onUpdateHomeBase={updateHomeBase}
+          onAddHomeBase={addHomeBase}
+          onRemoveHomeBase={removeHomeBase}
+          onResetToDefaults={resetToDefaults}
+          onClose={() => setShowSettings(false)}
+        />
       )}
     </div>
   );

@@ -1,16 +1,116 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
-import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/mapbox';
+import Map, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
-import { Heart } from 'lucide-react';
-import type { Photo } from '../types/photo';
+import { Heart, Plane } from 'lucide-react';
+import type { Photo, HomeBase } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 import 'mapbox-gl/dist/mapbox-gl.css';
+
+interface FlightLine {
+  id: string;
+  tripId: string;
+  tripName: string;
+  from: { lat: number; lng: number; name: string };
+  to: { lat: number; lng: number; name: string };
+  color: string;
+  travelerId: string;
+}
 
 interface MapboxGlobeProps {
   photos: Photo[];
   onLocationClick: (photos: Photo[]) => void;
   selectedLocation: { lat: number; lng: number } | null;
   accessToken: string;
+  flightLines?: FlightLine[];
+  homeBases?: HomeBase[];
+}
+
+// Generate great circle arc points between two coordinates
+function generateArcPoints(
+  startLng: number,
+  startLat: number,
+  endLng: number,
+  endLat: number,
+  numPoints = 100
+): [number, number][] {
+  const points: [number, number][] = [];
+
+  // Convert to radians
+  const lat1 = startLat * (Math.PI / 180);
+  const lng1 = startLng * (Math.PI / 180);
+  const lat2 = endLat * (Math.PI / 180);
+  const lng2 = endLng * (Math.PI / 180);
+
+  // Calculate great circle distance
+  const d = 2 * Math.asin(
+    Math.sqrt(
+      Math.pow(Math.sin((lat1 - lat2) / 2), 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin((lng1 - lng2) / 2), 2)
+    )
+  );
+
+  for (let i = 0; i <= numPoints; i++) {
+    const f = i / numPoints;
+
+    // Calculate intermediate point on great circle
+    const A = Math.sin((1 - f) * d) / Math.sin(d);
+    const B = Math.sin(f * d) / Math.sin(d);
+
+    const x = A * Math.cos(lat1) * Math.cos(lng1) + B * Math.cos(lat2) * Math.cos(lng2);
+    const y = A * Math.cos(lat1) * Math.sin(lng1) + B * Math.cos(lat2) * Math.sin(lng2);
+    const z = A * Math.sin(lat1) + B * Math.sin(lat2);
+
+    const lat = Math.atan2(z, Math.sqrt(x * x + y * y)) * (180 / Math.PI);
+    const lng = Math.atan2(y, x) * (180 / Math.PI);
+
+    points.push([lng, lat]);
+  }
+
+  return points;
+}
+
+// Get midpoint of a great circle arc
+function getMidpoint(
+  startLng: number,
+  startLat: number,
+  endLng: number,
+  endLat: number
+): { lat: number; lng: number } {
+  const lat1 = startLat * (Math.PI / 180);
+  const lng1 = startLng * (Math.PI / 180);
+  const lat2 = endLat * (Math.PI / 180);
+  const lng2 = endLng * (Math.PI / 180);
+
+  const Bx = Math.cos(lat2) * Math.cos(lng2 - lng1);
+  const By = Math.cos(lat2) * Math.sin(lng2 - lng1);
+
+  const lat3 = Math.atan2(
+    Math.sin(lat1) + Math.sin(lat2),
+    Math.sqrt((Math.cos(lat1) + Bx) * (Math.cos(lat1) + Bx) + By * By)
+  );
+  const lng3 = lng1 + Math.atan2(By, Math.cos(lat1) + Bx);
+
+  return {
+    lat: lat3 * (180 / Math.PI),
+    lng: lng3 * (180 / Math.PI),
+  };
+}
+
+// Calculate bearing between two points for plane rotation
+function getBearing(
+  startLng: number,
+  startLat: number,
+  endLng: number,
+  endLat: number
+): number {
+  const lat1 = startLat * (Math.PI / 180);
+  const lat2 = endLat * (Math.PI / 180);
+  const dLng = (endLng - startLng) * (Math.PI / 180);
+
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
+  return (Math.atan2(y, x) * (180 / Math.PI) + 360) % 360;
 }
 
 interface PointData {
@@ -23,10 +123,13 @@ export default function MapboxGlobe({
   photos,
   onLocationClick,
   selectedLocation,
-  accessToken
+  accessToken,
+  flightLines = [],
+  homeBases = [],
 }: MapboxGlobeProps) {
   const mapRef = useRef<MapRef>(null);
   const [hoveredPoint, setHoveredPoint] = useState<PointData | null>(null);
+  const [hoveredLine, setHoveredLine] = useState<(FlightLine & { midpoint: { lat: number; lng: number }; bearing: number }) | null>(null);
 
   // Group photos by location
   const pointsData = useMemo<PointData[]>(() => {
@@ -82,9 +185,76 @@ export default function MapboxGlobe({
     }
   }, [pointsData.length]);
 
+  // Generate GeoJSON for flight lines
+  const flightLinesGeoJSON = useMemo(() => {
+    const features = flightLines.map((line) => {
+      const arcPoints = generateArcPoints(
+        line.from.lng,
+        line.from.lat,
+        line.to.lng,
+        line.to.lat,
+        100
+      );
+
+      return {
+        type: 'Feature' as const,
+        properties: {
+          id: line.id,
+          tripId: line.tripId,
+          tripName: line.tripName,
+          color: line.color,
+          fromName: line.from.name,
+          toName: line.to.name,
+        },
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: arcPoints,
+        },
+      };
+    });
+
+    return {
+      type: 'FeatureCollection' as const,
+      features,
+    };
+  }, [flightLines]);
+
+  // Calculate midpoints and bearings for plane icons
+  const planePositions = useMemo(() => {
+    return flightLines.map((line) => {
+      const midpoint = getMidpoint(
+        line.from.lng,
+        line.from.lat,
+        line.to.lng,
+        line.to.lat
+      );
+      const bearing = getBearing(
+        line.from.lng,
+        line.from.lat,
+        line.to.lng,
+        line.to.lat
+      );
+      return {
+        ...line,
+        midpoint,
+        bearing,
+      };
+    });
+  }, [flightLines]);
+
   const handleMarkerClick = useCallback((point: PointData) => {
     onLocationClick(point.photos);
   }, [onLocationClick]);
+
+  const handleLineClick = useCallback((line: FlightLine) => {
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [line.to.lng, line.to.lat],
+        zoom: 6,
+        duration: 2000,
+      });
+    }
+  }, []);
 
   return (
     <div className="w-full h-full">
@@ -108,6 +278,87 @@ export default function MapboxGlobe({
         }}
       >
         <NavigationControl position="bottom-right" />
+
+        {/* Home base markers */}
+        {homeBases.map((homeBase) => (
+          <Marker
+            key={`home-${homeBase.id}`}
+            longitude={homeBase.lng}
+            latitude={homeBase.lat}
+            anchor="center"
+          >
+            <div
+              className="w-4 h-4 rounded-full border-2 border-white shadow-lg"
+              style={{ backgroundColor: homeBase.color }}
+              title={`${homeBase.name}'s home: ${homeBase.city}`}
+            />
+          </Marker>
+        ))}
+
+        {/* Flight lines */}
+        {flightLines.length > 0 && (
+          <Source id="flight-lines" type="geojson" data={flightLinesGeoJSON}>
+            {/* Render each line as a separate layer with its color */}
+            {flightLines.map((line) => (
+              <Layer
+                key={line.id}
+                id={`flight-line-${line.id}`}
+                type="line"
+                filter={['==', ['get', 'id'], line.id]}
+                paint={{
+                  'line-color': line.color,
+                  'line-width': 2,
+                  'line-opacity': 0.8,
+                  'line-dasharray': [2, 2],
+                }}
+              />
+            ))}
+          </Source>
+        )}
+
+        {/* Plane icons at midpoints */}
+        {planePositions.map((plane) => (
+          <Marker
+            key={`plane-${plane.id}`}
+            longitude={plane.midpoint.lng}
+            latitude={plane.midpoint.lat}
+            anchor="center"
+            onClick={() => handleLineClick(plane)}
+          >
+            <div
+              className="cursor-pointer transform transition-transform hover:scale-125"
+              style={{ transform: `rotate(${plane.bearing - 45}deg)` }}
+              onMouseEnter={() => setHoveredLine(plane)}
+              onMouseLeave={() => setHoveredLine(null)}
+            >
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg"
+                style={{ backgroundColor: plane.color }}
+              >
+                <Plane className="w-3 h-3 text-white" />
+              </div>
+            </div>
+          </Marker>
+        ))}
+
+        {/* Hovered line tooltip */}
+        {hoveredLine && (
+          <Popup
+            longitude={hoveredLine.midpoint.lng}
+            latitude={hoveredLine.midpoint.lat}
+            anchor="bottom"
+            closeButton={false}
+            closeOnClick={false}
+            offset={20}
+          >
+            <div className="p-2 text-center">
+              <p className="font-medium text-gray-800 text-sm">{hoveredLine.tripName}</p>
+              <p className="text-xs text-gray-500">
+                {hoveredLine.from.name} → {hoveredLine.to.name}
+              </p>
+            </div>
+          </Popup>
+        )}
 
         {pointsData.map((point, index) => (
           <Marker
