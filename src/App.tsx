@@ -2,9 +2,9 @@ import { useState, useCallback } from 'react';
 import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import styled, { createGlobalStyle } from 'styled-components';
 import MapboxGlobe from './components/MapboxGlobe';
-import PhotoGallery from './components/PhotoGallery';
+import PhotoGallery, { type LocationContext } from './components/PhotoGallery';
 import PhotoUpload from './components/PhotoUpload';
-import Sidebar, { type LocationContext } from './components/Sidebar';
+import Sidebar from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
 import { usePhotoStorage } from './hooks/usePhotoStorage';
 import { useSettings } from './hooks/useSettings';
@@ -734,7 +734,7 @@ function App() {
           </SidebarHeader>
 
           <SidebarContent>
-            <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} onAddPhotoToLocation={handleAddPhotoToLocation} />
+            <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} />
           </SidebarContent>
         </MobileSidebarContainer>
 
@@ -749,7 +749,7 @@ function App() {
             </SidebarHeader>
 
             <SidebarContent>
-              <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} onAddPhotoToLocation={handleAddPhotoToLocation} />
+              <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} />
             </SidebarContent>
 
             <SidebarFooter>
@@ -834,6 +834,7 @@ function App() {
                 prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
               );
             }}
+            onAddPhoto={handleAddPhotoToLocation}
             locationName={selectedPhotos[0]?.location.name}
             mapboxToken={apiKey}
           />

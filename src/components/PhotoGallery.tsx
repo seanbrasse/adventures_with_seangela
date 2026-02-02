@@ -1,9 +1,15 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Pencil, Check, Clock, Calendar, MessageSquare } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Pencil, Check, Clock, Calendar, MessageSquare, Plus } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo } from '../types/photo';
 import { searchPlaces, type GeocodingResult } from '../utils/geocoding';
+
+export interface LocationContext {
+  lat: number;
+  lng: number;
+  name: string;
+}
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -11,6 +17,7 @@ interface PhotoGalleryProps {
   onDeletePhoto: (id: string) => void;
   onRenameLocation?: (photoIds: string[], newName: string) => void;
   onUpdatePhoto?: (id: string, updates: Partial<Photo>) => void;
+  onAddPhoto?: (location: LocationContext) => void;
   locationName?: string;
   mapboxToken?: string;
 }
@@ -214,6 +221,41 @@ const AutocompleteLoading = styled.div`
 const PhotoCount = styled.span`
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.5);
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const AddPhotoButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #f472b6;
+  font-size: 0.9375rem;
+  font-weight: 500;
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.3) 0%, rgba(168, 85, 247, 0.25) 100%);
+    border-color: rgba(236, 72, 153, 0.5);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
 const CloseButton = styled.button`
@@ -670,6 +712,7 @@ export default function PhotoGallery({
   onDeletePhoto,
   onRenameLocation,
   onUpdatePhoto,
+  onAddPhoto,
   locationName,
   mapboxToken,
 }: PhotoGalleryProps) {
@@ -953,9 +996,26 @@ export default function PhotoGallery({
             </PhotoCount>
           </HeaderText>
         </HeaderLeft>
-        <CloseButton onClick={onClose}>
-          <X />
-        </CloseButton>
+        <HeaderActions>
+          {onAddPhoto && photos.length > 0 && (
+            <AddPhotoButton
+              onClick={() => {
+                const firstPhoto = photos[0];
+                onAddPhoto({
+                  lat: firstPhoto.location.lat,
+                  lng: firstPhoto.location.lng,
+                  name: locationName || firstPhoto.location.name || 'Unknown location',
+                });
+              }}
+            >
+              <Plus />
+              Add Photo
+            </AddPhotoButton>
+          )}
+          <CloseButton onClick={onClose}>
+            <X />
+          </CloseButton>
+        </HeaderActions>
       </Header>
 
       {selectedIndex !== null ? (
