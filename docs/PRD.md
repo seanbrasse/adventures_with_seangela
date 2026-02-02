@@ -35,12 +35,15 @@ A beautiful, interactive web application that maps photos to locations on a 3D g
 
 #### EXIF Extraction
 - Automatically extracts GPS coordinates from photo metadata
+- Handles GPS coordinate sign correction (GPSLatitudeRef S = negative, GPSLongitudeRef W = negative)
+- Includes sanity checks for known Western hemisphere cities (NYC, LA, SF) to correct sign errors
 - Extracts date from DateTimeOriginal, CreateDate, or ModifyDate
 - HEIC files are converted to JPEG for display
 
 #### Location Handling
 - **With GPS:** Auto-reverse geocodes to city name (e.g., "Dubai, United Arab Emirates")
-- **Without GPS:** Shows "Add location" prompt with autocomplete search
+- **Without GPS:** Shows prominent "Add location" button with yellow/amber styling
+- Auto-opens location search for the first photo needing a location
 - Uses Mapbox Geocoding API for both forward and reverse geocoding
 
 #### Date Handling
@@ -102,10 +105,13 @@ For each photo location (trip destination):
 
 ### 2.6 Sidebar
 
+Compact 320px width with Apple-like minimal, monochromatic design.
+
 #### Stats Section
 - Total photo count
 - Total locations count
 - Date range (first to last photo)
+- Monochromatic stat cards (no contrasting colors)
 
 #### Locations List
 - Sorted by most recent photo

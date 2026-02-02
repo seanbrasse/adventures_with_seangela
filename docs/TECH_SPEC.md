@@ -22,6 +22,11 @@
 | localStorage | Settings persistence |
 | Object URLs | Fallback for local-only mode |
 
+### Styling
+| Technology | Purpose |
+|------------|---------|
+| styled-components | CSS-in-JS component styling |
+
 ### Utilities
 | Library | Purpose |
 |---------|---------|
@@ -147,7 +152,31 @@ interface StoredSettings {
 
 ## 4. Key Algorithms
 
-### 4.1 Photo Grouping
+### 4.1 GPS Coordinate Extraction
+
+Location: `src/utils/exif.ts` - `extractPhotoData()`
+
+```
+Input: File (image)
+Output: ExtractedPhotoData with lat/lng coordinates
+
+Algorithm:
+1. Extract EXIF using exifr library
+2. Try pre-computed latitude/longitude (exifr handles sign)
+3. Fallback: manually compute from raw GPS data:
+   a. Get GPSLatitude and GPSLongitude values
+   b. Apply sign based on reference:
+      - GPSLatitudeRef 'S' → negative latitude
+      - GPSLongitudeRef 'W' → negative longitude
+4. Sanity check for known Western cities:
+   - NYC area (lat 40-42, lng 73-75) → ensure negative longitude
+   - LA area (lat 33-35, lng 117-119) → ensure negative longitude
+   - SF area (lat 37-39, lng 121-123) → ensure negative longitude
+```
+
+This handles EXIF parsers that incorrectly drop the sign for Western hemisphere coordinates.
+
+### 4.2 Photo Grouping
 
 Location: `src/utils/exif.ts` - `groupPhotosByLocation()`
 
@@ -174,7 +203,7 @@ Algorithm:
 - Remove suffixes: " city", " metro", " metropolitan area"
 - Aliases: "nyc" → "new york", "dki jakarta" → "jakarta"
 
-### 4.2 Active Home Base Selection
+### 4.3 Active Home Base Selection
 
 Location: `src/hooks/useTrips.ts` - `getActiveHomeBase()`
 
@@ -190,7 +219,7 @@ Algorithm:
 4. If no permanent, return first available home
 ```
 
-### 4.3 Great Circle Arc Generation
+### 4.4 Great Circle Arc Generation
 
 Location: `src/components/MapboxGlobe.tsx` - `generateArcPoints()`
 
@@ -208,7 +237,7 @@ Algorithm:
    d. Add [lng, lat] to result
 ```
 
-### 4.4 Bearing Calculation
+### 4.5 Bearing Calculation
 
 Location: `src/components/MapboxGlobe.tsx` - `getBearing()`
 
@@ -326,9 +355,10 @@ Supports two modes:
 - File input
 - Clipboard paste listener
 - HEIC conversion
-- EXIF extraction
+- EXIF extraction with GPS sign correction
 - Auto reverse geocoding
-- Manual location entry (autocomplete)
+- Manual location entry (autocomplete) - auto-opens for first photo needing location
+- Prominent yellow "Add location" button for photos without GPS
 - Manual date editing
 - Upload progress bar
 
@@ -432,76 +462,79 @@ GET https://api.mapbox.com/geocoding/v5/mapbox.places/{lng},{lat}.json
 
 ## 8. Styling System
 
-### 8.1 Design Tokens (index.css)
+### 8.1 styled-components (CSS-in-JS)
 
-```css
-:root {
-  /* Colors */
-  --color-bg-primary: #0c0c14;
-  --color-bg-secondary: #12121c;
-  --color-bg-tertiary: #1a1a28;
-  --color-accent-primary: #f472b6;    /* Pink */
-  --color-accent-secondary: #ec4899;
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+All components use styled-components for a clean, Apple-like minimal aesthetic.
 
-  /* Spacing */
-  --spacing-xs: 0.25rem;   /* 4px */
-  --spacing-sm: 0.5rem;    /* 8px */
-  --spacing-md: 1rem;      /* 16px */
-  --spacing-lg: 1.5rem;    /* 24px */
-  --spacing-xl: 2rem;      /* 32px */
-  --spacing-2xl: 3rem;     /* 48px */
+**Design Principles:**
+- Monochromatic color scheme (no contrasting pink/blue stat cards)
+- Subtle transparency effects: `rgba(255, 255, 255, 0.04-0.08)`
+- Minimal borders: `1px solid rgba(255, 255, 255, 0.06)`
+- Consistent border-radius: `0.75rem - 1rem`
 
-  /* Border Radius */
-  --radius-sm: 0.5rem;     /* 8px */
-  --radius-md: 0.75rem;    /* 12px */
-  --radius-lg: 1rem;       /* 16px */
-  --radius-xl: 1.5rem;     /* 24px */
-  --radius-2xl: 2rem;      /* 32px */
-}
+**Color Palette:**
+```typescript
+// Background colors
+const bgPrimary = '#0d0d12';      // Main app background
+const bgCard = 'rgba(255, 255, 255, 0.04)';  // Card backgrounds
+
+// Text colors
+const textPrimary = '#ffffff';
+const textSecondary = 'rgba(255, 255, 255, 0.5)';
+const textMuted = 'rgba(255, 255, 255, 0.4)';
+
+// Accent (for actions requiring attention)
+const accentYellow = '#fbbf24';   // Location input prompts
+const accentPink = '#EC4899';     // Angela's flight lines
+const accentBlue = '#3B82F6';     // Sean's flight lines
 ```
 
 ### 8.2 Typography
 
-- Font: Inter (Google Fonts)
-- Weights: 400, 500, 600, 700
-- Base size: 16px
-- Headings: text-xl (modal), text-2xl (page)
+- Font: System font stack (no external fonts)
+- Weights: 400, 500, 600
+- Base size: 14-16px
+- Compact labels: 11-13px with letter-spacing
 
-### 8.3 Component Patterns
+### 8.3 Layout
 
-**Buttons:**
-```css
-.btn-primary {
-  background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
-  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
-}
+- Sidebar width: 320px (compact)
+- Modal max-width: 36rem (settings), 48rem (upload)
+- Card padding: 1-1.5rem
+- Section gaps: 0.25-0.5rem
+
+### 8.4 Component Patterns
+
+**Stat Cards (monochromatic):**
+```typescript
+const StatCard = styled.div`
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+`;
 ```
 
-**Cards:**
-```css
-.card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-xl);
-}
+**Location Button (attention-grabbing):**
+```typescript
+const LocationButton = styled.button`
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px dashed rgba(251, 191, 36, 0.4);
+  border-radius: 0.5rem;
+`;
 ```
 
-**Modals:**
-```css
-.modal-backdrop {
+**Modal Backdrop:**
+```typescript
+const Backdrop = styled.div`
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
-}
-
-.modal-content {
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-2xl);
-  max-width: 36rem;  /* 576px for settings */
-  max-width: 48rem;  /* 768px for upload */
-}
+`;
 ```
 
 ---
@@ -657,3 +690,7 @@ const PEOPLE = [
 | 2026-02 | 1.4 | Major UI overhaul with modern design system |
 | 2026-02 | 1.5 | Added city-based photo grouping with reverse geocoding |
 | 2026-02 | 1.6 | Consolidated flight lines per route with visit date list |
+| 2026-02 | 1.7 | Migrated to styled-components (CSS-in-JS), Apple-like minimal design |
+| 2026-02 | 1.8 | Fixed GPS coordinate sign handling for Western hemisphere photos |
+| 2026-02 | 1.9 | Improved location input UX: auto-open search, prominent "Add location" button |
+| 2026-02 | 1.10 | Added npm refresh script for quick dev workflow |
