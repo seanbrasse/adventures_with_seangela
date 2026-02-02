@@ -309,13 +309,13 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
   const needsLocationCount = pendingPhotos.filter((p) => p.needsLocation).length;
 
   return (
-    <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 md:p-8">
-      <div className="bg-[#12121c] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white/10 shadow-2xl animate-slide-up">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-6 md:p-12">
+      <div className="bg-[#14141f] rounded-3xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col border border-white/10 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-white/10">
+        <div className="flex items-center justify-between px-10 py-8 border-b border-white/10">
           <div>
-            <h2 className="text-2xl font-semibold text-white tracking-tight">Add Photos</h2>
-            <p className="text-white/50 text-sm mt-1">Upload photos to add them to your map</p>
+            <h2 className="text-3xl font-bold text-white tracking-tight">Add Photos</h2>
+            <p className="text-white/50 text-base mt-2">Upload photos to add them to your map</p>
           </div>
           <button
             onClick={onClose}
@@ -327,7 +327,7 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="flex-1 overflow-y-auto px-10 py-8">
           {/* Uploading overlay */}
           {isUploading && (
             <div className="mb-6 p-6 bg-gradient-to-r from-pink-500/20 to-purple-500/20 rounded-2xl border border-pink-500/20">
@@ -356,12 +356,12 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onClick={() => !isUploading && fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${
+            className={`border-2 border-dashed rounded-3xl py-16 px-12 text-center transition-all ${
               isUploading
                 ? 'opacity-50 cursor-not-allowed border-white/10'
                 : dragActive
                 ? 'border-pink-400 bg-pink-400/10 cursor-pointer'
-                : 'border-white/15 hover:border-white/30 hover:bg-white/5 cursor-pointer'
+                : 'border-white/20 hover:border-pink-400/50 hover:bg-white/[0.03] cursor-pointer'
             }`}
           >
             <input
@@ -373,17 +373,17 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
               className="hidden"
               disabled={isUploading}
             />
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-5">
-              <Upload className="w-8 h-8 text-pink-400" />
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-6">
+              <Upload className="w-10 h-10 text-pink-400" />
             </div>
-            <p className="text-white text-lg font-medium mb-2">
+            <p className="text-white text-xl font-semibold mb-2">
               Drag & drop photos here
             </p>
-            <p className="text-white/50 mb-6">
+            <p className="text-white/50 text-lg mb-8">
               or click to browse your files
             </p>
-            <div className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/5 rounded-xl text-pink-400 text-sm">
-              <Clipboard className="w-4 h-4" />
+            <div className="inline-flex items-center gap-3 px-5 py-3 bg-white/5 rounded-xl text-pink-400 text-base">
+              <Clipboard className="w-5 h-5" />
               <span>Tip: Copy photos in Photos app, then paste here (Cmd+V)</span>
             </div>
           </div>
@@ -494,33 +494,33 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-6 border-t border-white/10 flex items-center justify-between bg-white/[0.02]">
-          <div className="text-sm">
+        <div className="px-10 py-8 border-t border-white/10 flex items-center justify-between bg-white/[0.02]">
+          <div className="text-base">
             {validCount > 0 && (
               <span className="text-emerald-400 font-medium">{validCount} ready to add</span>
             )}
             {needsLocationCount > 0 && (
-              <span className="ml-3 text-amber-400">
+              <span className="ml-4 text-amber-400">
                 {needsLocationCount} need location
               </span>
             )}
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             <button
               onClick={onClose}
               disabled={isUploading}
-              className="px-6 py-3 rounded-xl bg-white/8 text-white hover:bg-white/12 transition-colors disabled:opacity-50 font-medium"
+              className="px-8 py-4 rounded-2xl bg-white/10 text-white text-lg hover:bg-white/15 transition-colors disabled:opacity-50 font-medium"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={validCount === 0 || isUploading}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-pink-600 text-white hover:from-pink-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-lg shadow-pink-500/25"
+              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-600 text-white text-lg hover:from-pink-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3 font-semibold shadow-lg shadow-pink-500/25"
             >
               {isUploading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                   Uploading...
                 </>
               ) : (
