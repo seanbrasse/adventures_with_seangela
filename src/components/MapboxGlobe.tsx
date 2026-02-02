@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
-import type { MapRef } from 'react-map-gl/mapbox';
+import type { MapRef, MapLayerMouseEvent } from 'react-map-gl/mapbox';
 import { format } from 'date-fns';
 import { Heart, Plane, Globe, Map as MapIcon } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
@@ -569,7 +569,7 @@ export default function MapboxGlobe({
         line.to.lat
       );
 
-      // Calculate arrow position (85% along the arc, near destination)
+      // Calculate arrow position (97% along the arc, right at destination)
       const arcPoints = generateArcPoints(
         line.from.lng,
         line.from.lat,
@@ -577,16 +577,16 @@ export default function MapboxGlobe({
         line.to.lat,
         100
       );
-      const arrowIndex = Math.floor(arcPoints.length * 0.85);
+      const arrowIndex = Math.floor(arcPoints.length * 0.97);
       const arrowPoint = arcPoints[arrowIndex];
-      const arrowNextPoint = arcPoints[Math.min(arrowIndex + 1, arcPoints.length - 1)];
+      const prevArrowPoint = arcPoints[Math.max(arrowIndex - 1, 0)];
 
       // Calculate bearing at the arrow point for proper orientation
       const arrowBearing = getBearing(
+        prevArrowPoint[0],
+        prevArrowPoint[1],
         arrowPoint[0],
-        arrowPoint[1],
-        arrowNextPoint[0],
-        arrowNextPoint[1]
+        arrowPoint[1]
       );
 
       return {
@@ -605,25 +605,33 @@ export default function MapboxGlobe({
 
   const handleLineClick = useCallback((line: FlightLine) => {
     if (mapRef.current) {
-      // Find the photos at this destination to open the gallery
-      const destPoint = pointsData.find(
-        (p) => Math.abs(p.lat - line.to.lat) < 0.5 && Math.abs(p.lng - line.to.lng) < 0.5
-      );
-
+      // Just fly to the destination without opening the gallery
       mapRef.current.flyTo({
         center: [line.to.lng, line.to.lat],
         zoom: 6,
         duration: 2000,
       });
+    }
+  }, []);
 
-      // After flying, open the location if found
-      if (destPoint) {
-        setTimeout(() => {
-          onLocationClick(destPoint.photos);
-        }, 2100); // Wait for fly animation to complete
+  // Handle clicks on the flight line layers
+  const handleMapClick = useCallback((e: MapLayerMouseEvent) => {
+    if (!e.features || e.features.length === 0) return;
+
+    const feature = e.features[0];
+    const lineId = feature.properties?.id;
+    if (lineId) {
+      const line = flightLines.find(l => l.id === lineId);
+      if (line) {
+        handleLineClick(line);
       }
     }
-  }, [pointsData, onLocationClick]);
+  }, [flightLines, handleLineClick]);
+
+  // Set up interactive layers for flight lines
+  const interactiveLayerIds = useMemo(() => {
+    return flightLines.map(line => `flight-line-${line.id}`);
+  }, [flightLines]);
 
   return (
     <MapContainer>
@@ -658,6 +666,9 @@ export default function MapboxGlobe({
         style={{ width: '100%', height: '100%' }}
         mapStyle={isMinimalStyle ? MAP_STYLES.minimal : MAP_STYLES.detailed}
         projection={{ name: 'globe' }}
+        interactiveLayerIds={interactiveLayerIds}
+        onClick={handleMapClick}
+        cursor={interactiveLayerIds.length > 0 ? 'pointer' : 'grab'}
         fog={
           isMinimalStyle
             ? {
