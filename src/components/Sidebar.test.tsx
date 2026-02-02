@@ -52,8 +52,8 @@ describe('Sidebar component', () => {
 
     render(<Sidebar photos={photos} onLocationSelect={mockOnLocationSelect} />);
 
-    // "Places" is the label (CSS transforms to uppercase)
-    expect(screen.getByText('Places')).toBeInTheDocument();
+    // "Locations" is the label (CSS transforms to uppercase)
+    expect(screen.getByText('Locations')).toBeInTheDocument();
   });
 
   it('should render date range', () => {
@@ -122,8 +122,8 @@ describe('Sidebar component', () => {
 
     render(<Sidebar photos={photos} onLocationSelect={mockOnLocationSelect} />);
 
-    // "Your Places" is the section title (CSS transforms to uppercase)
-    expect(screen.getByText('Your Places')).toBeInTheDocument();
+    // "Your Trips" is the section title (CSS transforms to uppercase)
+    expect(screen.getByText('Your Trips')).toBeInTheDocument();
     expect(screen.getByText('New York')).toBeInTheDocument();
     expect(screen.getByText('Dubai')).toBeInTheDocument();
   });
@@ -209,7 +209,7 @@ describe('Sidebar component', () => {
     render(<Sidebar photos={photos} onLocationSelect={mockOnLocationSelect} />);
 
     const locationCards = screen.getAllByRole('button');
-    // First button is "Your Places" header, then location cards
+    // First button is "Locations" stat card, then location cards
     // Dubai should be first (most recent), then London, then New York
     expect(locationCards[1]).toHaveTextContent('Dubai');
     expect(locationCards[2]).toHaveTextContent('London');

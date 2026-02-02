@@ -376,7 +376,7 @@ export default function PlacesView({
             <HeaderIcon>
               <MapPin />
             </HeaderIcon>
-            <HeaderTitle>Your Places</HeaderTitle>
+            <HeaderTitle>Your Trips</HeaderTitle>
           </HeaderLeft>
           <CloseButton onClick={onClose}>
             <X />
@@ -396,7 +396,7 @@ export default function PlacesView({
           <HeaderIcon>
             <MapPin />
           </HeaderIcon>
-          <HeaderTitle>Your Places</HeaderTitle>
+          <HeaderTitle>Your Trips</HeaderTitle>
         </HeaderLeft>
         <CloseButton onClick={onClose}>
           <X />

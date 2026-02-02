@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { MapPin, Calendar, Image, Sparkles, Plane, ChevronRight } from 'lucide-react';
+import { MapPin, Calendar, Image, Sparkles, Plane } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo, Trip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
@@ -75,6 +75,23 @@ const StatCard = styled.div`
 
   &:hover {
     background: rgba(255, 255, 255, 0.06);
+  }
+`;
+
+const ClickableStatCard = styled.button`
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+  min-width: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
   }
 `;
 
@@ -182,39 +199,13 @@ const LocationsInner = styled.div`
   padding: 1.25rem;
 `;
 
-const SectionTitle = styled.button`
+const SectionTitle = styled.h3`
   font-size: 0.6875rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.35);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 1rem;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem 0.75rem;
-  margin-left: -0.75rem;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-
-  &:hover {
-    color: rgba(255, 255, 255, 0.6);
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  svg {
-    width: 0.75rem;
-    height: 0.75rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  &:hover svg {
-    opacity: 1;
-  }
 `;
 
 const LocationsList = styled.div`
@@ -358,15 +349,15 @@ export default function Sidebar({ photos, trips = [], onLocationSelect, onPlaces
             <StatValue>{stats.totalPhotos}</StatValue>
           </StatCard>
 
-          <StatCard>
+          <ClickableStatCard onClick={onPlacesClick}>
             <StatHeader>
               <StatIcon>
                 <MapPin size={16} />
               </StatIcon>
-              <StatLabel>Places</StatLabel>
+              <StatLabel>Locations</StatLabel>
             </StatHeader>
             <StatValue>{stats.totalLocations}</StatValue>
-          </StatCard>
+          </ClickableStatCard>
         </StatsGrid>
 
         {stats.trips > 0 && (
@@ -391,10 +382,7 @@ export default function Sidebar({ photos, trips = [], onLocationSelect, onPlaces
 
       <LocationsSection>
         <LocationsInner>
-          <SectionTitle onClick={onPlacesClick}>
-            Your Places
-            <ChevronRight />
-          </SectionTitle>
+          <SectionTitle>Your Trips</SectionTitle>
           <LocationsList>
             {locations.map((loc) => {
               const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
