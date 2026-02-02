@@ -557,18 +557,26 @@ export default function MapboxGlobe({
   // Calculate midpoints and bearings for plane icons
   const planePositions = useMemo(() => {
     return flightLines.map((line) => {
-      const midpoint = getMidpoint(
+      // Generate arc points to get accurate midpoint position and bearing
+      const arcPoints = generateArcPoints(
         line.from.lng,
         line.from.lat,
         line.to.lng,
-        line.to.lat
+        line.to.lat,
+        100
       );
-      const bearing = getBearing(
-        line.from.lng,
-        line.from.lat,
-        line.to.lng,
-        line.to.lat
-      );
+
+      // Get the midpoint from the arc (index 50 of 100 points)
+      const midIndex = Math.floor(arcPoints.length / 2);
+      const midpoint = {
+        lng: arcPoints[midIndex][0],
+        lat: arcPoints[midIndex][1],
+      };
+
+      // Calculate bearing at the midpoint using nearby arc points
+      const prevPoint = arcPoints[Math.max(midIndex - 1, 0)];
+      const nextPoint = arcPoints[Math.min(midIndex + 1, arcPoints.length - 1)];
+      const bearing = getBearing(prevPoint[0], prevPoint[1], nextPoint[0], nextPoint[1]);
 
       return {
         ...line,
