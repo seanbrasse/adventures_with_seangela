@@ -187,6 +187,105 @@ const ping = keyframes`
   }
 `;
 
+// Space animations
+const shootingStar = keyframes`
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-500px) translateY(500px);
+    opacity: 0;
+  }
+`;
+
+const floatAcross = keyframes`
+  0% {
+    transform: translateX(100vw) translateY(0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100px) translateY(20px);
+    opacity: 0;
+  }
+`;
+
+const twinkle = keyframes`
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+`;
+
+const SpaceAnimationsContainer = styled.div`
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+`;
+
+const ShootingStar = styled.div<{ $delay: number; $duration: number; $top: number; $right: number }>`
+  position: absolute;
+  top: ${({ $top }) => $top}%;
+  right: ${({ $right }) => $right}%;
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.8), transparent);
+  border-radius: 50%;
+  transform: rotate(-45deg);
+  animation: ${shootingStar} ${({ $duration }) => $duration}s ease-in ${({ $delay }) => $delay}s infinite;
+  opacity: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -1px;
+    width: 4px;
+    height: 4px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.6);
+  }
+`;
+
+const FloatingObject = styled.div<{ $delay: number; $duration: number; $top: number }>`
+  position: absolute;
+  top: ${({ $top }) => $top}%;
+  right: -50px;
+  font-size: 1.25rem;
+  animation: ${floatAcross} ${({ $duration }) => $duration}s linear ${({ $delay }) => $delay}s infinite;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+`;
+
+const TwinklingStar = styled.div<{ $delay: number; $top: number; $left: number; $size: number }>`
+  position: absolute;
+  top: ${({ $top }) => $top}%;
+  left: ${({ $left }) => $left}%;
+  width: ${({ $size }) => $size}px;
+  height: ${({ $size }) => $size}px;
+  background: white;
+  border-radius: 50%;
+  animation: ${twinkle} ${({ $delay }) => 2 + $delay}s ease-in-out infinite;
+  animation-delay: ${({ $delay }) => $delay}s;
+  box-shadow: 0 0 ${({ $size }) => $size * 2}px ${({ $size }) => $size / 2}px rgba(255, 255, 255, 0.3);
+`;
+
 const LocationMarkerContainer = styled.div`
   position: relative;
   cursor: pointer;
@@ -737,6 +836,30 @@ export default function MapboxGlobe({
 
   return (
     <MapContainer>
+      {/* Space background animations - only show on minimal (dark) style */}
+      {isMinimalStyle && (
+        <SpaceAnimationsContainer>
+          {/* Twinkling stars */}
+          <TwinklingStar $delay={0} $top={15} $left={85} $size={2} />
+          <TwinklingStar $delay={1.5} $top={25} $left={75} $size={3} />
+          <TwinklingStar $delay={0.8} $top={8} $left={60} $size={2} />
+          <TwinklingStar $delay={2.2} $top={35} $left={90} $size={2} />
+          <TwinklingStar $delay={1.2} $top={12} $left={45} $size={3} />
+          <TwinklingStar $delay={0.5} $top={40} $left={70} $size={2} />
+
+          {/* Shooting stars */}
+          <ShootingStar $delay={3} $duration={1.5} $top={10} $right={20} />
+          <ShootingStar $delay={12} $duration={1.2} $top={25} $right={35} />
+          <ShootingStar $delay={22} $duration={1.8} $top={5} $right={50} />
+          <ShootingStar $delay={35} $duration={1.4} $top={18} $right={15} />
+
+          {/* Occasional floating objects */}
+          <FloatingObject $delay={8} $duration={45} $top={15}>🚀</FloatingObject>
+          <FloatingObject $delay={60} $duration={50} $top={30}>🛸</FloatingObject>
+          <FloatingObject $delay={90} $duration={40} $top={8}>✨</FloatingObject>
+        </SpaceAnimationsContainer>
+      )}
+
       {/* Map style toggle */}
       <ToggleContainer>
         <ToggleButton
