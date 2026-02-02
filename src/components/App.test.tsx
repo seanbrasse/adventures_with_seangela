@@ -77,7 +77,8 @@ describe('App component', () => {
   it('should render the sidebar', () => {
     render(<App />);
 
-    expect(screen.getByText('No photos yet')).toBeInTheDocument();
+    // Both mobile and desktop sidebars render this text
+    expect(screen.getAllByText('No photos yet').length).toBeGreaterThan(0);
   });
 
   it('should render add photos button', () => {
@@ -121,8 +122,8 @@ describe('App component', () => {
     // This test verifies the component renders without error
     render(<App />);
 
-    // The app should still render the main structure
-    expect(screen.getByText('No photos yet')).toBeInTheDocument();
+    // The app should still render the main structure (both mobile and desktop sidebars)
+    expect(screen.getAllByText('No photos yet').length).toBeGreaterThan(0);
   });
 
   it('should render API key UI elements', () => {

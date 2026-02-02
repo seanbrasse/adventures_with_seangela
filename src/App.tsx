@@ -137,6 +137,16 @@ const MobileOverlay = styled.div<{ $visible: boolean }>`
   }
 `;
 
+const SidebarWrapper = styled.div<{ $collapsed: boolean }>`
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    position: relative;
+    flex-shrink: 0;
+  }
+`;
+
 const SidebarContainer = styled.aside<{ $open: boolean; $collapsed: boolean }>`
   position: fixed;
   inset: 0;
@@ -157,7 +167,27 @@ const SidebarContainer = styled.aside<{ $open: boolean; $collapsed: boolean }>`
     width: ${({ $collapsed }) => ($collapsed ? '0px' : '380px')};
     min-width: ${({ $collapsed }) => ($collapsed ? '0px' : '380px')};
     max-width: none;
-    overflow: ${({ $collapsed }) => ($collapsed ? 'hidden' : 'visible')};
+    overflow: hidden;
+    transition: width 0.3s ease, min-width 0.3s ease;
+  }
+`;
+
+const MobileSidebarContainer = styled.aside<{ $open: boolean }>`
+  position: fixed;
+  inset: 0;
+  right: auto;
+  z-index: 40;
+  width: 380px;
+  max-width: 85vw;
+  background: #0d0d12;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  transform: ${({ $open }) => ($open ? 'translateX(0)' : 'translateX(-100%)')};
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+
+  @media (min-width: 768px) {
+    display: none;
   }
 `;
 
@@ -226,36 +256,31 @@ const SidebarFooter = styled.div`
   }
 `;
 
-const CollapseToggle = styled.button<{ $collapsed: boolean }>`
-  display: none;
+const CollapseToggle = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 24px;
+  height: 48px;
+  background: #1a1a24;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 
-  @media (min-width: 768px) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 50%;
-    right: ${({ $collapsed }) => ($collapsed ? '-40px' : '-12px')};
-    transform: translateY(-50%);
-    width: 24px;
-    height: 48px;
-    background: #1a1a24;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0 8px 8px 0;
-    cursor: pointer;
-    z-index: 50;
-    transition: all 0.2s ease;
+  &:hover {
+    background: #252532;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
 
-    &:hover {
-      background: #252532;
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    svg {
-      width: 16px;
-      height: 16px;
-      color: rgba(255, 255, 255, 0.6);
-    }
+  svg {
+    width: 16px;
+    height: 16px;
+    color: rgba(255, 255, 255, 0.6);
   }
 `;
 
@@ -689,8 +714,8 @@ function App() {
         {/* Mobile sidebar overlay */}
         <MobileOverlay $visible={sidebarOpen} onClick={() => setSidebarOpen(false)} />
 
-        {/* Sidebar */}
-        <SidebarContainer $open={sidebarOpen} $collapsed={sidebarCollapsed}>
+        {/* Mobile Sidebar */}
+        <MobileSidebarContainer $open={sidebarOpen}>
           <SidebarHeader>
             <Logo>
               <Heart />
@@ -704,26 +729,41 @@ function App() {
           <SidebarContent>
             <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} />
           </SidebarContent>
+        </MobileSidebarContainer>
 
-          <SidebarFooter>
-            <PrimaryButton onClick={() => setShowUpload(true)}>
-              <Plus />
-              Add Photos
-            </PrimaryButton>
-            <SecondaryButton onClick={() => setShowSettings(true)}>
-              <Settings />
-              Settings
-            </SecondaryButton>
-          </SidebarFooter>
+        {/* Desktop Sidebar with collapse toggle */}
+        <SidebarWrapper $collapsed={sidebarCollapsed}>
+          <SidebarContainer $open={true} $collapsed={sidebarCollapsed}>
+            <SidebarHeader>
+              <Logo>
+                <Heart />
+                Our Photo Map
+              </Logo>
+            </SidebarHeader>
+
+            <SidebarContent>
+              <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} />
+            </SidebarContent>
+
+            <SidebarFooter>
+              <PrimaryButton onClick={() => setShowUpload(true)}>
+                <Plus />
+                Add Photos
+              </PrimaryButton>
+              <SecondaryButton onClick={() => setShowSettings(true)}>
+                <Settings />
+                Settings
+              </SecondaryButton>
+            </SidebarFooter>
+          </SidebarContainer>
 
           <CollapseToggle
-            $collapsed={sidebarCollapsed}
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {sidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
           </CollapseToggle>
-        </SidebarContainer>
+        </SidebarWrapper>
 
         {/* Main content - Globe */}
         <MainContent>
