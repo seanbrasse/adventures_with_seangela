@@ -139,13 +139,51 @@ function generateStableTripId(locationKey: string, startDate: Date): string {
 function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips: Trip[] = []): Trip[] {
   if (photos.length === 0) return [];
 
-  // Create a map of existing trips by their stable ID for quick lookup
-  const existingTripMap = new Map<string, Trip>();
+  // Create maps to lookup existing trips by various keys
+  // This allows us to find and preserve customizations when photos merge or move
+  const existingTripById = new Map<string, Trip>();
+  const existingTripByPhotoId = new Map<string, Trip>();
+
   for (const trip of existingTrips) {
-    const locationKey = `${trip.photoIds.length > 0 ? photos.find(p => p.id === trip.photoIds[0])?.location.lat.toFixed(1) : '0'},${trip.photoIds.length > 0 ? photos.find(p => p.id === trip.photoIds[0])?.location.lng.toFixed(1) : '0'}`;
-    const stableId = generateStableTripId(locationKey, trip.startDate);
-    existingTripMap.set(stableId, trip);
+    existingTripById.set(trip.id, trip);
+    for (const photoId of trip.photoIds) {
+      existingTripByPhotoId.set(photoId, trip);
+    }
   }
+
+  // Helper to find the best existing trip for a set of photos
+  // Prefers trips that have customizations (non-auto-generated name or description)
+  const findBestExistingTrip = (photoIds: string[], locationName: string, startDate: Date): Trip | undefined => {
+    // Find all existing trips that share photos with this new trip
+    const matchingTrips = new Set<Trip>();
+    for (const photoId of photoIds) {
+      const existingTrip = existingTripByPhotoId.get(photoId);
+      if (existingTrip) {
+        matchingTrips.add(existingTrip);
+      }
+    }
+
+    if (matchingTrips.size === 0) return undefined;
+
+    // If there's only one matching trip, use it
+    if (matchingTrips.size === 1) {
+      return Array.from(matchingTrips)[0];
+    }
+
+    // If multiple trips match, prefer one with customizations
+    const tripsArray = Array.from(matchingTrips);
+    const customized = tripsArray.find(t =>
+      t.description || !t.name.includes(' - ')
+    );
+    if (customized) return customized;
+
+    // Otherwise return the one with the most photo overlap
+    return tripsArray.sort((a, b) => {
+      const aOverlap = a.photoIds.filter(id => photoIds.includes(id)).length;
+      const bOverlap = b.photoIds.filter(id => photoIds.includes(id)).length;
+      return bOverlap - aOverlap;
+    })[0];
+  };
 
   // Sort photos by date
   const sortedPhotos = [...photos].sort(
@@ -195,8 +233,9 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
           `${currentTrip.lat.toFixed(2)}, ${currentTrip.lng.toFixed(2)}`;
 
         // Check if we have an existing trip with customizations
+        const photoIds = currentTrip.photos.map((p) => p.id);
+        const existingTrip = findBestExistingTrip(photoIds, locationName, startDate);
         const stableId = generateStableTripId(currentTrip.locationKey, startDate);
-        const existingTrip = existingTripMap.get(stableId);
 
         trips.push({
           id: existingTrip?.id || stableId,
@@ -208,7 +247,7 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
           locationName,
           startDate,
           endDate,
-          photoIds: currentTrip.photos.map((p) => p.id),
+          photoIds,
           travelers,
         });
 
@@ -238,8 +277,9 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
       `${currentTrip.lat.toFixed(2)}, ${currentTrip.lng.toFixed(2)}`;
 
     // Check if we have an existing trip with customizations
+    const photoIds = currentTrip.photos.map((p) => p.id);
+    const existingTrip = findBestExistingTrip(photoIds, locationName, startDate);
     const stableId = generateStableTripId(currentTrip.locationKey, startDate);
-    const existingTrip = existingTripMap.get(stableId);
 
     trips.push({
       id: existingTrip?.id || stableId,
@@ -251,7 +291,7 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
       locationName,
       startDate,
       endDate,
-      photoIds: currentTrip.photos.map((p) => p.id),
+      photoIds,
       travelers,
     });
   }
@@ -300,15 +340,19 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
     }
   }, [trips, isLoading]);
 
-  // Auto-regenerate trips when photos change
+  // Auto-regenerate trips when photos change (including date changes)
   useEffect(() => {
     if (!isLoading && photos.length > 0) {
-      // Create a stable key for current photo IDs
-      const currentPhotoIds = photos.map((p) => p.id).sort().join(',');
+      // Create a fingerprint that includes both IDs and dates
+      // This ensures trips regenerate when photo dates are edited
+      const currentFingerprint = photos
+        .map((p) => `${p.id}:${p.date.getTime()}`)
+        .sort()
+        .join(',');
 
-      // Only process if photos actually changed
-      if (currentPhotoIds !== lastPhotoIdsRef.current) {
-        lastPhotoIdsRef.current = currentPhotoIds;
+      // Only process if photos actually changed (ID or date)
+      if (currentFingerprint !== lastPhotoIdsRef.current) {
+        lastPhotoIdsRef.current = currentFingerprint;
 
         // Regenerate trips when photos change, preserving existing customizations
         setTrips(prevTrips => autoGenerateTrips(photos, homeBases, prevTrips));
