@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Sidebar from './Sidebar';
-import type { Photo } from '../types/photo';
+import type { Photo, Trip } from '../types/photo';
 
 describe('Sidebar component', () => {
   const createPhoto = (
@@ -75,7 +75,28 @@ describe('Sidebar component', () => {
       createPhoto('2', 51.5, -0.12, new Date('2024-11-20'), 'London'),
     ];
 
-    render(<Sidebar photos={photos} onLocationSelect={mockOnLocationSelect} />);
+    const trips: Trip[] = [
+      {
+        id: 'trip-1',
+        name: 'Dubai - Oct 2024',
+        locationName: 'Dubai',
+        startDate: new Date('2024-10-15'),
+        endDate: new Date('2024-10-20'),
+        photoIds: ['1'],
+        travelers: ['person-1'],
+      },
+      {
+        id: 'trip-2',
+        name: 'London - Nov 2024',
+        locationName: 'London',
+        startDate: new Date('2024-11-20'),
+        endDate: new Date('2024-11-25'),
+        photoIds: ['2'],
+        travelers: ['person-1'],
+      },
+    ];
+
+    render(<Sidebar photos={photos} trips={trips} onLocationSelect={mockOnLocationSelect} />);
 
     // Should show trips together label
     expect(screen.getByText(/trip/)).toBeInTheDocument();

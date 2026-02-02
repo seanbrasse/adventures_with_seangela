@@ -2,11 +2,12 @@ import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { MapPin, Calendar, Image, Sparkles, Plane } from 'lucide-react';
 import styled from 'styled-components';
-import type { Photo } from '../types/photo';
+import type { Photo, Trip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 
 interface SidebarProps {
   photos: Photo[];
+  trips?: Trip[];
   onLocationSelect: (photos: Photo[]) => void;
 }
 
@@ -257,7 +258,7 @@ const MetaDot = styled.span`
   color: rgba(255, 255, 255, 0.2);
 `;
 
-export default function Sidebar({ photos, onLocationSelect }: SidebarProps) {
+export default function Sidebar({ photos, trips = [], onLocationSelect }: SidebarProps) {
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
     const locs: { key: string; lat: number; lng: number; photos: Photo[]; latestDate: Date }[] = [];
@@ -286,16 +287,13 @@ export default function Sidebar({ photos, onLocationSelect }: SidebarProps) {
     const firstDate = dates.length > 0 ? new Date(Math.min(...dates)) : null;
     const lastDate = dates.length > 0 ? new Date(Math.max(...dates)) : null;
 
-    // Count trips: unique locations visited on or after Sep 1, 2024
-    // (Before Sep 2024, both lived in NYC so no "trips")
+    // Count trips: actual trips from useTrips hook (includes multiple trips to same location)
+    // Only count trips that started on or after Sep 1, 2024
     const tripStartDate = new Date('2024-09-01');
-    const trips = locations.filter((loc) => {
-      // Check if any photo at this location is on or after Sep 2024
-      return loc.photos.some((p) => p.date >= tripStartDate);
-    }).length;
+    const tripCount = trips.filter((trip) => trip.startDate >= tripStartDate).length;
 
-    return { totalPhotos, totalLocations, firstDate, lastDate, trips };
-  }, [photos, locations]);
+    return { totalPhotos, totalLocations, firstDate, lastDate, trips: tripCount };
+  }, [photos, locations, trips]);
 
   if (photos.length === 0) {
     return (

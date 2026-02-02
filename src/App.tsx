@@ -548,7 +548,7 @@ function App() {
     removeHomeBase,
     resetToDefaults,
   } = useSettings();
-  const { flightLines } = useTrips(photos, settings.homeBases);
+  const { trips, flightLines } = useTrips(photos, settings.homeBases);
 
   const [showUpload, setShowUpload] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
@@ -641,7 +641,7 @@ function App() {
           </SidebarHeader>
 
           <SidebarContent>
-            <Sidebar photos={photos} onLocationSelect={handleLocationClick} />
+            <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} />
           </SidebarContent>
 
           <SidebarFooter>
