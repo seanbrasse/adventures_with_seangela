@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { MapPin, Calendar, Image, Sparkles, Plane } from 'lucide-react';
+import { MapPin, Heart, Image, Sparkles, Plane } from 'lucide-react';
+import { differenceInMonths } from 'date-fns';
 import styled from 'styled-components';
 import type { Photo, Trip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
@@ -311,7 +312,14 @@ export default function Sidebar({ photos, trips = [], onLocationSelect, onPlaces
     const tripStartDate = new Date('2024-09-01');
     const tripCount = trips.filter((trip) => trip.startDate >= tripStartDate).length;
 
-    return { totalPhotos, totalLocations, firstDate, lastDate, trips: tripCount };
+    // Calculate relationship length since July 2024
+    const relationshipStart = new Date('2024-07-01');
+    const now = new Date();
+    const totalMonths = differenceInMonths(now, relationshipStart);
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+
+    return { totalPhotos, totalLocations, firstDate, lastDate, trips: tripCount, years, months };
   }, [photos, locations, trips]);
 
   if (photos.length === 0) {
@@ -361,14 +369,16 @@ export default function Sidebar({ photos, trips = [], onLocationSelect, onPlaces
           </TripsStat>
         )}
 
-        {stats.firstDate && stats.lastDate && (
-          <DateRange>
-            <Calendar size={20} />
-            <DateText>
-              {format(stats.firstDate, 'MMM yyyy')} – {format(stats.lastDate, 'MMM yyyy')}
-            </DateText>
-          </DateRange>
-        )}
+        <DateRange>
+          <Heart size={20} />
+          <DateText>
+            {stats.years > 0 && `${stats.years} year${stats.years !== 1 ? 's' : ''}`}
+            {stats.years > 0 && stats.months > 0 && ', '}
+            {stats.months > 0 && `${stats.months} month${stats.months !== 1 ? 's' : ''}`}
+            {stats.years === 0 && stats.months === 0 && 'Just started!'}
+            {' '}together
+          </DateText>
+        </DateRange>
       </StatsSection>
 
       <Divider />

@@ -56,7 +56,7 @@ describe('Sidebar component', () => {
     expect(screen.getByText('Locations')).toBeInTheDocument();
   });
 
-  it('should render date range', () => {
+  it('should render relationship length', () => {
     const photos = [
       createPhoto('1', 40.7, -74, new Date('2024-06-15'), 'NYC'),
       createPhoto('2', 40.7, -74, new Date('2024-09-20'), 'NYC'),
@@ -64,9 +64,8 @@ describe('Sidebar component', () => {
 
     render(<Sidebar photos={photos} onLocationSelect={mockOnLocationSelect} />);
 
-    // Should show date range
-    expect(screen.getByText(/Jun 2024/)).toBeInTheDocument();
-    expect(screen.getByText(/Sep 2024/)).toBeInTheDocument();
+    // Should show relationship length (years/months since July 2024)
+    expect(screen.getByText(/together/)).toBeInTheDocument();
   });
 
   it('should render trips counter for photos after Sep 2024', () => {

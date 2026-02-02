@@ -69,8 +69,8 @@ describe('App component', () => {
   it('should render the app title', () => {
     render(<App />);
 
-    // "Our Photo Map" appears multiple times (mobile header + sidebar)
-    const titles = screen.getAllByText('Our Photo Map');
+    // "Adventures with Seangela" appears multiple times (mobile header + sidebar)
+    const titles = screen.getAllByText('Adventures with Seangela');
     expect(titles.length).toBeGreaterThan(0);
   });
 

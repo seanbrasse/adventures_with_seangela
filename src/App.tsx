@@ -743,7 +743,7 @@ function App() {
           </MobileHeaderButtons>
           <MobileTitle>
             <Heart size={20} />
-            Our Photo Map
+            Adventures with Seangela
           </MobileTitle>
           <AddButton onClick={() => setShowUpload(true)}>
             <Plus />
@@ -758,7 +758,7 @@ function App() {
           <SidebarHeader>
             <Logo>
               <Heart />
-              Our Photo Map
+              Adventures with Seangela
             </Logo>
             <CloseButton onClick={() => setSidebarOpen(false)}>
               <X />
@@ -776,7 +776,7 @@ function App() {
             <SidebarHeader>
               <Logo>
                 <Heart />
-                Our Photo Map
+                Adventures with Seangela
               </Logo>
             </SidebarHeader>
 
