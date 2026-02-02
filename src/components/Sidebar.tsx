@@ -78,18 +78,9 @@ const StatCard = styled.div`
   }
 `;
 
-const ClickableStatCard = styled.button`
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 1rem;
-  padding: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.2s ease;
-  min-width: 0;
+const ClickableStatCard = styled(StatCard).attrs({ as: 'button' })`
   cursor: pointer;
   text-align: left;
-  width: 100%;
-  font: inherit;
-  color: inherit;
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
