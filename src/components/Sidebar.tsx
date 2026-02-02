@@ -312,15 +312,16 @@ export default function Sidebar({ photos, trips = [], onLocationSelect, onPlaces
     const tripStartDate = new Date('2024-09-01');
     const tripCount = trips.filter((trip) => trip.startDate >= tripStartDate).length;
 
-    // Calculate relationship length since July 2024
-    const relationshipStart = new Date('2024-07-01');
-    const now = new Date();
-    const totalMonths = differenceInMonths(now, relationshipStart);
-    const years = Math.floor(totalMonths / 12);
-    const months = totalMonths % 12;
-
-    return { totalPhotos, totalLocations, firstDate, lastDate, trips: tripCount, years, months };
+    return { totalPhotos, totalLocations, firstDate, lastDate, trips: tripCount };
   }, [photos, locations, trips]);
+
+  // Calculate relationship length since July 11th, 2024
+  // This is outside useMemo so it updates with time
+  const relationshipStart = new Date('2024-07-11');
+  const now = new Date();
+  const totalMonths = differenceInMonths(now, relationshipStart);
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
 
   if (photos.length === 0) {
     return (
@@ -372,10 +373,10 @@ export default function Sidebar({ photos, trips = [], onLocationSelect, onPlaces
         <DateRange>
           <Heart size={20} />
           <DateText>
-            {stats.years > 0 && `${stats.years} year${stats.years !== 1 ? 's' : ''}`}
-            {stats.years > 0 && stats.months > 0 && ', '}
-            {stats.months > 0 && `${stats.months} month${stats.months !== 1 ? 's' : ''}`}
-            {stats.years === 0 && stats.months === 0 && 'Just started!'}
+            {years > 0 && `${years} year${years !== 1 ? 's' : ''}`}
+            {years > 0 && months > 0 && ', '}
+            {months > 0 && `${months} month${months !== 1 ? 's' : ''}`}
+            {years === 0 && months === 0 && 'Just started!'}
             {' '}together
           </DateText>
         </DateRange>
