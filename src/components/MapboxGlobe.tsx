@@ -785,6 +785,7 @@ export default function MapboxGlobe({
               longitude={chevron.lng}
               latitude={chevron.lat}
               anchor="center"
+              rotationAlignment="viewport"
               onClick={() => line && handleLineClick(line)}
             >
               <ChevronMarker $color={chevron.color} $rotation={chevron.bearing} />
@@ -799,6 +800,7 @@ export default function MapboxGlobe({
             longitude={plane.midpoint.lng}
             latitude={plane.midpoint.lat}
             anchor="center"
+            rotationAlignment="viewport"
             onClick={() => handleLineClick(plane)}
           >
             <PlaneMarkerContainer
