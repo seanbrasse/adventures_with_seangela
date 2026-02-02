@@ -679,7 +679,46 @@ const PEOPLE = [
 
 ---
 
-## 14. Changelog
+## 14. Development Workflow
+
+### Before Starting Work
+
+1. **Read PRD.md** - Understand product goals, features, and business rules
+2. **Read TECH_SPEC.md** - Review technical architecture, algorithms, and recent changes in changelog
+3. **Check the changelog** - See what's been done recently to understand current state
+
+### After Completing Work
+
+1. **Update PRD.md** if:
+   - New features were added
+   - User-facing behavior changed
+   - Business rules were modified
+
+2. **Update TECH_SPEC.md** if:
+   - New algorithms were implemented
+   - Architecture changed
+   - New dependencies were added
+   - Component behavior changed
+
+3. **Add changelog entry** with:
+   - Version number (increment minor version)
+   - Brief description of changes
+
+### Quick Reference
+
+```bash
+# Before work: read docs
+cat docs/PRD.md
+cat docs/TECH_SPEC.md
+
+# After work: update docs, then commit
+git add docs/
+git commit -m "Update documentation for [feature]"
+```
+
+---
+
+## 15. Changelog
 
 | Date | Version | Changes |
 |------|---------|---------|
