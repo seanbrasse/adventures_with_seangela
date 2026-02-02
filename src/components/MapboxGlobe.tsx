@@ -252,6 +252,7 @@ interface MapboxGlobeProps {
   accessToken: string;
   flightLines?: FlightLine[];
   homeBases?: HomeBase[];
+  sidebarCollapsed?: boolean;
 }
 
 // Generate great circle arc points between two coordinates
@@ -355,6 +356,7 @@ export default function MapboxGlobe({
   accessToken,
   flightLines = [],
   homeBases = [],
+  sidebarCollapsed = false,
 }: MapboxGlobeProps) {
   const mapRef = useRef<MapRef>(null);
   const [hoveredPoint, setHoveredPoint] = useState<PointData | null>(null);
@@ -425,6 +427,17 @@ export default function MapboxGlobe({
       }
     }
   }, [pointsData.length]);
+
+  // Resize map when sidebar collapses/expands
+  useEffect(() => {
+    if (mapRef.current) {
+      // Small delay to let the CSS transition complete
+      const timer = setTimeout(() => {
+        mapRef.current?.resize();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [sidebarCollapsed]);
 
   // Generate GeoJSON for flight lines
   const flightLinesGeoJSON = useMemo(() => {

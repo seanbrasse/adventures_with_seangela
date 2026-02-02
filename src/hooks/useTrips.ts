@@ -377,11 +377,10 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       const tripPhotos = photos.filter((p) => trip.photoIds.includes(p.id));
       if (tripPhotos.length === 0) continue;
 
-      // Get destination (average location of photos)
-      const destLat =
-        tripPhotos.reduce((sum, p) => sum + p.location.lat, 0) / tripPhotos.length;
-      const destLng =
-        tripPhotos.reduce((sum, p) => sum + p.location.lng, 0) / tripPhotos.length;
+      // Use the first photo's location as destination to match where markers are displayed
+      // (groupPhotosByLocation uses the first photo's coordinates as the group key)
+      const destLat = tripPhotos[0].location.lat;
+      const destLng = tripPhotos[0].location.lng;
 
       // Create lines for each traveler (now using personId)
       for (const personId of trip.travelers) {

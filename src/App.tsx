@@ -775,6 +775,7 @@ function App() {
               accessToken={apiKey}
               flightLines={flightLines}
               homeBases={settings.homeBases}
+              sidebarCollapsed={sidebarCollapsed}
             />
           ) : (
             <EmptyPlaceholder />
