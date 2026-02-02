@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { MapPin, Calendar, Image, Sparkles } from 'lucide-react';
+import { MapPin, Calendar, Image, Sparkles, Plane } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
@@ -111,8 +111,31 @@ const StatValue = styled.p`
   line-height: 1;
 `;
 
-const DateRange = styled.div`
+const TripsStat = styled.div`
   margin-top: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  svg {
+    color: rgba(255, 255, 255, 0.3);
+  }
+`;
+
+const TripsValue = styled.span`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+`;
+
+const TripsLabel = styled.span`
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+`;
+
+const DateRange = styled.div`
+  margin-top: 0.75rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -263,7 +286,15 @@ export default function Sidebar({ photos, onLocationSelect }: SidebarProps) {
     const firstDate = dates.length > 0 ? new Date(Math.min(...dates)) : null;
     const lastDate = dates.length > 0 ? new Date(Math.max(...dates)) : null;
 
-    return { totalPhotos, totalLocations, firstDate, lastDate };
+    // Count trips: unique locations visited on or after Sep 1, 2024
+    // (Before Sep 2024, both lived in NYC so no "trips")
+    const tripStartDate = new Date('2024-09-01');
+    const trips = locations.filter((loc) => {
+      // Check if any photo at this location is on or after Sep 2024
+      return loc.photos.some((p) => p.date >= tripStartDate);
+    }).length;
+
+    return { totalPhotos, totalLocations, firstDate, lastDate, trips };
   }, [photos, locations]);
 
   if (photos.length === 0) {
@@ -304,6 +335,14 @@ export default function Sidebar({ photos, onLocationSelect }: SidebarProps) {
             <StatValue>{stats.totalLocations}</StatValue>
           </StatCard>
         </StatsGrid>
+
+        {stats.trips > 0 && (
+          <TripsStat>
+            <Plane size={20} />
+            <TripsValue>{stats.trips}</TripsValue>
+            <TripsLabel>trip{stats.trips !== 1 ? 's' : ''} together</TripsLabel>
+          </TripsStat>
+        )}
 
         {stats.firstDate && stats.lastDate && (
           <DateRange>

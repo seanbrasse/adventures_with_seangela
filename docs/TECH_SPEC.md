@@ -733,3 +733,4 @@ git commit -m "Update documentation for [feature]"
 | 2026-02 | 1.8 | Fixed GPS coordinate sign handling for Western hemisphere photos |
 | 2026-02 | 1.9 | Improved location input UX: auto-open search, prominent "Add location" button |
 | 2026-02 | 1.10 | Added npm refresh script for quick dev workflow |
+| 2026-02 | 1.11 | Added trips counter (locations visited since Sep 2024) |

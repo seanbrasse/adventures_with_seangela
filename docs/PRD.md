@@ -110,6 +110,7 @@ Compact 320px width with Apple-like minimal, monochromatic design.
 #### Stats Section
 - Total photo count
 - Total locations count
+- Trips counter (locations visited together since Sep 2024)
 - Date range (first to last photo)
 - Monochromatic stat cards (no contrasting colors)
 
