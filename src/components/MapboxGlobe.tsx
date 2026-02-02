@@ -369,10 +369,33 @@ export default function MapboxGlobe({
     detailed: 'mapbox://styles/mapbox/satellite-streets-v12',
   };
 
-  // Group photos by location
-  const pointsData = useMemo<PointData[]>(() => {
+  // Helper function to check if a point is within a home base radius
+  const getHomeBaseForLocation = (lat: number, lng: number, bases: HomeBase[]): HomeBase | null => {
+    for (const homeBase of bases) {
+      const R = 6371; // Earth's radius in km
+      const dLat = (homeBase.lat - lat) * (Math.PI / 180);
+      const dLng = (homeBase.lng - lng) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat * (Math.PI / 180)) *
+          Math.cos(homeBase.lat * (Math.PI / 180)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = R * c;
+
+      if (distance <= homeBase.radius) {
+        return homeBase;
+      }
+    }
+    return null;
+  };
+
+  // Group photos by location, generalizing home area photos for privacy
+  const pointsData = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
     const points: PointData[] = [];
+    const homeBasePhotos: Record<string, Photo[]> = {}; // Group photos by home base
 
     groups.forEach((groupPhotos, key) => {
       const [lat, lng] = key.split(',').map(Number);
@@ -382,16 +405,40 @@ export default function MapboxGlobe({
       const isNotOrigin = lat !== 0 || lng !== 0;
 
       if (isValidLat && isValidLng && isNotOrigin) {
+        // Check if this location is within a home base (for privacy)
+        const nearbyHomeBase = getHomeBaseForLocation(lat, lng, homeBases);
+
+        if (nearbyHomeBase) {
+          // Generalize to home base location for privacy
+          const homeKey = nearbyHomeBase.id;
+          if (!homeBasePhotos[homeKey]) {
+            homeBasePhotos[homeKey] = [];
+          }
+          homeBasePhotos[homeKey].push(...groupPhotos);
+        } else {
+          points.push({
+            lat,
+            lng,
+            photos: groupPhotos.sort((a, b) => b.date.getTime() - a.date.getTime()),
+          });
+        }
+      }
+    });
+
+    // Add home base photo groups (generalized locations)
+    Object.entries(homeBasePhotos).forEach(([homeKey, groupPhotos]) => {
+      const homeBase = homeBases.find(hb => hb.id === homeKey);
+      if (homeBase) {
         points.push({
-          lat,
-          lng,
+          lat: homeBase.lat,
+          lng: homeBase.lng,
           photos: groupPhotos.sort((a, b) => b.date.getTime() - a.date.getTime()),
         });
       }
     });
 
     return points;
-  }, [photos]);
+  }, [photos, homeBases]);
 
   // Focus on selected location
   useEffect(() => {

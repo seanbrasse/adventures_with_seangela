@@ -363,16 +363,33 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
   // Compute flight lines based on trips and home bases
   // Consolidate multiple trips to same destination into single lines
   const flightLines = useMemo(() => {
+    // Helper function to check if a point is within a home base radius (for privacy)
+    const isWithinHomeBase = (lat: number, lng: number): HomeBase | null => {
+      for (const homeBase of homeBases) {
+        const distance = getDistanceKm(lat, lng, homeBase.lat, homeBase.lng);
+        if (distance <= homeBase.radius) {
+          return homeBase;
+        }
+      }
+      return null;
+    };
+
     // Group all photos to find where markers are actually displayed
     // This ensures flight lines go to the exact marker positions
     const photoGroups = groupPhotosByLocation(photos);
 
-    // Create a map from photo ID to its marker coordinates
+    // Create a map from photo ID to its marker coordinates (with privacy generalization)
     const photoToMarkerCoords = new Map<string, { lat: number; lng: number }>();
     for (const [key, groupPhotos] of photoGroups) {
       const [lat, lng] = key.split(',').map(Number);
+
+      // Check if this location should be generalized to a home base for privacy
+      const nearbyHomeBase = isWithinHomeBase(lat, lng);
+      const finalLat = nearbyHomeBase ? nearbyHomeBase.lat : lat;
+      const finalLng = nearbyHomeBase ? nearbyHomeBase.lng : lng;
+
       for (const photo of groupPhotos) {
-        photoToMarkerCoords.set(photo.id, { lat, lng });
+        photoToMarkerCoords.set(photo.id, { lat: finalLat, lng: finalLng });
       }
     }
 
@@ -392,7 +409,7 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       if (tripPhotos.length === 0) continue;
 
       // Get the marker coordinates for this trip's photos
-      // Use the coordinates where the marker is actually displayed
+      // Use the coordinates where the marker is actually displayed (with privacy)
       const markerCoords = photoToMarkerCoords.get(tripPhotos[0].id);
       const destLat = markerCoords?.lat ?? tripPhotos[0].location.lat;
       const destLng = markerCoords?.lng ?? tripPhotos[0].location.lng;

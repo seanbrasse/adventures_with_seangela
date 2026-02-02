@@ -63,10 +63,11 @@ function CityAutocomplete({
 
       setIsLoading(true);
       try {
+        // Include neighborhood and district for specific locations like "Bushwick"
         const response = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
             query
-          )}.json?access_token=${mapboxToken}&types=place,locality,region&limit=5`
+          )}.json?access_token=${mapboxToken}&types=neighborhood,locality,place,district,region&limit=8`
         );
         const data = await response.json();
         setResults(data.features || []);
@@ -110,7 +111,7 @@ function CityAutocomplete({
             // Delay hiding to allow click on result
             setTimeout(() => setShowResults(false), 200);
           }}
-          placeholder="Search for a city..."
+          placeholder="Search for a neighborhood or city..."
           className="w-full px-4 py-3 pl-11 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base placeholder-white/40 focus:outline-none focus:border-pink-500/50 focus:bg-white/[0.08] transition-all"
         />
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />

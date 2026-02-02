@@ -188,7 +188,7 @@ describe('SettingsModal component', () => {
 
     // Should show form with city search
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search for a neighborhood or city...')).toBeInTheDocument();
     });
   });
 
@@ -283,11 +283,11 @@ describe('SettingsModal component', () => {
 
     // Wait for search input
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search for a neighborhood or city...')).toBeInTheDocument();
     });
 
     // Type in search field
-    const searchInput = screen.getByPlaceholderText('Search for a city...');
+    const searchInput = screen.getByPlaceholderText('Search for a neighborhood or city...');
     fireEvent.change(searchInput, { target: { value: 'Paris' } });
 
     // Wait for results
@@ -329,7 +329,7 @@ describe('SettingsModal component', () => {
 
     // Wait for form
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search for a neighborhood or city...')).toBeInTheDocument();
     });
 
     // Click Cancel
@@ -337,7 +337,7 @@ describe('SettingsModal component', () => {
 
     // Form should close
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText('Search for a city...')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Search for a neighborhood or city...')).not.toBeInTheDocument();
     });
   });
 
@@ -475,11 +475,11 @@ describe('SettingsModal component', () => {
 
     // Wait for search input
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search for a neighborhood or city...')).toBeInTheDocument();
     });
 
     // Type in search field
-    const searchInput = screen.getByPlaceholderText('Search for a city...');
+    const searchInput = screen.getByPlaceholderText('Search for a neighborhood or city...');
     fireEvent.change(searchInput, { target: { value: 'Tokyo' } });
 
     // Wait for results to appear
@@ -504,7 +504,7 @@ describe('SettingsModal component', () => {
 
     // Wait for form to appear
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search for a neighborhood or city...')).toBeInTheDocument();
     });
 
     // Add Home Base button should exist (though may be disabled initially)
