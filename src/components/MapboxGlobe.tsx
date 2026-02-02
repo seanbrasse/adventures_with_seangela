@@ -148,13 +148,15 @@ const LocationMarkerContainer = styled.div`
 
 const PingAnimation = styled.div`
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
   width: 2.5rem;
   height: 2.5rem;
-  margin: -0.5rem;
+  transform: translate(-50%, -50%);
   background: rgba(244, 114, 182, 0.3);
   border-radius: 50%;
   animation: ${ping} 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
 `;
 
 const LocationDot = styled.div`
@@ -372,7 +374,12 @@ export default function MapboxGlobe({
 
     groups.forEach((groupPhotos, key) => {
       const [lat, lng] = key.split(',').map(Number);
-      if (lat !== 0 || lng !== 0) {
+      // Filter out invalid coordinates (0,0 or out of valid range)
+      const isValidLat = !isNaN(lat) && lat >= -90 && lat <= 90;
+      const isValidLng = !isNaN(lng) && lng >= -180 && lng <= 180;
+      const isNotOrigin = lat !== 0 || lng !== 0;
+
+      if (isValidLat && isValidLng && isNotOrigin) {
         points.push({
           lat,
           lng,
