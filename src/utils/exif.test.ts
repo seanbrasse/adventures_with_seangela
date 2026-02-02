@@ -177,13 +177,13 @@ describe('exif utilities', () => {
       expect(result1?.id).not.toBe(result2?.id);
     });
 
-    it('should set description from filename without extension', async () => {
+    it('should set description to empty string by default', async () => {
       vi.mocked(exifr.parse).mockResolvedValue({});
 
       const file = new File(['test'], 'vacation-photo.jpg', { type: 'image/jpeg' });
       const result = await extractPhotoData(file);
 
-      expect(result?.description).toBe('vacation-photo');
+      expect(result?.description).toBe('');
     });
 
     it('should handle EXIF parse errors gracefully', async () => {

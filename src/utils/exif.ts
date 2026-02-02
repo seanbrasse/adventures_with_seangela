@@ -119,7 +119,7 @@ export async function extractPhotoData(file: File): Promise<ExtractedPhotoData |
       thumbnail,
       location: { lat: lat ?? 0, lng: lng ?? 0 },
       date,
-      description: file.name.replace(/\.[^/.]+$/, ''),
+      description: '',
       needsLocation,
     };
   } catch (error) {
@@ -135,7 +135,7 @@ export async function extractPhotoData(file: File): Promise<ExtractedPhotoData |
         thumbnail,
         location: { lat: 0, lng: 0 },
         date: new Date(),
-        description: file.name.replace(/\.[^/.]+$/, ''),
+        description: '',
         needsLocation: true,
       };
     } catch (thumbError) {
