@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { X, ChevronLeft, ChevronRight, Trash2, MapPin } from 'lucide-react';
+import styled from 'styled-components';
 import type { Photo } from '../types/photo';
 
 interface PhotoGalleryProps {
@@ -9,6 +10,328 @@ interface PhotoGalleryProps {
   onDeletePhoto: (id: string) => void;
   locationName?: string;
 }
+
+// Styled Components
+const Container = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.96);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+
+  &:focus {
+    outline: none;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.75rem 2.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.5);
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+`;
+
+const HeaderIcon = styled.div`
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #f472b6;
+  }
+`;
+
+const HeaderText = styled.div``;
+
+const Title = styled.h2`
+  font-size: 1.625rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.375rem;
+`;
+
+const PhotoCount = styled.span`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const CloseButton = styled.button`
+  padding: 0.875rem;
+  border-radius: 0.875rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #ffffff;
+  }
+`;
+
+const FullscreenView = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+`;
+
+const NavButton = styled.button<{ $position: 'left' | 'right' }>`
+  position: absolute;
+  ${({ $position }) => ($position === 'left' ? 'left: 1.75rem;' : 'right: 1.75rem;')}
+  padding: 1.125rem;
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: #ffffff;
+  }
+`;
+
+const ImageContainer = styled.div`
+  max-width: 100%;
+  max-height: 100%;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const MainImage = styled.img`
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 1rem;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+`;
+
+const ImageInfo = styled.div`
+  margin-top: 1.75rem;
+  text-align: center;
+`;
+
+const ImageDate = styled.p`
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.5rem;
+`;
+
+const ImageDescription = styled.p`
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+const FullscreenCloseButton = styled.button`
+  position: absolute;
+  top: 1.75rem;
+  right: 1.75rem;
+  padding: 0.875rem;
+  border-radius: 0.875rem;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  svg {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #ffffff;
+  }
+`;
+
+const ImageCounter = styled.div`
+  position: absolute;
+  bottom: 1.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 1.5rem;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.0625rem;
+  font-weight: 500;
+`;
+
+const GalleryView = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 2.5rem;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+`;
+
+const DateGroup = styled.div`
+  margin-bottom: 2.5rem;
+`;
+
+const DateHeader = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 1.25rem;
+  padding: 0.875rem 0;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.85) 100%);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  margin-left: -2.5rem;
+  margin-right: -2.5rem;
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+`;
+
+const PhotoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.25rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+`;
+
+const PhotoItem = styled.div`
+  position: relative;
+  aspect-ratio: 1;
+  cursor: pointer;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+`;
+
+const PhotoThumbnail = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+
+  ${PhotoItem}:hover & {
+    transform: scale(1.05);
+  }
+`;
+
+const PhotoOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  transition: background 0.2s ease;
+
+  ${PhotoItem}:hover & {
+    background: rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const DeleteButton = styled.button<{ $confirm: boolean }>`
+  position: absolute;
+  top: 0.875rem;
+  right: 0.875rem;
+  padding: 0.625rem;
+  border-radius: 0.625rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: ${({ $confirm }) => ($confirm ? '#ef4444' : 'rgba(0, 0, 0, 0.6)')};
+  backdrop-filter: blur(4px);
+  opacity: ${({ $confirm }) => ($confirm ? 1 : 0)};
+
+  ${PhotoItem}:hover & {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: ${({ $confirm }) => ($confirm ? '#dc2626' : 'rgba(0, 0, 0, 0.8)')};
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #ffffff;
+  }
+`;
+
+const DeleteTooltip = styled.div`
+  position: absolute;
+  top: 3.75rem;
+  right: 0.5rem;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+`;
 
 export default function PhotoGallery({
   photos,
@@ -19,7 +342,6 @@ export default function PhotoGallery({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  // Group photos by date
   const photosByDate = useMemo(() => {
     const groups = new Map<string, Photo[]>();
 
@@ -80,130 +402,105 @@ export default function PhotoGallery({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col"
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-white/8 bg-black/50">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
-            <MapPin className="w-6 h-6 text-pink-400" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-semibold text-white">
-              {locationName || 'Photos'}
-            </h2>
-            <span className="text-white/50 text-base">{photos.length} photo{photos.length !== 1 ? 's' : ''}</span>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="p-3 rounded-xl hover:bg-white/10 transition-colors"
-        >
-          <X className="w-7 h-7 text-white" />
-        </button>
-      </div>
+    <Container onKeyDown={handleKeyDown} tabIndex={0}>
+      <Header>
+        <HeaderLeft>
+          <HeaderIcon>
+            <MapPin />
+          </HeaderIcon>
+          <HeaderText>
+            <Title>{locationName || 'Photos'}</Title>
+            <PhotoCount>
+              {photos.length} photo{photos.length !== 1 ? 's' : ''}
+            </PhotoCount>
+          </HeaderText>
+        </HeaderLeft>
+        <CloseButton onClick={onClose}>
+          <X />
+        </CloseButton>
+      </Header>
 
-      {/* Content */}
       {selectedIndex !== null ? (
-        // Full-screen view
-        <div className="flex-1 flex items-center justify-center relative">
-          <button
+        <FullscreenView>
+          <NavButton
+            $position="left"
             onClick={handlePrev}
             disabled={selectedIndex === 0}
-            className="absolute left-6 p-4 rounded-2xl bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all z-10 backdrop-blur-sm"
           >
-            <ChevronLeft className="w-10 h-10 text-white" />
-          </button>
+            <ChevronLeft />
+          </NavButton>
 
-          <div className="max-w-full max-h-full p-8 flex flex-col items-center">
-            <img
+          <ImageContainer>
+            <MainImage
               src={allPhotos[selectedIndex].url}
               alt={allPhotos[selectedIndex].description || 'Photo'}
-              className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl"
             />
-            <div className="mt-6 text-center">
-              <p className="text-white/90 text-xl font-medium">
+            <ImageInfo>
+              <ImageDate>
                 {format(allPhotos[selectedIndex].date, 'MMMM d, yyyy')}
-              </p>
+              </ImageDate>
               {allPhotos[selectedIndex].description && (
-                <p className="text-white/60 mt-2 text-lg">
+                <ImageDescription>
                   {allPhotos[selectedIndex].description}
-                </p>
+                </ImageDescription>
               )}
-            </div>
-          </div>
+            </ImageInfo>
+          </ImageContainer>
 
-          <button
+          <NavButton
+            $position="right"
             onClick={handleNext}
             disabled={selectedIndex === allPhotos.length - 1}
-            className="absolute right-6 p-4 rounded-2xl bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all z-10 backdrop-blur-sm"
           >
-            <ChevronRight className="w-10 h-10 text-white" />
-          </button>
+            <ChevronRight />
+          </NavButton>
 
-          <button
-            onClick={() => setSelectedIndex(null)}
-            className="absolute top-6 right-6 p-3 rounded-xl bg-black/60 hover:bg-black/80 transition-all backdrop-blur-sm"
-          >
-            <X className="w-7 h-7 text-white" />
-          </button>
+          <FullscreenCloseButton onClick={() => setSelectedIndex(null)}>
+            <X />
+          </FullscreenCloseButton>
 
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-black/60 backdrop-blur-sm rounded-full text-white/80 text-lg font-medium">
+          <ImageCounter>
             {selectedIndex + 1} / {allPhotos.length}
-          </div>
-        </div>
+          </ImageCounter>
+        </FullscreenView>
       ) : (
-        // Gallery grid view
-        <div className="flex-1 overflow-y-auto p-6">
+        <GalleryView>
           {Array.from(photosByDate.entries()).map(([date, datePhotos]) => (
-            <div key={date} className="mb-10">
-              <h3 className="text-xl font-semibold text-white/90 mb-4 sticky top-0 bg-black/90 py-3 backdrop-blur-sm z-10 -mx-6 px-6">
-                {date}
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <DateGroup key={date}>
+              <DateHeader>{date}</DateHeader>
+              <PhotoGrid>
                 {datePhotos.map((photo) => {
                   const photoIndex = allPhotos.findIndex((p) => p.id === photo.id);
                   return (
-                    <div
+                    <PhotoItem
                       key={photo.id}
-                      className="relative aspect-square group cursor-pointer"
                       onClick={() => setSelectedIndex(photoIndex)}
                     >
-                      <img
+                      <PhotoThumbnail
                         src={photo.thumbnail}
                         alt={photo.description || 'Photo'}
-                        className="w-full h-full object-cover rounded-xl ring-2 ring-white/5 group-hover:ring-pink-500/30 transition-all"
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-xl" />
-                      <button
+                      <PhotoOverlay />
+                      <DeleteButton
+                        $confirm={deleteConfirm === photo.id}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDelete(photo.id);
                         }}
-                        className={`absolute top-3 right-3 p-2 rounded-xl transition-all ${
-                          deleteConfirm === photo.id
-                            ? 'bg-red-500 opacity-100'
-                            : 'bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100'
-                        }`}
                       >
-                        <Trash2 className="w-5 h-5 text-white" />
-                      </button>
+                        <Trash2 />
+                      </DeleteButton>
                       {deleteConfirm === photo.id && (
-                        <div className="absolute top-14 right-2 bg-red-500 text-white text-sm px-3 py-1.5 rounded-lg shadow-lg">
-                          Click again to delete
-                        </div>
+                        <DeleteTooltip>Click again to delete</DeleteTooltip>
                       )}
-                    </div>
+                    </PhotoItem>
                   );
                 })}
-              </div>
-            </div>
+              </PhotoGrid>
+            </DateGroup>
           ))}
-        </div>
+        </GalleryView>
       )}
-    </div>
+    </Container>
   );
 }

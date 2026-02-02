@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Plus, Menu, X, Heart, Key, Settings } from 'lucide-react';
+import styled, { createGlobalStyle } from 'styled-components';
 import MapboxGlobe from './components/MapboxGlobe';
 import PhotoGallery from './components/PhotoGallery';
 import PhotoUpload from './components/PhotoUpload';
@@ -11,6 +12,535 @@ import { useTrips } from './hooks/useTrips';
 import type { Photo } from './types/photo';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
+
+// Global Styles
+const GlobalStyle = createGlobalStyle`
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #0a0a14;
+    color: #ffffff;
+  }
+`;
+
+// Styled Components
+const AppContainer = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+  }
+`;
+
+const MobileHeader = styled.header`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  z-index: 20;
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileHeaderButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const IconButton = styled.button`
+  padding: 0.625rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #ffffff;
+  }
+`;
+
+const AddButton = styled.button`
+  padding: 0.625rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #ffffff;
+  }
+`;
+
+const MobileTitle = styled.h1`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+
+  svg {
+    color: #f472b6;
+    fill: #f472b6;
+  }
+`;
+
+const MobileOverlay = styled.div<{ $visible: boolean }>`
+  display: ${({ $visible }) => ($visible ? 'block' : 'none')};
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 30;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const SidebarContainer = styled.aside<{ $open: boolean }>`
+  position: fixed;
+  inset: 0;
+  right: auto;
+  z-index: 40;
+  width: 420px;
+  max-width: 90vw;
+  background: linear-gradient(180deg, #0f0f1a 0%, #0a0a12 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  transform: ${({ $open }) => ($open ? 'translateX(0)' : 'translateX(-100%)')};
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.4);
+
+  @media (min-width: 768px) {
+    position: relative;
+    transform: translateX(0);
+    width: 420px;
+    max-width: none;
+    box-shadow: none;
+  }
+`;
+
+const SidebarHeader = styled.div`
+  padding: 1.75rem 1.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+`;
+
+const Logo = styled.h1`
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  letter-spacing: -0.02em;
+
+  svg {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #f472b6;
+    fill: #f472b6;
+  }
+`;
+
+const CloseButton = styled.button`
+  padding: 0.625rem;
+  border-radius: 0.625rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: #ffffff;
+  }
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const SidebarContent = styled.div`
+  flex: 1;
+  overflow: hidden;
+`;
+
+const SidebarFooter = styled.div`
+  display: none;
+  padding: 1.5rem 1.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+
+  @media (min-width: 768px) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+`;
+
+const PrimaryButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.125rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.25);
+
+  &:hover {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+    transform: translateY(-1px);
+  }
+
+  svg {
+    width: 1.375rem;
+    height: 1.375rem;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.875rem;
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+`;
+
+const MainContent = styled.main`
+  flex: 1;
+  position: relative;
+  background: #0a0a14;
+`;
+
+const EmptyPlaceholder = styled.div`
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #0f0f1a 0%, #0a0a14 100%);
+`;
+
+const EmptyStateOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+`;
+
+const EmptyStateCard = styled.div`
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(16px);
+  border-radius: 1.75rem;
+  padding: 3rem;
+  text-align: center;
+  max-width: 28rem;
+  margin: 1.5rem;
+  pointer-events: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+`;
+
+const EmptyStateIcon = styled.div`
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.75rem;
+
+  svg {
+    width: 2.75rem;
+    height: 2.75rem;
+    color: #f472b6;
+  }
+`;
+
+const EmptyStateTitle = styled.h2`
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+`;
+
+const EmptyStateText = styled.p`
+  font-size: 1.0625rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+`;
+
+const EmptyStateButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1rem 1.75rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+    transform: translateY(-1px);
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+`;
+
+const ApiKeyModal = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+`;
+
+const ApiKeyCard = styled.div`
+  background: linear-gradient(180deg, #16162a 0%, #111120 100%);
+  border-radius: 1.75rem;
+  max-width: 32rem;
+  width: 100%;
+  padding: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+`;
+
+const ApiKeyHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+`;
+
+const ApiKeyIcon = styled.div`
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 2rem;
+    height: 2rem;
+    color: #f472b6;
+  }
+`;
+
+const ApiKeyHeaderText = styled.div`
+  h2 {
+    font-size: 1.625rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 0.375rem;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const ApiKeyDescription = styled.p`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+
+  a {
+    color: #f472b6;
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #f9a8d4;
+      text-decoration: underline;
+    }
+  }
+`;
+
+const ApiKeyInput = styled.input`
+  width: 100%;
+  padding: 1.125rem 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  color: #ffffff;
+  font-size: 1.0625rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(236, 72, 153, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const ApiKeyButton = styled.button`
+  width: 100%;
+  padding: 1.125rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.25);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ApiKeyTip = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+  margin-top: 1.25rem;
+`;
+
+const LoadingScreen = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a14;
+`;
+
+const LoadingContent = styled.div`
+  text-align: center;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 4rem;
+  height: 4rem;
+  border: 3px solid rgba(236, 72, 153, 0.2);
+  border-top-color: #ec4899;
+  border-radius: 50%;
+  margin: 0 auto 1.25rem;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingText = styled.p`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+`;
 
 function App() {
   const { photos, isLoading, addPhotos, removePhoto } = usePhotoStorage();
@@ -63,219 +593,177 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-[#0a0a1a]">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white/60">Loading your memories...</p>
-        </div>
-      </div>
+      <>
+        <GlobalStyle />
+        <LoadingScreen>
+          <LoadingContent>
+            <LoadingSpinner />
+            <LoadingText>Loading your memories...</LoadingText>
+          </LoadingContent>
+        </LoadingScreen>
+      </>
     );
   }
 
   return (
-    <div className="w-full h-full flex flex-col md:flex-row relative overflow-hidden">
-      {/* Mobile header */}
-      <header className="md:hidden flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm z-20 relative">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-          >
-            <Menu className="w-5 h-5 text-white" />
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-          >
-            <Settings className="w-5 h-5 text-white" />
-          </button>
-        </div>
-        <h1 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
-          Our Photo Map
-        </h1>
-        <button
-          onClick={() => setShowUpload(true)}
-          className="p-2 rounded-lg bg-pink-500 hover:bg-pink-600 transition-colors"
-        >
-          <Plus className="w-5 h-5 text-white" />
-        </button>
-      </header>
-
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="md:hidden fixed inset-0 bg-black/60 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed md:relative inset-y-0 left-0 z-40
-          w-[400px] bg-[#0d0d15] border-r border-white/10
-          transform transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-          flex flex-col
-        `}
-      >
-        {/* Sidebar header */}
-        <div className="px-6 py-6 border-b border-white/10 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Heart className="w-7 h-7 text-pink-400 fill-pink-400" />
+    <>
+      <GlobalStyle />
+      <AppContainer>
+        {/* Mobile header */}
+        <MobileHeader>
+          <MobileHeaderButtons>
+            <IconButton onClick={() => setSidebarOpen(true)}>
+              <Menu />
+            </IconButton>
+            <IconButton onClick={() => setShowSettings(true)}>
+              <Settings />
+            </IconButton>
+          </MobileHeaderButtons>
+          <MobileTitle>
+            <Heart size={20} />
             Our Photo Map
-          </h1>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
-        </div>
+          </MobileTitle>
+          <AddButton onClick={() => setShowUpload(true)}>
+            <Plus />
+          </AddButton>
+        </MobileHeader>
 
-        {/* Sidebar content */}
-        <div className="flex-1 overflow-hidden">
-          <Sidebar photos={photos} onLocationSelect={handleLocationClick} />
-        </div>
+        {/* Mobile sidebar overlay */}
+        <MobileOverlay $visible={sidebarOpen} onClick={() => setSidebarOpen(false)} />
 
-        {/* Desktop buttons */}
-        <div className="hidden md:block px-6 py-6 border-t border-white/10 space-y-3">
-          <button
-            onClick={() => setShowUpload(true)}
-            className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 transition-all text-white text-lg font-semibold shadow-lg shadow-pink-500/20"
-          >
-            <Plus className="w-6 h-6" />
-            Add Photos
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/8 hover:bg-white/12 transition-colors text-white/70 text-base"
-          >
-            <Settings className="w-5 h-5" />
-            Settings
-          </button>
-        </div>
-      </aside>
+        {/* Sidebar */}
+        <SidebarContainer $open={sidebarOpen}>
+          <SidebarHeader>
+            <Logo>
+              <Heart />
+              Our Photo Map
+            </Logo>
+            <CloseButton onClick={() => setSidebarOpen(false)}>
+              <X />
+            </CloseButton>
+          </SidebarHeader>
 
-      {/* Main content - Globe */}
-      <main className="flex-1 relative">
-        {apiKey ? (
-          <MapboxGlobe
-            photos={photos}
-            onLocationClick={handleLocationClick}
-            selectedLocation={selectedLocation}
-            accessToken={apiKey}
-            flightLines={flightLines}
-            homeBases={settings.homeBases}
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-b from-gray-900 to-gray-800" />
-        )}
+          <SidebarContent>
+            <Sidebar photos={photos} onLocationSelect={handleLocationClick} />
+          </SidebarContent>
 
-        {/* Empty state overlay */}
-        {photos.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-black/70 backdrop-blur-sm rounded-2xl p-8 text-center max-w-md mx-4 pointer-events-auto">
-              <div className="w-20 h-20 rounded-full bg-pink-500/20 flex items-center justify-center mx-auto mb-4">
-                <Heart className="w-10 h-10 text-pink-400" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Start Your Journey
-              </h2>
-              <p className="text-white/60 mb-6">
-                Add photos from your adventures together and watch them appear on the globe!
-              </p>
-              <button
-                onClick={() => setShowUpload(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-pink-500 hover:bg-pink-600 transition-colors text-white font-medium"
-              >
-                <Plus className="w-5 h-5" />
-                Add Your First Photos
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
+          <SidebarFooter>
+            <PrimaryButton onClick={() => setShowUpload(true)}>
+              <Plus />
+              Add Photos
+            </PrimaryButton>
+            <SecondaryButton onClick={() => setShowSettings(true)}>
+              <Settings />
+              Settings
+            </SecondaryButton>
+          </SidebarFooter>
+        </SidebarContainer>
 
-      {/* Photo upload modal */}
-      {showUpload && (
-        <PhotoUpload onUpload={handleUpload} onClose={() => setShowUpload(false)} mapboxToken={apiKey} />
-      )}
-
-      {/* Photo gallery modal */}
-      {showGallery && selectedPhotos.length > 0 && (
-        <PhotoGallery
-          photos={selectedPhotos}
-          onClose={handleCloseGallery}
-          onDeletePhoto={handleDeletePhoto}
-          locationName={selectedPhotos[0]?.location.name}
-        />
-      )}
-
-      {/* API Key input modal */}
-      {showApiKeyInput && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="bg-[#12121c] rounded-3xl max-w-lg w-full p-8 border border-white/10 shadow-2xl">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
-                <Key className="w-7 h-7 text-pink-400" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-semibold text-white">Mapbox API Key</h2>
-                <p className="text-white/60 text-base">Required to display the map</p>
-              </div>
-            </div>
-            <p className="text-white/70 text-base mb-6 leading-relaxed">
-              Get your free API key from{' '}
-              <a
-                href="https://mapbox.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-pink-400 hover:text-pink-300 underline"
-              >
-                mapbox.com
-              </a>
-              {' '}(free tier includes 50k map loads/month)
-            </p>
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="pk.eyJ1Ijo..."
-              className="w-full px-5 py-4 bg-white/[0.06] border border-white/10 rounded-2xl text-white text-lg placeholder-white/40 mb-6 focus:outline-none focus:border-pink-500/50 focus:bg-white/[0.08] transition-all"
+        {/* Main content - Globe */}
+        <MainContent>
+          {apiKey ? (
+            <MapboxGlobe
+              photos={photos}
+              onLocationClick={handleLocationClick}
+              selectedLocation={selectedLocation}
+              accessToken={apiKey}
+              flightLines={flightLines}
+              homeBases={settings.homeBases}
             />
-            <button
-              onClick={() => {
-                if (apiKey.trim()) {
-                  setShowApiKeyInput(false);
-                }
-              }}
-              disabled={!apiKey.trim()}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-white text-lg font-medium shadow-lg shadow-pink-500/25"
-            >
-              Continue
-            </button>
-            <p className="text-white/50 text-sm mt-4 text-center">
-              Tip: Add VITE_MAPBOX_TOKEN to a .env file to skip this step
-            </p>
-          </div>
-        </div>
-      )}
+          ) : (
+            <EmptyPlaceholder />
+          )}
 
-      {/* Settings modal */}
-      {showSettings && (
-        <SettingsModal
-          homeBases={settings.homeBases}
-          onUpdateHomeBase={updateHomeBase}
-          onAddHomeBase={addHomeBase}
-          onRemoveHomeBase={removeHomeBase}
-          onResetToDefaults={resetToDefaults}
-          onClose={() => setShowSettings(false)}
-          mapboxToken={apiKey}
-        />
-      )}
-    </div>
+          {/* Empty state overlay */}
+          {photos.length === 0 && (
+            <EmptyStateOverlay>
+              <EmptyStateCard>
+                <EmptyStateIcon>
+                  <Heart />
+                </EmptyStateIcon>
+                <EmptyStateTitle>Start Your Journey</EmptyStateTitle>
+                <EmptyStateText>
+                  Add photos from your adventures together and watch them appear on the globe!
+                </EmptyStateText>
+                <EmptyStateButton onClick={() => setShowUpload(true)}>
+                  <Plus />
+                  Add Your First Photos
+                </EmptyStateButton>
+              </EmptyStateCard>
+            </EmptyStateOverlay>
+          )}
+        </MainContent>
+
+        {/* Photo upload modal */}
+        {showUpload && (
+          <PhotoUpload onUpload={handleUpload} onClose={() => setShowUpload(false)} mapboxToken={apiKey} />
+        )}
+
+        {/* Photo gallery modal */}
+        {showGallery && selectedPhotos.length > 0 && (
+          <PhotoGallery
+            photos={selectedPhotos}
+            onClose={handleCloseGallery}
+            onDeletePhoto={handleDeletePhoto}
+            locationName={selectedPhotos[0]?.location.name}
+          />
+        )}
+
+        {/* API Key input modal */}
+        {showApiKeyInput && (
+          <ApiKeyModal>
+            <ApiKeyCard>
+              <ApiKeyHeader>
+                <ApiKeyIcon>
+                  <Key />
+                </ApiKeyIcon>
+                <ApiKeyHeaderText>
+                  <h2>Mapbox API Key</h2>
+                  <p>Required to display the map</p>
+                </ApiKeyHeaderText>
+              </ApiKeyHeader>
+              <ApiKeyDescription>
+                Get your free API key from{' '}
+                <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer">
+                  mapbox.com
+                </a>{' '}
+                (free tier includes 50k map loads/month)
+              </ApiKeyDescription>
+              <ApiKeyInput
+                type="text"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="pk.eyJ1Ijo..."
+              />
+              <ApiKeyButton
+                onClick={() => {
+                  if (apiKey.trim()) {
+                    setShowApiKeyInput(false);
+                  }
+                }}
+                disabled={!apiKey.trim()}
+              >
+                Continue
+              </ApiKeyButton>
+              <ApiKeyTip>Tip: Add VITE_MAPBOX_TOKEN to a .env file to skip this step</ApiKeyTip>
+            </ApiKeyCard>
+          </ApiKeyModal>
+        )}
+
+        {/* Settings modal */}
+        {showSettings && (
+          <SettingsModal
+            homeBases={settings.homeBases}
+            onUpdateHomeBase={updateHomeBase}
+            onAddHomeBase={addHomeBase}
+            onRemoveHomeBase={removeHomeBase}
+            onResetToDefaults={resetToDefaults}
+            onClose={() => setShowSettings(false)}
+            mapboxToken={apiKey}
+          />
+        )}
+      </AppContainer>
+    </>
   );
 }
 

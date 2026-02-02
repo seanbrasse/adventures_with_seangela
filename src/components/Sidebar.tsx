@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { MapPin, Calendar, Image, Sparkles } from 'lucide-react';
+import styled from 'styled-components';
 import type { Photo } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 
@@ -8,6 +9,245 @@ interface SidebarProps {
   photos: Photo[];
   onLocationSelect: (photos: Photo[]) => void;
 }
+
+// Styled Components
+const Container = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(15, 15, 25, 0.98) 0%, rgba(10, 10, 18, 1) 100%);
+`;
+
+const EmptyState = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2.5rem;
+  text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+  width: 7rem;
+  height: 7rem;
+  border-radius: 2rem;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.25) 0%, rgba(168, 85, 247, 0.2) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 32px rgba(236, 72, 153, 0.15);
+`;
+
+const EmptyTitle = styled.h3`
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+`;
+
+const EmptyText = styled.p`
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.6;
+  max-width: 280px;
+`;
+
+const StatsSection = styled.div`
+  padding: 2rem 1.75rem;
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+`;
+
+const StatCard = styled.div<{ $variant: 'pink' | 'blue' }>`
+  background: ${({ $variant }) =>
+    $variant === 'pink'
+      ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.18) 0%, rgba(168, 85, 247, 0.12) 100%)'
+      : 'linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(6, 182, 212, 0.12) 100%)'};
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid ${({ $variant }) =>
+    $variant === 'pink' ? 'rgba(236, 72, 153, 0.25)' : 'rgba(59, 130, 246, 0.25)'};
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: ${({ $variant }) =>
+      $variant === 'pink' ? 'rgba(236, 72, 153, 0.4)' : 'rgba(59, 130, 246, 0.4)'};
+  }
+`;
+
+const StatHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-bottom: 1rem;
+`;
+
+const StatIcon = styled.div<{ $variant: 'pink' | 'blue' }>`
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.875rem;
+  background: ${({ $variant }) =>
+    $variant === 'pink' ? 'rgba(236, 72, 153, 0.25)' : 'rgba(59, 130, 246, 0.25)'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    color: ${({ $variant }) => ($variant === 'pink' ? '#f472b6' : '#60a5fa')};
+  }
+`;
+
+const StatLabel = styled.span<{ $variant: 'pink' | 'blue' }>`
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${({ $variant }) => ($variant === 'pink' ? '#f9a8d4' : '#93c5fd')};
+  letter-spacing: 0.01em;
+`;
+
+const StatValue = styled.p`
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+  line-height: 1;
+`;
+
+const DateRange = styled.div`
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0 0.25rem;
+
+  svg {
+    color: rgba(255, 255, 255, 0.35);
+  }
+`;
+
+const DateText = styled.span`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+`;
+
+const Divider = styled.div`
+  margin: 0 1.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
+const LocationsSection = styled.div`
+  flex: 1;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+`;
+
+const LocationsInner = styled.div`
+  padding: 1.75rem;
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 1.5rem;
+`;
+
+const LocationsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const LocationCard = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.125rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem;
+  transition: all 0.2s ease;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(236, 72, 153, 0.3);
+    transform: translateX(4px);
+  }
+`;
+
+const Thumbnail = styled.div`
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.2s ease;
+
+  ${LocationCard}:hover & {
+    border-color: rgba(236, 72, 153, 0.5);
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+const LocationInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const LocationName = styled.p`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+`;
+
+const LocationMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9375rem;
+`;
+
+const MetaDot = styled.span`
+  color: rgba(255, 255, 255, 0.2);
+`;
 
 export default function Sidebar({ photos, onLocationSelect }: SidebarProps) {
   const locations = useMemo(() => {
@@ -43,102 +283,90 @@ export default function Sidebar({ photos, onLocationSelect }: SidebarProps) {
 
   if (photos.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center px-8 py-12 text-center">
-        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center mb-8">
-          <Sparkles className="w-12 h-12 text-pink-400" />
-        </div>
-        <h3 className="text-2xl font-semibold text-white mb-4">No photos yet</h3>
-        <p className="text-white/50 text-lg leading-relaxed max-w-xs">
+      <EmptyState>
+        <EmptyIcon>
+          <Sparkles size={40} color="#f472b6" />
+        </EmptyIcon>
+        <EmptyTitle>No photos yet</EmptyTitle>
+        <EmptyText>
           Add photos with location data to see them on your map
-        </p>
-      </div>
+        </EmptyText>
+      </EmptyState>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Stats Section */}
-      <div className="px-6 py-6">
-        <div className="grid grid-cols-2 gap-4">
-          {/* Photos stat card */}
-          <div className="bg-gradient-to-br from-pink-500/15 to-purple-500/10 rounded-2xl p-5 border border-pink-500/20">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">
-                <Image className="w-5 h-5 text-pink-400" />
-              </div>
-              <span className="text-base font-medium text-pink-300">Photos</span>
-            </div>
-            <p className="text-4xl font-bold text-white">{stats.totalPhotos}</p>
-          </div>
+    <Container>
+      <StatsSection>
+        <StatsGrid>
+          <StatCard $variant="pink">
+            <StatHeader>
+              <StatIcon $variant="pink">
+                <Image size={22} />
+              </StatIcon>
+              <StatLabel $variant="pink">Photos</StatLabel>
+            </StatHeader>
+            <StatValue>{stats.totalPhotos}</StatValue>
+          </StatCard>
 
-          {/* Places stat card */}
-          <div className="bg-gradient-to-br from-blue-500/15 to-cyan-500/10 rounded-2xl p-5 border border-blue-500/20">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-blue-400" />
-              </div>
-              <span className="text-base font-medium text-blue-300">Places</span>
-            </div>
-            <p className="text-4xl font-bold text-white">{stats.totalLocations}</p>
-          </div>
-        </div>
+          <StatCard $variant="blue">
+            <StatHeader>
+              <StatIcon $variant="blue">
+                <MapPin size={22} />
+              </StatIcon>
+              <StatLabel $variant="blue">Places</StatLabel>
+            </StatHeader>
+            <StatValue>{stats.totalLocations}</StatValue>
+          </StatCard>
+        </StatsGrid>
 
-        {/* Date range */}
         {stats.firstDate && stats.lastDate && (
-          <div className="mt-5 flex items-center gap-3 px-1">
-            <Calendar className="w-5 h-5 text-white/40" />
-            <span className="text-base text-white/50">
+          <DateRange>
+            <Calendar size={20} />
+            <DateText>
               {format(stats.firstDate, 'MMM yyyy')} – {format(stats.lastDate, 'MMM yyyy')}
-            </span>
-          </div>
+            </DateText>
+          </DateRange>
         )}
-      </div>
+      </StatsSection>
 
-      {/* Divider */}
-      <div className="mx-6 border-t border-white/10" />
+      <Divider />
 
-      {/* Locations list */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-6">
-          <h3 className="text-sm font-bold text-white/40 uppercase tracking-widest mb-5">
-            Your Places
-          </h3>
-          <div className="space-y-4">
+      <LocationsSection>
+        <LocationsInner>
+          <SectionTitle>Your Places</SectionTitle>
+          <LocationsList>
             {locations.map((loc) => (
-              <button
+              <LocationCard
                 key={loc.key}
                 onClick={() => onLocationSelect(loc.photos)}
-                className="w-full flex items-center gap-5 p-4 bg-white/[0.04] hover:bg-white/[0.08] rounded-2xl transition-all text-left group border border-white/5 hover:border-white/15"
               >
-                {/* Thumbnail */}
-                <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 ring-2 ring-white/10 group-hover:ring-pink-500/40 transition-all">
+                <Thumbnail>
                   <img
                     src={loc.photos[0].thumbnail}
                     alt=""
-                    className="w-full h-full object-cover"
                   />
-                </div>
+                </Thumbnail>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-lg truncate mb-1.5">
+                <LocationInfo>
+                  <LocationName>
                     {loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`}
-                  </p>
-                  <div className="flex items-center gap-2 text-white/40">
-                    <span className="text-base">
+                  </LocationName>
+                  <LocationMeta>
+                    <span>
                       {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
                     </span>
-                    <span className="text-white/20">•</span>
-                    <span className="text-base">
+                    <MetaDot>•</MetaDot>
+                    <span>
                       {format(loc.latestDate, 'MMM d, yyyy')}
                     </span>
-                  </div>
-                </div>
-              </button>
+                  </LocationMeta>
+                </LocationInfo>
+              </LocationCard>
             ))}
-          </div>
-        </div>
-      </div>
-    </div>
+          </LocationsList>
+        </LocationsInner>
+      </LocationsSection>
+    </Container>
   );
 }
