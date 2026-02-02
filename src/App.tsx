@@ -209,6 +209,7 @@ const CloseButton = styled.button`
 const SidebarContent = styled.div`
   flex: 1;
   overflow: hidden;
+  width: 100%;
 `;
 
 const SidebarFooter = styled.div`

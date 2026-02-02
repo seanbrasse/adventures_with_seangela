@@ -14,6 +14,7 @@ interface SidebarProps {
 // Styled Components
 const Container = styled.div`
   height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
 `;
@@ -69,6 +70,7 @@ const StatCard = styled.div`
   padding: 1.25rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
   transition: all 0.2s ease;
+  min-width: 0;
 
   &:hover {
     background: rgba(255, 255, 255, 0.06);
