@@ -6,6 +6,7 @@ import PhotoGallery, { type LocationContext } from './components/PhotoGallery';
 import PhotoUpload from './components/PhotoUpload';
 import Sidebar from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
+import PlacesView from './components/PlacesView';
 import { usePhotoStorage } from './hooks/usePhotoStorage';
 import { useSettings } from './hooks/useSettings';
 import { useTrips } from './hooks/useTrips';
@@ -614,6 +615,7 @@ function App() {
   const [showUpload, setShowUpload] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPlacesView, setShowPlacesView] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -628,6 +630,10 @@ function App() {
     if (locationPhotos.length > 0) {
       setSelectedLocation(locationPhotos[0].location);
     }
+  }, []);
+
+  const handlePlacesClick = useCallback(() => {
+    setShowPlacesView(true);
   }, []);
 
   const handleCloseGallery = useCallback(() => {
@@ -760,7 +766,7 @@ function App() {
           </SidebarHeader>
 
           <SidebarContent>
-            <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} />
+            <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} onPlacesClick={handlePlacesClick} />
           </SidebarContent>
         </MobileSidebarContainer>
 
@@ -775,7 +781,7 @@ function App() {
             </SidebarHeader>
 
             <SidebarContent>
-              <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} />
+              <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} onPlacesClick={handlePlacesClick} />
             </SidebarContent>
 
             <SidebarFooter>
@@ -909,6 +915,16 @@ function App() {
               <ApiKeyTip>Tip: Add VITE_MAPBOX_TOKEN to a .env file to skip this step</ApiKeyTip>
             </ApiKeyCard>
           </ApiKeyModal>
+        )}
+
+        {/* Places view modal */}
+        {showPlacesView && (
+          <PlacesView
+            photos={photos}
+            trips={trips}
+            onClose={() => setShowPlacesView(false)}
+            onLocationSelect={handleLocationClick}
+          />
         )}
 
         {/* Settings modal */}

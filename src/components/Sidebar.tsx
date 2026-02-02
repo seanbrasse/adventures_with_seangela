@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { MapPin, Calendar, Image, Sparkles, Plane } from 'lucide-react';
+import { MapPin, Calendar, Image, Sparkles, Plane, ChevronRight } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo, Trip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
@@ -9,6 +9,7 @@ interface SidebarProps {
   photos: Photo[];
   trips?: Trip[];
   onLocationSelect: (photos: Photo[]) => void;
+  onPlacesClick?: () => void;
 }
 
 // Styled Components
@@ -181,13 +182,39 @@ const LocationsInner = styled.div`
   padding: 1.25rem;
 `;
 
-const SectionTitle = styled.h3`
+const SectionTitle = styled.button`
   font-size: 0.6875rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.35);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  margin-left: -0.75rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover svg {
+    opacity: 1;
+  }
 `;
 
 const LocationsList = styled.div`
@@ -266,7 +293,7 @@ const MetaDot = styled.span`
   color: rgba(255, 255, 255, 0.2);
 `;
 
-export default function Sidebar({ photos, trips = [], onLocationSelect }: SidebarProps) {
+export default function Sidebar({ photos, trips = [], onLocationSelect, onPlacesClick }: SidebarProps) {
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
     const locs: { key: string; lat: number; lng: number; photos: Photo[]; latestDate: Date }[] = [];
@@ -364,7 +391,10 @@ export default function Sidebar({ photos, trips = [], onLocationSelect }: Sideba
 
       <LocationsSection>
         <LocationsInner>
-          <SectionTitle>Your Places</SectionTitle>
+          <SectionTitle onClick={onPlacesClick}>
+            Your Places
+            <ChevronRight />
+          </SectionTitle>
           <LocationsList>
             {locations.map((loc) => {
               const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
