@@ -1,14 +1,21 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { MapPin, Calendar, Image, Sparkles, Plane } from 'lucide-react';
+import { MapPin, Calendar, Image, Sparkles, Plane, Plus } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo, Trip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
+
+export interface LocationContext {
+  lat: number;
+  lng: number;
+  name: string;
+}
 
 interface SidebarProps {
   photos: Photo[];
   trips?: Trip[];
   onLocationSelect: (photos: Photo[]) => void;
+  onAddPhotoToLocation?: (location: LocationContext) => void;
 }
 
 // Styled Components
@@ -266,7 +273,53 @@ const MetaDot = styled.span`
   color: rgba(255, 255, 255, 0.2);
 `;
 
-export default function Sidebar({ photos, trips = [], onLocationSelect }: SidebarProps) {
+const AddPhotoButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  margin-left: auto;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:hover {
+    background: rgba(236, 72, 153, 0.3);
+
+    svg {
+      color: #ec4899;
+    }
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+const LocationCardWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 0.5rem;
+  border-radius: 0.875rem;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+`;
+
+export default function Sidebar({ photos, trips = [], onLocationSelect, onAddPhotoToLocation }: SidebarProps) {
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
     const locs: { key: string; lat: number; lng: number; photos: Photo[]; latestDate: Date }[] = [];
@@ -366,34 +419,53 @@ export default function Sidebar({ photos, trips = [], onLocationSelect }: Sideba
         <LocationsInner>
           <SectionTitle>Your Places</SectionTitle>
           <LocationsList>
-            {locations.map((loc) => (
-              <LocationCard
-                key={loc.key}
-                onClick={() => onLocationSelect(loc.photos)}
-              >
-                <Thumbnail>
-                  <img
-                    src={loc.photos[0].thumbnail}
-                    alt=""
-                  />
-                </Thumbnail>
+            {locations.map((loc) => {
+              const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
+              return (
+                <LocationCardWrapper key={loc.key}>
+                  <LocationCard
+                    onClick={() => onLocationSelect(loc.photos)}
+                  >
+                    <Thumbnail>
+                      <img
+                        src={loc.photos[0].thumbnail}
+                        alt=""
+                      />
+                    </Thumbnail>
 
-                <LocationInfo>
-                  <LocationName>
-                    {loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`}
-                  </LocationName>
-                  <LocationMeta>
-                    <span>
-                      {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
-                    </span>
-                    <MetaDot>•</MetaDot>
-                    <span>
-                      {format(loc.latestDate, 'MMM d, yyyy')}
-                    </span>
-                  </LocationMeta>
-                </LocationInfo>
-              </LocationCard>
-            ))}
+                    <LocationInfo>
+                      <LocationName>
+                        {locationName}
+                      </LocationName>
+                      <LocationMeta>
+                        <span>
+                          {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
+                        </span>
+                        <MetaDot>•</MetaDot>
+                        <span>
+                          {format(loc.latestDate, 'MMM d, yyyy')}
+                        </span>
+                      </LocationMeta>
+                    </LocationInfo>
+                  </LocationCard>
+                  {onAddPhotoToLocation && (
+                    <AddPhotoButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddPhotoToLocation({
+                          lat: loc.lat,
+                          lng: loc.lng,
+                          name: locationName,
+                        });
+                      }}
+                      title={`Add photo to ${locationName}`}
+                    >
+                      <Plus />
+                    </AddPhotoButton>
+                  )}
+                </LocationCardWrapper>
+              );
+            })}
           </LocationsList>
         </LocationsInner>
       </LocationsSection>

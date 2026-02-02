@@ -6,13 +6,25 @@ import { extractPhotoData, uploadPhotoToStorage } from '../utils/exif';
 import { reverseGeocode } from '../utils/geocoding';
 import type { ExtractedPhotoData } from '../utils/exif';
 
+export interface TargetLocation {
+  lat: number;
+  lng: number;
+  name: string;
+}
+
 interface PhotoUploadProps {
   onUpload: (photos: Photo[]) => void;
   onClose: () => void;
   mapboxToken?: string;
+  targetLocation?: TargetLocation | null;
 }
 
-interface PendingPhoto extends ExtractedPhotoData {}
+interface PendingPhoto extends ExtractedPhotoData {
+  locationMismatch?: {
+    distance: number;
+    photoLocation: string;
+  };
+}
 
 interface GeocodingResult {
   id: string;
@@ -624,6 +636,107 @@ const CancelTextButton = styled.button`
   }
 `;
 
+const TargetLocationBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba(236, 72, 153, 0.1);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  border-radius: 0.875rem;
+  margin-bottom: 1.5rem;
+
+  svg {
+    color: #ec4899;
+    flex-shrink: 0;
+  }
+`;
+
+const TargetLocationText = styled.div`
+  flex: 1;
+
+  p {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.125rem;
+  }
+
+  strong {
+    font-size: 1rem;
+    color: #ffffff;
+    font-weight: 600;
+  }
+`;
+
+const LocationMismatchWarning = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 0.75rem;
+  margin-top: 0.75rem;
+`;
+
+const WarningHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  svg {
+    color: #fbbf24;
+  }
+
+  span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #fbbf24;
+  }
+`;
+
+const WarningText = styled.p`
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+`;
+
+const WarningActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const WarningButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  ${({ $variant }) =>
+    $variant === 'primary'
+      ? `
+    background: rgba(236, 72, 153, 0.2);
+    border: 1px solid rgba(236, 72, 153, 0.4);
+    color: #ec4899;
+
+    &:hover {
+      background: rgba(236, 72, 153, 0.3);
+    }
+  `
+      : `
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.8);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  `}
+`;
+
 // Location autocomplete component
 function LocationAutocomplete({
   onSelect,
@@ -718,7 +831,25 @@ function LocationAutocomplete({
   );
 }
 
-export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUploadProps) {
+// Calculate distance between two points in km (Haversine formula)
+function getDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLng = (lng2 - lng1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Threshold for considering a photo "at" the target location (in km)
+const LOCATION_MATCH_THRESHOLD = 50;
+
+export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLocation }: PhotoUploadProps) {
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -745,7 +876,59 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
 
       const photoData = await extractPhotoData(file);
       if (photoData) {
-        if (!photoData.needsLocation && mapboxToken && !photoData.location.name) {
+        const pendingPhoto: PendingPhoto = { ...photoData };
+
+        // If uploading to a specific location and photo has no GPS, use target location
+        if (photoData.needsLocation && targetLocation) {
+          pendingPhoto.location = {
+            lat: targetLocation.lat,
+            lng: targetLocation.lng,
+            name: targetLocation.name,
+          };
+          pendingPhoto.needsLocation = false;
+        }
+        // If photo has GPS, check if it matches target location
+        else if (!photoData.needsLocation && targetLocation) {
+          const distance = getDistanceKm(
+            photoData.location.lat,
+            photoData.location.lng,
+            targetLocation.lat,
+            targetLocation.lng
+          );
+
+          if (distance > LOCATION_MATCH_THRESHOLD) {
+            // Photo GPS is far from target location - mark as mismatch
+            let photoLocationName = 'Unknown location';
+            if (mapboxToken) {
+              const geocodeResult = await reverseGeocode(
+                photoData.location.lat,
+                photoData.location.lng,
+                mapboxToken
+              );
+              if (geocodeResult) {
+                photoLocationName = geocodeResult.fullName;
+                pendingPhoto.location = {
+                  lat: geocodeResult.center.lat,
+                  lng: geocodeResult.center.lng,
+                  name: geocodeResult.fullName,
+                };
+              }
+            }
+            pendingPhoto.locationMismatch = {
+              distance: Math.round(distance),
+              photoLocation: photoLocationName,
+            };
+          } else {
+            // Photo is close to target - use target location for consistency
+            pendingPhoto.location = {
+              lat: targetLocation.lat,
+              lng: targetLocation.lng,
+              name: targetLocation.name,
+            };
+          }
+        }
+        // Regular upload (no target location) - geocode as before
+        else if (!photoData.needsLocation && mapboxToken && !photoData.location.name) {
           const geocodeResult = await reverseGeocode(
             photoData.location.lat,
             photoData.location.lng,
@@ -755,14 +938,14 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
             // Use the city center coordinates instead of exact GPS
             // This generalizes locations so all photos in the same city
             // appear at the same point (e.g., "Brooklyn" center, not an apartment)
-            photoData.location = {
+            pendingPhoto.location = {
               lat: geocodeResult.center.lat,
               lng: geocodeResult.center.lng,
               name: geocodeResult.fullName,
             };
           }
         }
-        newPhotos.push(photoData);
+        newPhotos.push(pendingPhoto);
       }
     }
 
@@ -774,7 +957,7 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
     if (firstNeedsLocation) {
       setEditingLocation(firstNeedsLocation.id);
     }
-  }, [mapboxToken]);
+  }, [mapboxToken, targetLocation]);
 
   const handlePaste = useCallback(async (e: ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -879,6 +1062,37 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
     setManualDate('');
   };
 
+  // Handle location mismatch: use target location instead of photo GPS
+  const handleUseTargetLocation = (id: string) => {
+    if (!targetLocation) return;
+    setPendingPhotos((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              location: {
+                lat: targetLocation.lat,
+                lng: targetLocation.lng,
+                name: targetLocation.name,
+              },
+              locationMismatch: undefined,
+            }
+          : p
+      )
+    );
+  };
+
+  // Handle location mismatch: keep photo's GPS location
+  const handleKeepPhotoLocation = (id: string) => {
+    setPendingPhotos((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? { ...p, locationMismatch: undefined }
+          : p
+      )
+    );
+  };
+
   const handleSubmit = async () => {
     const validPhotos = pendingPhotos.filter((p) => !p.needsLocation);
     if (validPhotos.length === 0) return;
@@ -950,6 +1164,16 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
             </UploadingBanner>
           )}
 
+          {targetLocation && (
+            <TargetLocationBanner>
+              <MapPin size={20} />
+              <TargetLocationText>
+                <p>Adding photos to</p>
+                <strong>{targetLocation.name}</strong>
+              </TargetLocationText>
+            </TargetLocationBanner>
+          )}
+
           <DropZone
             ref={dropZoneRef}
             $active={dragActive}
@@ -1012,10 +1236,33 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
                           </LocationButton>
                         )
                       ) : (
-                        <LocationDisplay>
-                          <MapPin size={16} />
-                          <span>{photo.location.name || `${photo.location.lat.toFixed(4)}, ${photo.location.lng.toFixed(4)}`}</span>
-                        </LocationDisplay>
+                        <>
+                          <LocationDisplay>
+                            <MapPin size={16} />
+                            <span>{photo.location.name || `${photo.location.lat.toFixed(4)}, ${photo.location.lng.toFixed(4)}`}</span>
+                          </LocationDisplay>
+
+                          {photo.locationMismatch && targetLocation && (
+                            <LocationMismatchWarning>
+                              <WarningHeader>
+                                <AlertCircle size={16} />
+                                <span>Location mismatch</span>
+                              </WarningHeader>
+                              <WarningText>
+                                This photo was taken {photo.locationMismatch.distance}km away in {photo.locationMismatch.photoLocation}.
+                                Would you like to add it to {targetLocation.name} anyway?
+                              </WarningText>
+                              <WarningActions>
+                                <WarningButton $variant="primary" onClick={() => handleUseTargetLocation(photo.id)}>
+                                  Use {targetLocation.name}
+                                </WarningButton>
+                                <WarningButton onClick={() => handleKeepPhotoLocation(photo.id)}>
+                                  Keep original location
+                                </WarningButton>
+                              </WarningActions>
+                            </LocationMismatchWarning>
+                          )}
+                        </>
                       )}
 
                       <DateSection>

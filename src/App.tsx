@@ -4,7 +4,7 @@ import styled, { createGlobalStyle } from 'styled-components';
 import MapboxGlobe from './components/MapboxGlobe';
 import PhotoGallery from './components/PhotoGallery';
 import PhotoUpload from './components/PhotoUpload';
-import Sidebar from './components/Sidebar';
+import Sidebar, { type LocationContext } from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
 import { usePhotoStorage } from './hooks/usePhotoStorage';
 import { useSettings } from './hooks/useSettings';
@@ -620,6 +620,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [apiKey, setApiKey] = useState(MAPBOX_TOKEN || '');
   const [showApiKeyInput, setShowApiKeyInput] = useState(!MAPBOX_TOKEN);
+  const [uploadTargetLocation, setUploadTargetLocation] = useState<LocationContext | null>(null);
 
   const handleLocationClick = useCallback((locationPhotos: Photo[]) => {
     setSelectedPhotos(locationPhotos);
@@ -638,9 +639,15 @@ function App() {
   const handleUpload = useCallback(
     (newPhotos: Photo[]) => {
       addPhotos(newPhotos);
+      setUploadTargetLocation(null);
     },
     [addPhotos]
   );
+
+  const handleAddPhotoToLocation = useCallback((location: LocationContext) => {
+    setUploadTargetLocation(location);
+    setShowUpload(true);
+  }, []);
 
   const handleDeletePhoto = useCallback(
     (id: string) => {
@@ -727,7 +734,7 @@ function App() {
           </SidebarHeader>
 
           <SidebarContent>
-            <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} />
+            <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} onAddPhotoToLocation={handleAddPhotoToLocation} />
           </SidebarContent>
         </MobileSidebarContainer>
 
@@ -742,7 +749,7 @@ function App() {
             </SidebarHeader>
 
             <SidebarContent>
-              <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} />
+              <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} onAddPhotoToLocation={handleAddPhotoToLocation} />
             </SidebarContent>
 
             <SidebarFooter>
@@ -803,7 +810,15 @@ function App() {
 
         {/* Photo upload modal */}
         {showUpload && (
-          <PhotoUpload onUpload={handleUpload} onClose={() => setShowUpload(false)} mapboxToken={apiKey} />
+          <PhotoUpload
+            onUpload={handleUpload}
+            onClose={() => {
+              setShowUpload(false);
+              setUploadTargetLocation(null);
+            }}
+            mapboxToken={apiKey}
+            targetLocation={uploadTargetLocation}
+          />
         )}
 
         {/* Photo gallery modal */}
