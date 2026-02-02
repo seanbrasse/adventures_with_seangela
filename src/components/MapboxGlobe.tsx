@@ -2,7 +2,7 @@ import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
 import type { MapRef, MapLayerMouseEvent } from 'react-map-gl/mapbox';
 import { format } from 'date-fns';
-import { Heart, Plane, Globe, Map as MapIcon } from 'lucide-react';
+import { Heart, Plane, Globe, Map as MapIcon, Home } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
 import type { Photo, HomeBase, Trip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
@@ -50,6 +50,37 @@ const ToggleButton = styled.button`
 const ToggleLabel = styled.span`
   @media (max-width: 640px) {
     display: none;
+  }
+`;
+
+const RecenterButtonContainer = styled.div`
+  position: absolute;
+  bottom: 8.5rem;
+  right: 0.65rem;
+  z-index: 10;
+`;
+
+const RecenterButton = styled.button`
+  width: 29px;
+  height: 29px;
+  background: #fff;
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #f0f0f0;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+    color: #333;
   }
 `;
 
@@ -650,6 +681,26 @@ export default function MapboxGlobe({
     }
   }, []);
 
+  // Recenter to midpoint between home bases
+  const handleRecenter = useCallback(() => {
+    if (mapRef.current && homeBases.length >= 2) {
+      const permanentBases = homeBases.filter(hb => hb.isPermanent);
+      if (permanentBases.length >= 2) {
+        const midpoint = getMidpoint(
+          permanentBases[0].lng,
+          permanentBases[0].lat,
+          permanentBases[1].lng,
+          permanentBases[1].lat
+        );
+        mapRef.current.flyTo({
+          center: [midpoint.lng, midpoint.lat],
+          zoom: 1.5,
+          duration: 2000,
+        });
+      }
+    }
+  }, [homeBases]);
+
   // Handle clicks on the flight line layers
   const handleMapClick = useCallback((e: MapLayerMouseEvent) => {
     if (!e.features || e.features.length === 0) return;
@@ -697,6 +748,18 @@ export default function MapboxGlobe({
           )}
         </ToggleButton>
       </ToggleContainer>
+
+      {/* Recenter to midpoint button */}
+      {homeBases.filter(hb => hb.isPermanent).length >= 2 && (
+        <RecenterButtonContainer>
+          <RecenterButton
+            onClick={handleRecenter}
+            title="Recenter to midpoint between homes"
+          >
+            <Home />
+          </RecenterButton>
+        </RecenterButtonContainer>
+      )}
 
       <Map
         ref={mapRef}
