@@ -29,11 +29,12 @@ export default defineConfig({
         'src/vite-env.d.ts',
       ],
       thresholds: {
-        // Coverage thresholds - can be increased as more tests are added
-        statements: 70,
-        branches: 60,
-        functions: 62,
-        lines: 72,
+        // Coverage thresholds - see docs/TECH_SPEC.md Section 14
+        // Target is 85%, current baseline (will increase as coverage improves)
+        statements: 82,
+        branches: 74,
+        functions: 76,
+        lines: 84,
       },
     },
   },

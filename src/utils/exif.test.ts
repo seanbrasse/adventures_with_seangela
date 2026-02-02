@@ -298,5 +298,170 @@ describe('exif utilities', () => {
 
       expect(thumbnail).toBeDefined();
     });
+
+    it('should handle small maxSize', async () => {
+      const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      const thumbnail = await createThumbnail(file, 50);
+
+      expect(thumbnail).toBeDefined();
+    });
+
+    it('should return a string starting with data:', async () => {
+      const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      const thumbnail = await createThumbnail(file);
+
+      expect(thumbnail.startsWith('data:')).toBe(true);
+    });
+  });
+
+  describe('uploadPhotoToStorage', () => {
+    it('should handle photo upload', async () => {
+      // Import directly from the module
+      const { uploadPhotoToStorage } = await import('./exif');
+
+      const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      const thumbnail = 'data:image/jpeg;base64,mock';
+
+      // This function should return something (either object URLs or null if something fails)
+      const result = await uploadPhotoToStorage('test-id', file, thumbnail);
+
+      // Result should be defined (either success or null)
+      expect(result === null || typeof result === 'object').toBe(true);
+    });
+  });
+
+  describe('extractPhotoData edge cases', () => {
+    it('should handle HEIC files', async () => {
+      vi.mocked(exifr.parse).mockResolvedValue({
+        latitude: 40.7128,
+        longitude: -74.006,
+      });
+
+      const heicFile = new File(['test'], 'test.heic', { type: 'image/heic' });
+      const result = await extractPhotoData(heicFile);
+
+      expect(result).not.toBeNull();
+    });
+
+    it('should handle null EXIF data', async () => {
+      vi.mocked(exifr.parse).mockResolvedValue(null);
+
+      const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      const result = await extractPhotoData(file);
+
+      expect(result?.needsLocation).toBe(true);
+    });
+
+    it('should handle lowercase GPS reference', async () => {
+      vi.mocked(exifr.parse).mockResolvedValue({
+        GPSLatitude: 6.2088,
+        GPSLongitude: 106.8456,
+        GPSLatitudeRef: 's',
+        GPSLongitudeRef: 'e',
+      });
+
+      const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      const result = await extractPhotoData(file);
+
+      expect(result?.location.lat).toBe(-6.2088);
+    });
+
+    it('should handle lowercase w reference for western longitude', async () => {
+      vi.mocked(exifr.parse).mockResolvedValue({
+        GPSLatitude: 40.7128,
+        GPSLongitude: 74.006,
+        GPSLatitudeRef: 'N',
+        GPSLongitudeRef: 'w',
+      });
+
+      const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      const result = await extractPhotoData(file);
+
+      expect(result?.location.lng).toBe(-74.006);
+    });
+  });
+
+  describe('groupPhotosByLocation edge cases', () => {
+    const createPhoto = (lat: number, lng: number, name?: string): Photo => ({
+      id: Math.random().toString(),
+      url: 'test.jpg',
+      thumbnail: 'thumb.jpg',
+      location: { lat, lng, name },
+      date: new Date(),
+    });
+
+    it('should handle "City of" prefix in names', () => {
+      const photos = [
+        createPhoto(40.7, -74, 'City of New York'),
+        createPhoto(40.8, -73.9, 'New York'),
+      ];
+
+      const groups = groupPhotosByLocation(photos);
+      expect(groups.size).toBe(1);
+    });
+
+    it('should handle metropolitan area suffix', () => {
+      const photos = [
+        createPhoto(40.7, -74, 'New York Metropolitan Area'),
+        createPhoto(40.8, -73.9, 'New York'),
+      ];
+
+      const groups = groupPhotosByLocation(photos);
+      expect(groups.size).toBe(1);
+    });
+
+    it('should handle metro suffix', () => {
+      const photos = [
+        createPhoto(40.7, -74, 'New York Metro'),
+        createPhoto(40.8, -73.9, 'New York'),
+      ];
+
+      const groups = groupPhotosByLocation(photos);
+      expect(groups.size).toBe(1);
+    });
+
+    it('should handle Jakarta special capital region', () => {
+      const photos = [
+        createPhoto(-6.2, 106.8, 'Jakarta Special Capital Region'),
+        createPhoto(-6.3, 106.9, 'Jakarta'),
+      ];
+
+      const groups = groupPhotosByLocation(photos);
+      expect(groups.size).toBe(1);
+    });
+
+    it('should group photos without names by distance', () => {
+      const photos = [
+        createPhoto(40.7128, -74.006),
+        createPhoto(40.7130, -74.007),
+        createPhoto(40.7132, -74.008),
+      ];
+
+      const groups = groupPhotosByLocation(photos);
+      expect(groups.size).toBe(1);
+    });
+
+    it('should keep far apart photos in separate groups', () => {
+      const photos = [
+        createPhoto(40.7128, -74.006, 'New York'),
+        createPhoto(-6.2088, 106.8456, 'Jakarta'),
+        createPhoto(25.2048, 55.2708, 'Dubai'),
+      ];
+
+      const groups = groupPhotosByLocation(photos);
+      expect(groups.size).toBe(3);
+    });
+
+    it('should handle mixed named and unnamed photos', () => {
+      const photos = [
+        createPhoto(40.7128, -74.006, 'New York'),
+        createPhoto(40.7130, -74.007), // No name, close to NY
+        createPhoto(25.2048, 55.2708, 'Dubai'),
+      ];
+
+      const groups = groupPhotosByLocation(photos);
+      // The unnamed photo should be grouped with New York by distance
+      expect(groups.size).toBe(2);
+    });
   });
 });

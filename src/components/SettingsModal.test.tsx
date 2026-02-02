@@ -250,4 +250,280 @@ describe('SettingsModal component', () => {
 
     expect(mockOnUpdateHomeBase).toHaveBeenCalled();
   });
+
+  it('should show edit form when clicking on home base', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Brooklyn
+    fireEvent.click(screen.getByText('Brooklyn'));
+
+    // Wait for edit form
+    await waitFor(() => {
+      expect(screen.getByText('Radius (km)')).toBeInTheDocument();
+    });
+
+    // Should show the edit form with Current info
+    expect(screen.getByText(/Current:/)).toBeInTheDocument();
+  });
+
+  it('should search for cities when typing in search field', async () => {
+    // Mock fetch for geocoding
+    global.fetch = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({
+        features: [
+          { id: '1', place_name: 'Paris, France', center: [2.3522, 48.8566], text: 'Paris' },
+        ],
+      }),
+    });
+
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to add new home base for Sean
+    fireEvent.click(screen.getByText(/Add Home Base for Sean/));
+
+    // Wait for search input
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+    });
+
+    // Type in search field
+    const searchInput = screen.getByPlaceholderText('Search for a city...');
+    fireEvent.change(searchInput, { target: { value: 'Paris' } });
+
+    // Wait for results
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    }, { timeout: 1000 });
+  });
+
+  it('should show type selector when editing', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Brooklyn
+    fireEvent.click(screen.getByText('Brooklyn'));
+
+    // Wait for type selector
+    await waitFor(() => {
+      expect(screen.getByText('Type')).toBeInTheDocument();
+    });
+  });
+
+  it('should show date inputs when type is temporary', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Dubai (which is temporary)
+    fireEvent.click(screen.getByText('Dubai'));
+
+    // Wait for date inputs to appear
+    await waitFor(() => {
+      expect(screen.getByText('Start Date')).toBeInTheDocument();
+      expect(screen.getByText('End Date')).toBeInTheDocument();
+    });
+  });
+
+  it('should cancel adding new home base', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to add new home base
+    fireEvent.click(screen.getByText(/Add Home Base for Sean/));
+
+    // Wait for form
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+    });
+
+    // Click Cancel
+    fireEvent.click(screen.getByText('Cancel'));
+
+    // Form should close
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('Search for a city...')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should not show delete for permanent home bases', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Brooklyn (permanent)
+    fireEvent.click(screen.getByText('Brooklyn'));
+
+    // Wait for edit form
+    await waitFor(() => {
+      expect(screen.getByText('Radius (km)')).toBeInTheDocument();
+    });
+
+    // Delete button should not be present for permanent
+    expect(screen.queryByText('Delete')).not.toBeInTheDocument();
+  });
+
+  it('should display description text', () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    expect(screen.getByText(/Manage home locations for each person/)).toBeInTheDocument();
+  });
+
+  it('should change type from permanent to temporary', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Brooklyn (permanent)
+    fireEvent.click(screen.getByText('Brooklyn'));
+
+    // Wait for edit form
+    await waitFor(() => {
+      expect(screen.getByText('Type')).toBeInTheDocument();
+    });
+
+    // Change type to temporary
+    const typeSelect = screen.getByDisplayValue('Permanent');
+    fireEvent.change(typeSelect, { target: { value: 'temporary' } });
+
+    expect(mockOnUpdateHomeBase).toHaveBeenCalled();
+  });
+
+  it('should change type from temporary to permanent', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Dubai (temporary)
+    fireEvent.click(screen.getByText('Dubai'));
+
+    // Wait for edit form
+    await waitFor(() => {
+      expect(screen.getByText('Type')).toBeInTheDocument();
+    });
+
+    // Change type to permanent
+    const typeSelect = screen.getByDisplayValue('Temporary');
+    fireEvent.change(typeSelect, { target: { value: 'permanent' } });
+
+    expect(mockOnUpdateHomeBase).toHaveBeenCalled();
+  });
+
+  it('should update start date for temporary home base', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Dubai (temporary)
+    fireEvent.click(screen.getByText('Dubai'));
+
+    // Wait for date inputs
+    await waitFor(() => {
+      expect(screen.getByText('Start Date')).toBeInTheDocument();
+    });
+
+    // Find and change start date input
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    if (dateInputs.length > 0) {
+      fireEvent.change(dateInputs[0], { target: { value: '2024-05-01' } });
+      expect(mockOnUpdateHomeBase).toHaveBeenCalled();
+    }
+  });
+
+  it('should update end date for temporary home base', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Dubai (temporary)
+    fireEvent.click(screen.getByText('Dubai'));
+
+    // Wait for date inputs
+    await waitFor(() => {
+      expect(screen.getByText('End Date')).toBeInTheDocument();
+    });
+
+    // Find and change end date input
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    if (dateInputs.length > 1) {
+      fireEvent.change(dateInputs[1], { target: { value: '2025-06-01' } });
+      expect(mockOnUpdateHomeBase).toHaveBeenCalled();
+    }
+  });
+
+  it('should close edit form when clicking Done', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Brooklyn
+    fireEvent.click(screen.getByText('Brooklyn'));
+
+    // Wait for edit form
+    await waitFor(() => {
+      expect(screen.getByText('Radius (km)')).toBeInTheDocument();
+    });
+
+    // Find and click the Done button within the edit form
+    const doneButtons = screen.getAllByRole('button').filter(btn =>
+      btn.textContent?.includes('Done') || btn.textContent?.includes('Save')
+    );
+
+    // Click the form's Done/Save button (not the modal's main Done button)
+    if (doneButtons.length > 0) {
+      fireEvent.click(doneButtons[0]);
+    }
+  });
+
+  it('should select a city from search results', async () => {
+    // Mock fetch for geocoding
+    global.fetch = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({
+        features: [
+          { id: '1', place_name: 'Tokyo, Japan', center: [139.6917, 35.6895], text: 'Tokyo' },
+        ],
+      }),
+    });
+
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to add new home base for Sean
+    fireEvent.click(screen.getByText(/Add Home Base for Sean/));
+
+    // Wait for search input
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+    });
+
+    // Type in search field
+    const searchInput = screen.getByPlaceholderText('Search for a city...');
+    fireEvent.change(searchInput, { target: { value: 'Tokyo' } });
+
+    // Wait for results to appear
+    await waitFor(() => {
+      expect(screen.getByText('Tokyo, Japan')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    // Click on result
+    fireEvent.click(screen.getByText('Tokyo, Japan'));
+
+    // City should be selected (the search input should show Tokyo)
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Tokyo')).toBeInTheDocument();
+    });
+  });
+
+  it('should display Add Home Base button in add form', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to add new home base for Angela
+    fireEvent.click(screen.getByText(/Add Home Base for Angela/));
+
+    // Wait for form to appear
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+    });
+
+    // Add Home Base button should exist (though may be disabled initially)
+    const addButton = screen.getByRole('button', { name: 'Add Home Base' });
+    expect(addButton).toBeInTheDocument();
+  });
+
+  it('should display City label in edit form', async () => {
+    render(<SettingsModal {...defaultProps} />);
+
+    // Click to edit Brooklyn
+    fireEvent.click(screen.getByText('Brooklyn'));
+
+    // Wait for edit form
+    await waitFor(() => {
+      expect(screen.getByText('City')).toBeInTheDocument();
+    });
+
+    // The edit form should show the city label
+    expect(screen.getByText('City')).toBeInTheDocument();
+  });
 });

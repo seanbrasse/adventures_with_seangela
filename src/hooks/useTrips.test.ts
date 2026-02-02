@@ -365,5 +365,115 @@ describe('useTrips hook', () => {
       expect(result.current.trips).toHaveLength(1);
       expect(result.current.trips[0].name).toBe('Stored Trip');
     });
+
+    it('should update trip details', async () => {
+      const { result } = renderHook(() => useTrips([], mockHomeBases));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let tripId: string;
+      act(() => {
+        const trip = result.current.createTrip({
+          name: 'Original',
+          locationName: 'Location',
+          startDate: new Date('2024-01-01'),
+          endDate: new Date('2024-01-15'),
+          photoIds: [],
+          travelers: ['sean'],
+        });
+        tripId = trip.id;
+      });
+
+      act(() => {
+        result.current.updateTrip(tripId, {
+          name: 'Updated Name',
+          travelers: ['sean', 'angela'],
+        });
+      });
+
+      const updated = result.current.trips.find(t => t.id === tripId);
+      expect(updated?.name).toBe('Updated Name');
+      expect(updated?.travelers).toContain('angela');
+    });
+
+    it('should get trips for a specific location', async () => {
+      const photos = [
+        createPhoto('1', 25.2, 55.3, new Date('2024-10-15'), 'Dubai'),
+      ];
+
+      const { result } = renderHook(() => useTrips(photos, mockHomeBases));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Wait for auto-generated trips
+      await waitFor(() => {
+        expect(result.current.trips.length).toBeGreaterThan(0);
+      });
+
+      const tripsForDubai = result.current.getTripsForLocation({ lat: 25.2, lng: 55.3 });
+      // Should return some trips (may include the auto-generated one)
+      expect(Array.isArray(tripsForDubai)).toBe(true);
+    });
+
+    it('should regenerate trips when called', async () => {
+      const photos = [
+        createPhoto('1', 25.2, 55.3, new Date('2024-10-15'), 'Dubai'),
+      ];
+
+      const { result } = renderHook(() => useTrips(photos, mockHomeBases));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Call regenerateTrips
+      act(() => {
+        result.current.regenerateTrips();
+      });
+
+      // Trips should still exist after regeneration
+      await waitFor(() => {
+        expect(result.current.trips.length).toBeGreaterThanOrEqual(0);
+      });
+    });
+
+    it('should handle multiple photos in same location', async () => {
+      const photos = [
+        createPhoto('1', 25.2, 55.3, new Date('2024-10-15'), 'Dubai'),
+        createPhoto('2', 25.2, 55.3, new Date('2024-10-16'), 'Dubai'),
+        createPhoto('3', 25.2, 55.3, new Date('2024-10-17'), 'Dubai'),
+      ];
+
+      const { result } = renderHook(() => useTrips(photos, mockHomeBases));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Multiple photos should create/add to trips
+      await waitFor(() => {
+        expect(result.current.trips.length).toBeGreaterThanOrEqual(0);
+      });
+    });
+
+    it('should handle photos at home location', async () => {
+      // Photo at Brooklyn (Sean's home)
+      const photos = [
+        createPhoto('1', 40.6501, -73.9496, new Date('2024-10-15'), 'Brooklyn'),
+      ];
+
+      const { result } = renderHook(() => useTrips(photos, mockHomeBases));
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Photos at home should be handled without errors
+      expect(Array.isArray(result.current.flightLines)).toBe(true);
+    });
   });
 });

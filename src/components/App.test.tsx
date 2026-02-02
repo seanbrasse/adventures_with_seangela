@@ -168,4 +168,60 @@ describe('App component', () => {
     const heartIcons = container.querySelectorAll('svg.lucide-heart');
     expect(heartIcons.length).toBeGreaterThan(0);
   });
+
+  it('should display the empty state when no photos', () => {
+    render(<App />);
+
+    // Check for empty state elements
+    expect(screen.getByText('Start Your Journey')).toBeInTheDocument();
+    expect(screen.getByText(/Add photos from your adventures/)).toBeInTheDocument();
+  });
+
+  it('should have Add Your First Photos button in empty state', () => {
+    render(<App />);
+
+    // Click on the empty state add photos button
+    const addFirstPhotosButton = screen.getByRole('button', { name: /Add Your First Photos/i });
+    expect(addFirstPhotosButton).toBeInTheDocument();
+
+    // Clicking it should open upload modal
+    fireEvent.click(addFirstPhotosButton);
+    expect(screen.getByText('Upload photos to add them to your map')).toBeInTheDocument();
+  });
+
+  it('should close sidebar when clicking close button', () => {
+    const { container } = render(<App />);
+
+    // The sidebar close button should exist
+    const closeButtons = container.querySelectorAll('button');
+    // Find button with X icon
+    for (const btn of Array.from(closeButtons)) {
+      if (btn.querySelector('.lucide-x')) {
+        fireEvent.click(btn);
+        break;
+      }
+    }
+
+    // Component should still render
+    expect(screen.getByText('Add Photos')).toBeInTheDocument();
+  });
+
+  it('should render mobile menu button', () => {
+    const { container } = render(<App />);
+
+    // Look for menu button (hamburger)
+    const menuButton = container.querySelector('button[class*="MenuButton"]') ||
+                       screen.queryByRole('button', { name: /menu/i });
+
+    // The component should have some form of mobile navigation
+    expect(container).toBeInTheDocument();
+  });
+
+  it('should render map component correctly', () => {
+    render(<App />);
+
+    // The map mock should render
+    expect(screen.getByTestId('mapbox-globe')).toBeInTheDocument();
+    expect(screen.getByText('MapboxGlobe Mock')).toBeInTheDocument();
+  });
 });

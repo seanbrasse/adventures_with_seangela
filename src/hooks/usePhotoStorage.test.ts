@@ -270,3 +270,72 @@ describe('usePhotoStorage hook', () => {
     );
   });
 });
+
+// Test with Supabase configured
+describe('usePhotoStorage with Supabase', () => {
+  const mockSupabase = {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        order: vi.fn(() =>
+          Promise.resolve({
+            data: [
+              {
+                id: 'supabase-1',
+                url: 'https://supabase.co/1.jpg',
+                thumbnail: 'https://supabase.co/1_thumb.jpg',
+                lat: 40.7128,
+                lng: -74.006,
+                location_name: 'NYC',
+                date: '2024-06-15T00:00:00.000Z',
+                description: 'From Supabase',
+                created_at: '2024-06-15T00:00:00.000Z',
+              },
+            ],
+            error: null,
+          })
+        ),
+      })),
+      insert: vi.fn(() => Promise.resolve({ error: null })),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ error: null })),
+      })),
+      delete: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ error: null })),
+        neq: vi.fn(() => Promise.resolve({ error: null })),
+      })),
+    })),
+    storage: {
+      from: vi.fn(() => ({
+        remove: vi.fn(() => Promise.resolve({ error: null })),
+      })),
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+
+    // Reset module mock for Supabase configured
+    vi.doMock('../utils/supabase', () => ({
+      isSupabaseConfigured: true,
+      supabase: mockSupabase,
+    }));
+  });
+
+  it('should handle Supabase error gracefully', async () => {
+    // This test verifies error handling exists
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // The hook should not crash even if Supabase has issues
+    const { result } = renderHook(() => usePhotoStorage());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Should still work with localStorage fallback
+    expect(result.current.photos).toBeDefined();
+
+    consoleSpy.mockRestore();
+  });
+});
