@@ -316,15 +316,17 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
   );
 
   // Compute flight lines based on trips and home bases
+  // Consolidate multiple trips to same destination into single lines
   const flightLines = useMemo(() => {
-    const lines: {
-      id: string;
+    // First, collect all individual flight line data
+    const rawLines: {
       tripId: string;
       tripName: string;
       from: { lat: number; lng: number; name: string };
       to: { lat: number; lng: number; name: string };
       color: string;
       travelerId: string;
+      startDate: Date;
     }[] = [];
 
     for (const trip of trips) {
@@ -352,19 +354,70 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
           ? { lat: customStart.lat, lng: customStart.lng, name: customStart.name }
           : { lat: activeHome.lat, lng: activeHome.lng, name: activeHome.city };
 
-        lines.push({
-          id: `${trip.id}-${personId}`,
+        rawLines.push({
           tripId: trip.id,
           tripName: trip.name,
           from,
           to: { lat: destLat, lng: destLng, name: trip.locationName },
           color: activeHome.color,
           travelerId: personId,
+          startDate: trip.startDate,
         });
       }
     }
 
-    return lines;
+    // Now consolidate lines with same from->to route for same traveler
+    const consolidatedMap = new Map<
+      string,
+      {
+        id: string;
+        from: { lat: number; lng: number; name: string };
+        to: { lat: number; lng: number; name: string };
+        color: string;
+        travelerId: string;
+        visits: { date: Date; tripId: string; tripName: string }[];
+      }
+    >();
+
+    for (const line of rawLines) {
+      // Create a key based on from city, to city, and traveler
+      // Use city names for matching to consolidate even if coords differ slightly
+      const routeKey = `${line.from.name}->${line.to.name}::${line.travelerId}`;
+
+      if (consolidatedMap.has(routeKey)) {
+        // Add this visit to existing route
+        const existing = consolidatedMap.get(routeKey)!;
+        existing.visits.push({
+          date: line.startDate,
+          tripId: line.tripId,
+          tripName: line.tripName,
+        });
+      } else {
+        // Create new consolidated route
+        consolidatedMap.set(routeKey, {
+          id: `route-${line.from.name}-${line.to.name}-${line.travelerId}`,
+          from: line.from,
+          to: line.to,
+          color: line.color,
+          travelerId: line.travelerId,
+          visits: [
+            {
+              date: line.startDate,
+              tripId: line.tripId,
+              tripName: line.tripName,
+            },
+          ],
+        });
+      }
+    }
+
+    // Convert to array and sort visits by date (newest first for display)
+    const consolidated = Array.from(consolidatedMap.values()).map((route) => ({
+      ...route,
+      visits: route.visits.sort((a, b) => b.date.getTime() - a.date.getTime()),
+    }));
+
+    return consolidated;
   }, [trips, photos, homeBases]);
 
   return {

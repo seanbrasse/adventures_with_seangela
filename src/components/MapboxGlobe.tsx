@@ -1,19 +1,25 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
+import { format } from 'date-fns';
 import { Heart, Plane, Globe, Map as MapIcon } from 'lucide-react';
 import type { Photo, HomeBase } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-interface FlightLine {
-  id: string;
+interface FlightLineVisit {
+  date: Date;
   tripId: string;
   tripName: string;
+}
+
+interface FlightLine {
+  id: string;
   from: { lat: number; lng: number; name: string };
   to: { lat: number; lng: number; name: string };
   color: string;
   travelerId: string;
+  visits: FlightLineVisit[];
 }
 
 interface MapboxGlobeProps {
@@ -207,11 +213,10 @@ export default function MapboxGlobe({
         type: 'Feature' as const,
         properties: {
           id: line.id,
-          tripId: line.tripId,
-          tripName: line.tripName,
           color: line.color,
           fromName: line.from.name,
           toName: line.to.name,
+          visitCount: line.visits.length,
         },
         geometry: {
           type: 'LineString' as const,
@@ -391,11 +396,27 @@ export default function MapboxGlobe({
             closeOnClick={false}
             offset={20}
           >
-            <div className="p-2 text-center">
-              <p className="font-medium text-gray-800 text-sm">{hoveredLine.tripName}</p>
-              <p className="text-xs text-gray-500">
+            <div className="p-3 min-w-[160px]">
+              <p className="font-semibold text-gray-800 text-sm mb-1">
                 {hoveredLine.from.name} → {hoveredLine.to.name}
               </p>
+              <div className="border-t border-gray-200 pt-2 mt-2">
+                <p className="text-xs text-gray-500 mb-1.5">
+                  {hoveredLine.visits.length} visit{hoveredLine.visits.length !== 1 ? 's' : ''}
+                </p>
+                <ul className="space-y-0.5">
+                  {hoveredLine.visits.slice(0, 5).map((visit, i) => (
+                    <li key={i} className="text-xs text-gray-600">
+                      {format(visit.date, 'MMM yyyy')}
+                    </li>
+                  ))}
+                  {hoveredLine.visits.length > 5 && (
+                    <li className="text-xs text-gray-400">
+                      +{hoveredLine.visits.length - 5} more
+                    </li>
+                  )}
+                </ul>
+              </div>
             </div>
           </Popup>
         )}

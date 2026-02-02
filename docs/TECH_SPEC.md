@@ -111,16 +111,23 @@ interface HomeBase {
 ### 3.3 Flight Line
 
 ```typescript
-interface FlightLine {
-  id: string;
+interface FlightLineVisit {
+  date: Date;
   tripId: string;
   tripName: string;
+}
+
+interface FlightLine {
+  id: string;
   from: { lat: number; lng: number; name: string };
   to: { lat: number; lng: number; name: string };
   color: string;
-  travelerId: string;    // HomeBase ID
+  travelerId: string;    // Person ID (e.g., 'sean', 'angela')
+  visits: FlightLineVisit[];  // All visits on this route, sorted newest first
 }
 ```
+
+**Note:** Flight lines are consolidated per route - multiple trips from the same home to the same destination result in a single line with multiple visits listed.
 
 ### 3.4 Settings
 
@@ -649,3 +656,4 @@ const PEOPLE = [
 | 2026-02 | 1.3 | Fixed settings persistence and home base UI |
 | 2026-02 | 1.4 | Major UI overhaul with modern design system |
 | 2026-02 | 1.5 | Added city-based photo grouping with reverse geocoding |
+| 2026-02 | 1.6 | Consolidated flight lines per route with visit date list |

@@ -81,7 +81,9 @@ For each photo location (trip destination):
 
 #### Visual Elements
 - Dashed curved lines following great circle paths
+- Single line per route (home → destination) regardless of number of visits
 - Plane icon at midpoint of each line, rotated to heading
+- Plane popup shows: route (e.g., "NYC → Dubai") and list of visit dates (e.g., "Nov 2024", "Mar 2025")
 - Home base markers (small colored circles) for permanent homes only
 
 ### 2.5 Photo Gallery
