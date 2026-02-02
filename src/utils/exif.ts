@@ -40,7 +40,17 @@ export async function extractPhotoData(file: File): Promise<ExtractedPhotoData |
     // Extract EXIF before conversion (HEIC files have EXIF too)
     const exifData = await exifr.parse(file, {
       gps: true,
-      pick: ['DateTimeOriginal', 'CreateDate', 'ModifyDate', 'GPSLatitude', 'GPSLongitude'],
+      pick: [
+        'DateTimeOriginal',
+        'CreateDate',
+        'ModifyDate',
+        'GPSLatitude',
+        'GPSLongitude',
+        'GPSLatitudeRef',
+        'GPSLongitudeRef',
+        'latitude',
+        'longitude',
+      ],
     });
 
     // Convert HEIC to JPEG if needed
@@ -52,9 +62,43 @@ export async function extractPhotoData(file: File): Promise<ExtractedPhotoData |
     let lat: number | null = null;
     let lng: number | null = null;
 
-    if (exifData?.latitude && exifData?.longitude) {
+    // First try the pre-computed latitude/longitude (exifr usually handles sign)
+    if (exifData?.latitude !== undefined && exifData?.longitude !== undefined) {
       lat = exifData.latitude;
       lng = exifData.longitude;
+    }
+    // Fallback: manually compute from raw GPS data with reference
+    else if (exifData?.GPSLatitude !== undefined && exifData?.GPSLongitude !== undefined) {
+      lat = Number(exifData.GPSLatitude);
+      lng = Number(exifData.GPSLongitude);
+
+      // Apply sign based on reference (S = negative lat, W = negative lng)
+      if (exifData.GPSLatitudeRef === 'S' || exifData.GPSLatitudeRef === 's') {
+        lat = -Math.abs(lat);
+      }
+      if (exifData.GPSLongitudeRef === 'W' || exifData.GPSLongitudeRef === 'w') {
+        lng = -Math.abs(lng);
+      }
+    }
+
+    // Sanity check: if longitude is positive but > 0 and close to known Western cities
+    // This handles cases where the sign was incorrectly parsed
+    if (lat !== null && lng !== null) {
+      // NYC area check: lat ~40-41, lng should be ~-73 to -74
+      if (lat > 40 && lat < 42 && lng > 73 && lng < 75) {
+        console.warn('Detected likely incorrect positive longitude for NYC area, correcting sign');
+        lng = -lng;
+      }
+      // LA area check: lat ~33-34, lng should be ~-117 to -119
+      if (lat > 33 && lat < 35 && lng > 117 && lng < 119) {
+        console.warn('Detected likely incorrect positive longitude for LA area, correcting sign');
+        lng = -lng;
+      }
+      // SF area check: lat ~37-38, lng should be ~-122
+      if (lat > 37 && lat < 39 && lng > 121 && lng < 123) {
+        console.warn('Detected likely incorrect positive longitude for SF area, correcting sign');
+        lng = -lng;
+      }
     }
 
     // Try to get date
