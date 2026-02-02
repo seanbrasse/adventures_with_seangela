@@ -803,6 +803,7 @@ function App() {
           {apiKey ? (
             <MapboxGlobe
               photos={photos}
+              trips={trips}
               onLocationClick={handleLocationClick}
               selectedLocation={selectedLocation}
               accessToken={apiKey}

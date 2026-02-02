@@ -4,7 +4,7 @@ import type { MapRef } from 'react-map-gl/mapbox';
 import { format } from 'date-fns';
 import { Heart, Plane, Globe, Map as MapIcon } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
-import type { Photo, HomeBase } from '../types/photo';
+import type { Photo, HomeBase, Trip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -230,6 +230,19 @@ const PopupHint = styled.p`
   color: #9ca3af;
 `;
 
+const PopupTripCount = styled.p`
+  font-size: 0.8125rem;
+  color: #f472b6;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+`;
+
 interface FlightLineVisit {
   date: Date;
   tripId: string;
@@ -247,6 +260,7 @@ interface FlightLine {
 
 interface MapboxGlobeProps {
   photos: Photo[];
+  trips?: Trip[];
   onLocationClick: (photos: Photo[]) => void;
   selectedLocation: { lat: number; lng: number } | null;
   accessToken: string;
@@ -351,6 +365,7 @@ interface PointData {
 
 export default function MapboxGlobe({
   photos,
+  trips = [],
   onLocationClick,
   selectedLocation,
   accessToken,
@@ -762,6 +777,18 @@ export default function MapboxGlobe({
               <PopupPhotoCount>
                 {hoveredPoint.photos.length} photo{hoveredPoint.photos.length !== 1 ? 's' : ''}
               </PopupPhotoCount>
+              {(() => {
+                const photoIds = hoveredPoint.photos.map(p => p.id);
+                const tripCount = trips.filter(trip =>
+                  trip.photoIds.some(id => photoIds.includes(id))
+                ).length;
+                return tripCount > 0 ? (
+                  <PopupTripCount>
+                    <Plane />
+                    {tripCount} trip{tripCount !== 1 ? 's' : ''}
+                  </PopupTripCount>
+                ) : null;
+              })()}
               <PopupHint>Click to view</PopupHint>
             </LocationPopup>
           </Popup>

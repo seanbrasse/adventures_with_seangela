@@ -462,6 +462,93 @@ const DetailRow = styled.div`
   }
 `;
 
+const EditableDateRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9375rem;
+  padding: 0.5rem;
+  margin: -0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+  }
+`;
+
+const DateEditWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+`;
+
+const DateInput = styled.input`
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  color-scheme: dark;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(236, 72, 153, 0.5);
+  }
+`;
+
+const TimeInput = styled.input`
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  width: 110px;
+  color-scheme: dark;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(236, 72, 153, 0.5);
+  }
+`;
+
+const DateSaveButton = styled.button`
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  background: rgba(236, 72, 153, 0.2);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(236, 72, 153, 0.4);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    color: #ec4899;
+  }
+`;
+
+const EditHint = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin-left: auto;
+`;
+
 const DetailLabel = styled.span`
   color: rgba(255, 255, 255, 0.5);
   min-width: 70px;
@@ -794,6 +881,9 @@ export default function PhotoGallery({
   const [showDropdown, setShowDropdown] = useState(false);
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [editedCaption, setEditedCaption] = useState('');
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [editedDate, setEditedDate] = useState('');
+  const [editedTime, setEditedTime] = useState('');
   const captionInputRef = useRef<HTMLTextAreaElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -930,6 +1020,48 @@ export default function PhotoGallery({
       setIsEditingCaption(false);
     } else if (e.key === 'Enter' && e.metaKey) {
       handleSaveCaption();
+    }
+    e.stopPropagation();
+  };
+
+  // Helper to format date/time for inputs (using local time)
+  const formatDateForInput = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatTimeForInput = (date: Date): string => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const handleStartEditDate = () => {
+    if (selectedIndex !== null) {
+      const photo = allPhotos[selectedIndex];
+      setEditedDate(formatDateForInput(photo.date));
+      setEditedTime(formatTimeForInput(photo.date));
+      setIsEditingDate(true);
+    }
+  };
+
+  const handleSaveDate = () => {
+    if (selectedIndex !== null && onUpdatePhoto && editedDate) {
+      const [year, month, day] = editedDate.split('-').map(Number);
+      const [hours, minutes] = editedTime ? editedTime.split(':').map(Number) : [12, 0];
+      const newDate = new Date(year, month - 1, day, hours, minutes);
+      onUpdatePhoto(allPhotos[selectedIndex].id, { date: newDate });
+    }
+    setIsEditingDate(false);
+  };
+
+  const handleDateKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setIsEditingDate(false);
+    } else if (e.key === 'Enter') {
+      handleSaveDate();
     }
     e.stopPropagation();
   };
@@ -1081,16 +1213,42 @@ export default function PhotoGallery({
           <DetailsSection>
             <PhotoDetailsPanel>
               <DetailsPanelTitle>Photo Details</DetailsPanelTitle>
-              <DetailRow>
-                <Calendar />
-                <DetailLabel>Date</DetailLabel>
-                <DetailValue>{format(allPhotos[selectedIndex].date, 'EEEE, MMMM d, yyyy')}</DetailValue>
-              </DetailRow>
-              <DetailRow>
-                <Clock />
-                <DetailLabel>Time</DetailLabel>
-                <DetailValue>{format(allPhotos[selectedIndex].date, 'h:mm a')}</DetailValue>
-              </DetailRow>
+              {isEditingDate ? (
+                <DetailRow>
+                  <Calendar />
+                  <DateEditWrapper>
+                    <DateInput
+                      type="date"
+                      value={editedDate}
+                      onChange={(e) => setEditedDate(e.target.value)}
+                      onKeyDown={handleDateKeyDown}
+                    />
+                    <TimeInput
+                      type="time"
+                      value={editedTime}
+                      onChange={(e) => setEditedTime(e.target.value)}
+                      onKeyDown={handleDateKeyDown}
+                    />
+                    <DateSaveButton onClick={handleSaveDate} title="Save date">
+                      <Check />
+                    </DateSaveButton>
+                  </DateEditWrapper>
+                </DetailRow>
+              ) : (
+                <EditableDateRow onClick={handleStartEditDate}>
+                  <Calendar />
+                  <DetailLabel>Date</DetailLabel>
+                  <DetailValue>{format(allPhotos[selectedIndex].date, 'EEEE, MMMM d, yyyy')}</DetailValue>
+                  <EditHint>click to edit</EditHint>
+                </EditableDateRow>
+              )}
+              {!isEditingDate && (
+                <DetailRow>
+                  <Clock />
+                  <DetailLabel>Time</DetailLabel>
+                  <DetailValue>{format(allPhotos[selectedIndex].date, 'h:mm a')}</DetailValue>
+                </DetailRow>
+              )}
               {allPhotos[selectedIndex].location.name && (
                 <DetailRow>
                   <MapPin />
