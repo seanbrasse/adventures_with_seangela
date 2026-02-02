@@ -494,23 +494,24 @@ const CaptionSaveButton = styled.button`
 
 const FullscreenCloseButton = styled.button`
   position: absolute;
-  top: 1.75rem;
-  right: 1.75rem;
-  padding: 0.875rem;
-  border-radius: 0.875rem;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  opacity: 0.6;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.8);
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
   }
 
   svg {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.25rem;
+    height: 1.25rem;
     color: #ffffff;
   }
 `;
