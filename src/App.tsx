@@ -142,46 +142,42 @@ const SidebarContainer = styled.aside<{ $open: boolean }>`
   inset: 0;
   right: auto;
   z-index: 40;
-  width: 420px;
-  max-width: 90vw;
-  background: linear-gradient(180deg, #0f0f1a 0%, #0a0a12 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  width: 320px;
+  max-width: 85vw;
+  background: #0d0d12;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   transform: ${({ $open }) => ($open ? 'translateX(0)' : 'translateX(-100%)')};
   transition: transform 0.3s ease;
   display: flex;
   flex-direction: column;
-  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.4);
 
   @media (min-width: 768px) {
     position: relative;
     transform: translateX(0);
-    width: 420px;
+    width: 320px;
     max-width: none;
-    box-shadow: none;
   }
 `;
 
 const SidebarHeader = styled.div`
-  padding: 1.75rem 1.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.02);
 `;
 
 const Logo = styled.h1`
-  font-size: 1.625rem;
-  font-weight: 700;
+  font-size: 1.0625rem;
+  font-weight: 600;
   color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 0.875rem;
-  letter-spacing: -0.02em;
+  gap: 0.625rem;
 
   svg {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.25rem;
+    height: 1.25rem;
     color: #f472b6;
     fill: #f472b6;
   }
@@ -217,14 +213,13 @@ const SidebarContent = styled.div`
 
 const SidebarFooter = styled.div`
   display: none;
-  padding: 1.5rem 1.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 
   @media (min-width: 768px) {
     display: flex;
     flex-direction: column;
-    gap: 0.875rem;
+    gap: 0.5rem;
   }
 `;
 
@@ -233,26 +228,28 @@ const PrimaryButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 1.125rem;
-  border-radius: 1rem;
-  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 0.625rem;
+  background: #ec4899;
   border: none;
   color: #ffffff;
-  font-size: 1.0625rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.25);
+  transition: all 0.15s ease;
 
   &:hover {
-    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
-    transform: translateY(-1px);
+    background: #db2777;
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 
   svg {
-    width: 1.375rem;
-    height: 1.375rem;
+    width: 1rem;
+    height: 1rem;
   }
 `;
 
@@ -261,25 +258,25 @@ const SecondaryButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.625rem;
-  padding: 0.875rem;
-  border-radius: 0.875rem;
-  background: rgba(255, 255, 255, 0.06);
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 0.625rem;
+  background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
   }
 
   svg {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 1rem;
+    height: 1rem;
   }
 `;
 

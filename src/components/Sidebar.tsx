@@ -15,7 +15,6 @@ const Container = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, rgba(15, 15, 25, 0.98) 0%, rgba(10, 10, 18, 1) 100%);
 `;
 
 const EmptyState = styled.div`
@@ -24,123 +23,114 @@ const EmptyState = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 2.5rem;
+  padding: 2rem;
   text-align: center;
 `;
 
 const EmptyIcon = styled.div`
-  width: 7rem;
-  height: 7rem;
-  border-radius: 2rem;
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.25) 0%, rgba(168, 85, 247, 0.2) 100%);
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2rem;
-  box-shadow: 0 8px 32px rgba(236, 72, 153, 0.15);
+  margin-bottom: 1.25rem;
 `;
 
 const EmptyTitle = styled.h3`
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 1.0625rem;
+  font-weight: 600;
   color: #ffffff;
-  margin-bottom: 1rem;
-  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
 `;
 
 const EmptyText = styled.p`
-  font-size: 1.125rem;
-  color: rgba(255, 255, 255, 0.5);
-  line-height: 1.6;
-  max-width: 280px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.5;
+  max-width: 220px;
 `;
 
 const StatsSection = styled.div`
-  padding: 2rem 1.75rem;
+  padding: 1.5rem 1.25rem;
 `;
 
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 0.875rem;
 `;
 
-const StatCard = styled.div<{ $variant: 'pink' | 'blue' }>`
-  background: ${({ $variant }) =>
-    $variant === 'pink'
-      ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.18) 0%, rgba(168, 85, 247, 0.12) 100%)'
-      : 'linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(6, 182, 212, 0.12) 100%)'};
-  border-radius: 1.25rem;
-  padding: 1.5rem;
-  border: 1px solid ${({ $variant }) =>
-    $variant === 'pink' ? 'rgba(236, 72, 153, 0.25)' : 'rgba(59, 130, 246, 0.25)'};
+const StatCard = styled.div`
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   transition: all 0.2s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    border-color: ${({ $variant }) =>
-      $variant === 'pink' ? 'rgba(236, 72, 153, 0.4)' : 'rgba(59, 130, 246, 0.4)'};
+    background: rgba(255, 255, 255, 0.06);
   }
 `;
 
 const StatHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.875rem;
-  margin-bottom: 1rem;
+  gap: 0.625rem;
+  margin-bottom: 0.875rem;
 `;
 
-const StatIcon = styled.div<{ $variant: 'pink' | 'blue' }>`
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 0.875rem;
-  background: ${({ $variant }) =>
-    $variant === 'pink' ? 'rgba(236, 72, 153, 0.25)' : 'rgba(59, 130, 246, 0.25)'};
+const StatIcon = styled.div`
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
 
   svg {
-    color: ${({ $variant }) => ($variant === 'pink' ? '#f472b6' : '#60a5fa')};
+    color: rgba(255, 255, 255, 0.6);
   }
 `;
 
-const StatLabel = styled.span<{ $variant: 'pink' | 'blue' }>`
-  font-size: 1rem;
-  font-weight: 600;
-  color: ${({ $variant }) => ($variant === 'pink' ? '#f9a8d4' : '#93c5fd')};
-  letter-spacing: 0.01em;
+const StatLabel = styled.span`
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 `;
 
 const StatValue = styled.p`
-  font-size: 2.75rem;
-  font-weight: 800;
+  font-size: 2rem;
+  font-weight: 600;
   color: #ffffff;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1;
 `;
 
 const DateRange = styled.div`
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
   display: flex;
   align-items: center;
-  gap: 0.875rem;
-  padding: 0 0.25rem;
+  gap: 0.5rem;
 
   svg {
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.3);
   }
 `;
 
 const DateText = styled.span`
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 500;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
 `;
 
 const Divider = styled.div`
-  margin: 0 1.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 0 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 `;
 
 const LocationsSection = styled.div`
@@ -162,57 +152,53 @@ const LocationsSection = styled.div`
 `;
 
 const LocationsInner = styled.div`
-  padding: 1.75rem;
+  padding: 1.25rem;
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.6875rem;
+  font-weight: 600;
   color: rgba(255, 255, 255, 0.35);
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  margin-bottom: 1.5rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
 `;
 
 const LocationsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.25rem;
 `;
 
 const LocationCard = styled.button`
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  padding: 1.125rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 1.25rem;
-  transition: all 0.2s ease;
+  gap: 1rem;
+  padding: 0.875rem;
+  background: transparent;
+  border: none;
+  border-radius: 0.875rem;
+  transition: all 0.15s ease;
   text-align: left;
   cursor: pointer;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(236, 72, 153, 0.3);
-    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &:active {
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(0.99);
   }
 `;
 
 const Thumbnail = styled.div`
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 1rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.75rem;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  transition: border-color 0.2s ease;
-
-  ${LocationCard}:hover & {
-    border-color: rgba(236, 72, 153, 0.5);
-  }
 
   img {
     width: 100%;
@@ -227,22 +213,21 @@ const LocationInfo = styled.div`
 `;
 
 const LocationName = styled.p`
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 500;
   color: #ffffff;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.01em;
 `;
 
 const LocationMeta = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 0.9375rem;
+  font-size: 0.8125rem;
 `;
 
 const MetaDot = styled.span`
@@ -285,7 +270,7 @@ export default function Sidebar({ photos, onLocationSelect }: SidebarProps) {
     return (
       <EmptyState>
         <EmptyIcon>
-          <Sparkles size={40} color="#f472b6" />
+          <Sparkles size={24} color="rgba(255, 255, 255, 0.5)" />
         </EmptyIcon>
         <EmptyTitle>No photos yet</EmptyTitle>
         <EmptyText>
@@ -299,22 +284,22 @@ export default function Sidebar({ photos, onLocationSelect }: SidebarProps) {
     <Container>
       <StatsSection>
         <StatsGrid>
-          <StatCard $variant="pink">
+          <StatCard>
             <StatHeader>
-              <StatIcon $variant="pink">
-                <Image size={22} />
+              <StatIcon>
+                <Image size={16} />
               </StatIcon>
-              <StatLabel $variant="pink">Photos</StatLabel>
+              <StatLabel>Photos</StatLabel>
             </StatHeader>
             <StatValue>{stats.totalPhotos}</StatValue>
           </StatCard>
 
-          <StatCard $variant="blue">
+          <StatCard>
             <StatHeader>
-              <StatIcon $variant="blue">
-                <MapPin size={22} />
+              <StatIcon>
+                <MapPin size={16} />
               </StatIcon>
-              <StatLabel $variant="blue">Places</StatLabel>
+              <StatLabel>Places</StatLabel>
             </StatHeader>
             <StatValue>{stats.totalLocations}</StatValue>
           </StatCard>
