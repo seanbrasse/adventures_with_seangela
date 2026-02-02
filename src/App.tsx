@@ -728,6 +728,12 @@ function App() {
             onClose={handleCloseGallery}
             onDeletePhoto={handleDeletePhoto}
             onRenameLocation={handleRenameLocation}
+            onUpdatePhoto={(id, updates) => {
+              updatePhoto(id, updates);
+              setSelectedPhotos((prev) =>
+                prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+              );
+            }}
             locationName={selectedPhotos[0]?.location.name}
             mapboxToken={apiKey}
           />

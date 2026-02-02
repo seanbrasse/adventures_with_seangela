@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Pencil, Check } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Pencil, Check, Clock, Calendar, MessageSquare } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo } from '../types/photo';
 import { searchPlaces, type GeocodingResult } from '../utils/geocoding';
@@ -10,6 +10,7 @@ interface PhotoGalleryProps {
   onClose: () => void;
   onDeletePhoto: (id: string) => void;
   onRenameLocation?: (photoIds: string[], newName: string) => void;
+  onUpdatePhoto?: (id: string, updates: Partial<Photo>) => void;
   locationName?: string;
   mapboxToken?: string;
 }
@@ -305,6 +306,161 @@ const ImageDescription = styled.p`
   color: rgba(255, 255, 255, 0.6);
 `;
 
+const PhotoDetailsPanel = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+`;
+
+const DetailRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9375rem;
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+  }
+`;
+
+const DetailLabel = styled.span`
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 70px;
+`;
+
+const DetailValue = styled.span`
+  color: rgba(255, 255, 255, 0.9);
+`;
+
+const CaptionRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const CaptionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+`;
+
+const CaptionDisplay = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.5rem;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const CaptionText = styled.p`
+  flex: 1;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+`;
+
+const CaptionPlaceholder = styled.p`
+  flex: 1;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9375rem;
+  font-style: italic;
+`;
+
+const CaptionEditButton = styled.button`
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+  }
+`;
+
+const CaptionInputWrapper = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+`;
+
+const CaptionTextarea = styled.textarea`
+  flex: 1;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 80px;
+  outline: none;
+
+  &:focus {
+    border-color: #ec4899;
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+`;
+
+const CaptionSaveButton = styled.button`
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: #ec4899;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #db2777;
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    color: #ffffff;
+  }
+`;
+
 const FullscreenCloseButton = styled.button`
   position: absolute;
   top: 1.75rem;
@@ -481,6 +637,7 @@ export default function PhotoGallery({
   onClose,
   onDeletePhoto,
   onRenameLocation,
+  onUpdatePhoto,
   locationName,
   mapboxToken,
 }: PhotoGalleryProps) {
@@ -492,6 +649,9 @@ export default function PhotoGallery({
   const [isSearching, setIsSearching] = useState(false);
   const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isEditingCaption, setIsEditingCaption] = useState(false);
+  const [editedCaption, setEditedCaption] = useState('');
+  const captionInputRef = useRef<HTMLTextAreaElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -600,6 +760,36 @@ export default function PhotoGallery({
       }
     };
   }, []);
+
+  // Focus caption input when editing starts
+  useEffect(() => {
+    if (isEditingCaption && captionInputRef.current) {
+      captionInputRef.current.focus();
+    }
+  }, [isEditingCaption]);
+
+  const handleStartEditCaption = () => {
+    if (selectedIndex !== null) {
+      setEditedCaption(allPhotos[selectedIndex].description || '');
+      setIsEditingCaption(true);
+    }
+  };
+
+  const handleSaveCaption = () => {
+    if (selectedIndex !== null && onUpdatePhoto) {
+      onUpdatePhoto(allPhotos[selectedIndex].id, { description: editedCaption.trim() || undefined });
+    }
+    setIsEditingCaption(false);
+  };
+
+  const handleCaptionKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setIsEditingCaption(false);
+    } else if (e.key === 'Enter' && e.metaKey) {
+      handleSaveCaption();
+    }
+    e.stopPropagation();
+  };
 
   const photosByDate = useMemo(() => {
     const groups = new Map<string, Photo[]>();
@@ -752,14 +942,56 @@ export default function PhotoGallery({
               alt={allPhotos[selectedIndex].description || 'Photo'}
             />
             <ImageInfo>
-              <ImageDate>
-                {format(allPhotos[selectedIndex].date, 'MMMM d, yyyy')}
-              </ImageDate>
-              {allPhotos[selectedIndex].description && (
-                <ImageDescription>
-                  {allPhotos[selectedIndex].description}
-                </ImageDescription>
-              )}
+              <PhotoDetailsPanel>
+                <DetailRow>
+                  <Calendar />
+                  <DetailLabel>Date</DetailLabel>
+                  <DetailValue>{format(allPhotos[selectedIndex].date, 'EEEE, MMMM d, yyyy')}</DetailValue>
+                </DetailRow>
+                <DetailRow>
+                  <Clock />
+                  <DetailLabel>Time</DetailLabel>
+                  <DetailValue>{format(allPhotos[selectedIndex].date, 'h:mm a')}</DetailValue>
+                </DetailRow>
+                {allPhotos[selectedIndex].location.name && (
+                  <DetailRow>
+                    <MapPin />
+                    <DetailLabel>Location</DetailLabel>
+                    <DetailValue>{allPhotos[selectedIndex].location.name}</DetailValue>
+                  </DetailRow>
+                )}
+                <CaptionRow>
+                  <CaptionHeader>
+                    <MessageSquare />
+                    Caption
+                  </CaptionHeader>
+                  {isEditingCaption ? (
+                    <CaptionInputWrapper>
+                      <CaptionTextarea
+                        ref={captionInputRef}
+                        value={editedCaption}
+                        onChange={(e) => setEditedCaption(e.target.value)}
+                        onKeyDown={handleCaptionKeyDown}
+                        placeholder="Add a caption..."
+                      />
+                      <CaptionSaveButton onClick={handleSaveCaption} title="Save caption">
+                        <Check />
+                      </CaptionSaveButton>
+                    </CaptionInputWrapper>
+                  ) : (
+                    <CaptionDisplay onClick={handleStartEditCaption}>
+                      {allPhotos[selectedIndex].description ? (
+                        <CaptionText>{allPhotos[selectedIndex].description}</CaptionText>
+                      ) : (
+                        <CaptionPlaceholder>Click to add a caption...</CaptionPlaceholder>
+                      )}
+                      <CaptionEditButton title="Edit caption">
+                        <Pencil />
+                      </CaptionEditButton>
+                    </CaptionDisplay>
+                  )}
+                </CaptionRow>
+              </PhotoDetailsPanel>
             </ImageInfo>
           </ImageContainer>
 
