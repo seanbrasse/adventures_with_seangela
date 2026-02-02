@@ -64,7 +64,6 @@ const HomeBaseMarker = styled.div<{ $color: string }>`
 
 const PlaneMarkerContainer = styled.div`
   cursor: pointer;
-  transform-origin: center;
   transition: transform 0.2s ease;
 
   &:hover {
@@ -72,7 +71,7 @@ const PlaneMarkerContainer = styled.div`
   }
 `;
 
-const PlaneIcon = styled.div<{ $color: string }>`
+const PlaneIcon = styled.div<{ $color: string; $rotation: number }>`
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
@@ -86,7 +85,27 @@ const PlaneIcon = styled.div<{ $color: string }>`
     width: 0.75rem;
     height: 0.75rem;
     color: white;
+    transform: rotate(${({ $rotation }) => $rotation}deg);
   }
+`;
+
+const ArrowMarkerContainer = styled.div<{ $rotation: number }>`
+  cursor: pointer;
+  transform: rotate(${({ $rotation }) => $rotation}deg);
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: rotate(${({ $rotation }) => $rotation}deg) scale(1.2);
+  }
+`;
+
+const ArrowIcon = styled.div<{ $color: string }>`
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 10px solid ${({ $color }) => $color};
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 `;
 
 const FlightPopup = styled.div`
@@ -375,7 +394,7 @@ export default function MapboxGlobe({
 }: MapboxGlobeProps) {
   const mapRef = useRef<MapRef>(null);
   const [hoveredPoint, setHoveredPoint] = useState<PointData | null>(null);
-  const [hoveredLine, setHoveredLine] = useState<(FlightLine & { midpoint: { lat: number; lng: number }; bearing: number }) | null>(null);
+  const [hoveredLine, setHoveredLine] = useState<(FlightLine & { midpoint: { lat: number; lng: number }; bearing: number; arrowPosition: { lng: number; lat: number }; arrowBearing: number }) | null>(null);
   const [isMinimalStyle, setIsMinimalStyle] = useState(true); // Minimal is default
 
   // Map style URLs
@@ -534,7 +553,7 @@ export default function MapboxGlobe({
     };
   }, [flightLines]);
 
-  // Calculate midpoints and bearings for plane icons
+  // Calculate midpoints, bearings, and arrow positions for flight lines
   const planePositions = useMemo(() => {
     return flightLines.map((line) => {
       const midpoint = getMidpoint(
@@ -549,10 +568,33 @@ export default function MapboxGlobe({
         line.to.lng,
         line.to.lat
       );
+
+      // Calculate arrow position (85% along the arc, near destination)
+      const arcPoints = generateArcPoints(
+        line.from.lng,
+        line.from.lat,
+        line.to.lng,
+        line.to.lat,
+        100
+      );
+      const arrowIndex = Math.floor(arcPoints.length * 0.85);
+      const arrowPoint = arcPoints[arrowIndex];
+      const arrowNextPoint = arcPoints[Math.min(arrowIndex + 1, arcPoints.length - 1)];
+
+      // Calculate bearing at the arrow point for proper orientation
+      const arrowBearing = getBearing(
+        arrowPoint[0],
+        arrowPoint[1],
+        arrowNextPoint[0],
+        arrowNextPoint[1]
+      );
+
       return {
         ...line,
         midpoint,
         bearing,
+        arrowPosition: { lng: arrowPoint[0], lat: arrowPoint[1] },
+        arrowBearing,
       };
     });
   }, [flightLines]);
@@ -563,13 +605,25 @@ export default function MapboxGlobe({
 
   const handleLineClick = useCallback((line: FlightLine) => {
     if (mapRef.current) {
+      // Find the photos at this destination to open the gallery
+      const destPoint = pointsData.find(
+        (p) => Math.abs(p.lat - line.to.lat) < 0.5 && Math.abs(p.lng - line.to.lng) < 0.5
+      );
+
       mapRef.current.flyTo({
         center: [line.to.lng, line.to.lat],
         zoom: 6,
         duration: 2000,
       });
+
+      // After flying, open the location if found
+      if (destPoint) {
+        setTimeout(() => {
+          onLocationClick(destPoint.photos);
+        }, 2100); // Wait for fly animation to complete
+      }
     }
-  }, []);
+  }, [pointsData, onLocationClick]);
 
   return (
     <MapContainer>
@@ -653,9 +707,9 @@ export default function MapboxGlobe({
                 filter={['==', ['get', 'id'], line.id]}
                 paint={{
                   'line-color': line.color,
-                  'line-width': 2,
-                  'line-opacity': 0.8,
-                  'line-dasharray': [2, 2],
+                  'line-width': 2.5,
+                  'line-opacity': 0.85,
+                  'line-dasharray': [3, 2],
                 }}
               />
             ))}
@@ -672,14 +726,28 @@ export default function MapboxGlobe({
             onClick={() => handleLineClick(plane)}
           >
             <PlaneMarkerContainer
-              style={{ transform: `rotate(${plane.bearing - 45}deg)` }}
               onMouseEnter={() => setHoveredLine(plane)}
               onMouseLeave={() => setHoveredLine(null)}
             >
-              <PlaneIcon $color={plane.color}>
+              <PlaneIcon $color={plane.color} $rotation={plane.bearing - 45}>
                 <Plane />
               </PlaneIcon>
             </PlaneMarkerContainer>
+          </Marker>
+        ))}
+
+        {/* Arrow indicators at destination end of flight lines */}
+        {planePositions.map((plane) => (
+          <Marker
+            key={`arrow-${plane.id}`}
+            longitude={plane.arrowPosition.lng}
+            latitude={plane.arrowPosition.lat}
+            anchor="center"
+            onClick={() => handleLineClick(plane)}
+          >
+            <ArrowMarkerContainer $rotation={plane.arrowBearing}>
+              <ArrowIcon $color={plane.color} />
+            </ArrowMarkerContainer>
           </Marker>
         ))}
 
