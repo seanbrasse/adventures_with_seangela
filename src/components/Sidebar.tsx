@@ -199,7 +199,7 @@ const LocationsList = styled.div`
 const LocationCard = styled.button`
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   padding: 0.875rem;
   background: transparent;
@@ -208,6 +208,7 @@ const LocationCard = styled.button`
   transition: all 0.15s ease;
   text-align: left;
   cursor: pointer;
+  min-height: 5.5rem;
 
   &:hover {
     background: rgba(255, 255, 255, 0.06);
@@ -225,6 +226,7 @@ const Thumbnail = styled.div`
   border-radius: 0.75rem;
   overflow: hidden;
   flex-shrink: 0;
+  margin-top: 0.125rem;
 
   img {
     width: 100%;
@@ -243,9 +245,13 @@ const LocationName = styled.p`
   font-weight: 500;
   color: #ffffff;
   margin-bottom: 0.25rem;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word;
+  line-height: 1.4;
 `;
 
 const LocationMeta = styled.div`

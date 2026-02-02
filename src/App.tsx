@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Plus, Menu, X, Heart, Key, Settings } from 'lucide-react';
+import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import styled, { createGlobalStyle } from 'styled-components';
 import MapboxGlobe from './components/MapboxGlobe';
 import PhotoGallery from './components/PhotoGallery';
@@ -137,25 +137,27 @@ const MobileOverlay = styled.div<{ $visible: boolean }>`
   }
 `;
 
-const SidebarContainer = styled.aside<{ $open: boolean }>`
+const SidebarContainer = styled.aside<{ $open: boolean; $collapsed: boolean }>`
   position: fixed;
   inset: 0;
   right: auto;
   z-index: 40;
-  width: 320px;
+  width: 380px;
   max-width: 85vw;
   background: #0d0d12;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   transform: ${({ $open }) => ($open ? 'translateX(0)' : 'translateX(-100%)')};
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, width 0.3s ease;
   display: flex;
   flex-direction: column;
 
   @media (min-width: 768px) {
     position: relative;
     transform: translateX(0);
-    width: 320px;
+    width: ${({ $collapsed }) => ($collapsed ? '0px' : '380px')};
+    min-width: ${({ $collapsed }) => ($collapsed ? '0px' : '380px')};
     max-width: none;
+    overflow: ${({ $collapsed }) => ($collapsed ? 'hidden' : 'visible')};
   }
 `;
 
@@ -221,6 +223,39 @@ const SidebarFooter = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+  }
+`;
+
+const CollapseToggle = styled.button<{ $collapsed: boolean }>`
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    right: ${({ $collapsed }) => ($collapsed ? '-40px' : '-12px')};
+    transform: translateY(-50%);
+    width: 24px;
+    height: 48px;
+    background: #1a1a24;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    z-index: 50;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #252532;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+      color: rgba(255, 255, 255, 0.6);
+    }
   }
 `;
 
@@ -557,6 +592,7 @@ function App() {
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [apiKey, setApiKey] = useState(MAPBOX_TOKEN || '');
   const [showApiKeyInput, setShowApiKeyInput] = useState(!MAPBOX_TOKEN);
 
@@ -654,7 +690,7 @@ function App() {
         <MobileOverlay $visible={sidebarOpen} onClick={() => setSidebarOpen(false)} />
 
         {/* Sidebar */}
-        <SidebarContainer $open={sidebarOpen}>
+        <SidebarContainer $open={sidebarOpen} $collapsed={sidebarCollapsed}>
           <SidebarHeader>
             <Logo>
               <Heart />
@@ -679,6 +715,14 @@ function App() {
               Settings
             </SecondaryButton>
           </SidebarFooter>
+
+          <CollapseToggle
+            $collapsed={sidebarCollapsed}
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
+          </CollapseToggle>
         </SidebarContainer>
 
         {/* Main content - Globe */}
