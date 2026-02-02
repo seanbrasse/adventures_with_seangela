@@ -223,20 +223,58 @@ export async function createThumbnail(file: File, maxSize = 200): Promise<string
   });
 }
 
-export function groupPhotosByLocation(photos: Photo[], threshold = 0.5): Map<string, Photo[]> {
+// Normalize city names for grouping (handles variations like "NYC" vs "New York")
+function normalizeCityName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/^city of /i, '')
+    .replace(/ city$/i, '')
+    .replace(/ metro$/i, '')
+    .replace(/ metropolitan area$/i, '')
+    .replace(/new york city/i, 'new york')
+    .replace(/nyc/i, 'new york')
+    .replace(/jakarta special capital region/i, 'jakarta')
+    .replace(/dki jakarta/i, 'jakarta');
+}
+
+export function groupPhotosByLocation(photos: Photo[], distanceThreshold = 50): Map<string, Photo[]> {
   const groups = new Map<string, Photo[]>();
 
   photos.forEach((photo) => {
     let foundGroup = false;
+    const photoName = photo.location.name;
 
-    for (const [key, groupPhotos] of groups) {
-      const [lat, lng] = key.split(',').map(Number);
-      const distance = getDistance(photo.location.lat, photo.location.lng, lat, lng);
+    // First, try to match by city name if available
+    if (photoName) {
+      const normalizedName = normalizeCityName(photoName);
 
-      if (distance < threshold) {
-        groupPhotos.push(photo);
-        foundGroup = true;
-        break;
+      for (const [, groupPhotos] of groups) {
+        // Check if this group has a name that matches
+        const firstPhoto = groupPhotos[0];
+        if (firstPhoto.location.name) {
+          const groupNormalizedName = normalizeCityName(firstPhoto.location.name);
+          if (groupNormalizedName === normalizedName) {
+            groupPhotos.push(photo);
+            foundGroup = true;
+            break;
+          }
+        }
+      }
+    }
+
+    // If no name match found, fall back to distance-based grouping
+    if (!foundGroup) {
+      for (const [key, groupPhotos] of groups) {
+        const [lat, lng] = key.split(',').map(Number);
+        const distance = getDistance(photo.location.lat, photo.location.lng, lat, lng);
+
+        // Use larger threshold (50km default) to group photos in same city
+        if (distance < distanceThreshold) {
+          groupPhotos.push(photo);
+          foundGroup = true;
+          break;
+        }
       }
     }
 

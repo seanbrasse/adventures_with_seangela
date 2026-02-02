@@ -1,0 +1,112 @@
+// Geocoding utilities using Mapbox API
+
+export interface GeocodingResult {
+  id: string;
+  place_name: string;
+  center: [number, number];
+  text: string;
+}
+
+export interface ReverseGeocodingResult {
+  city: string;
+  country: string;
+  fullName: string;
+}
+
+// Reverse geocode coordinates to get city name
+export async function reverseGeocode(
+  lat: number,
+  lng: number,
+  mapboxToken: string
+): Promise<ReverseGeocodingResult | null> {
+  if (!mapboxToken || (lat === 0 && lng === 0)) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&types=place,locality,region&limit=1`
+    );
+
+    if (!response.ok) {
+      console.error('Reverse geocoding failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (!data.features || data.features.length === 0) {
+      return null;
+    }
+
+    const feature = data.features[0];
+
+    // Extract city and country from context
+    let city = feature.text;
+    let country = '';
+
+    if (feature.context) {
+      for (const ctx of feature.context) {
+        if (ctx.id.startsWith('country')) {
+          country = ctx.text;
+        }
+      }
+    }
+
+    return {
+      city,
+      country,
+      fullName: country ? `${city}, ${country}` : city,
+    };
+  } catch (error) {
+    console.error('Reverse geocoding error:', error);
+    return null;
+  }
+}
+
+// Normalize city names for grouping
+// This handles cases where the same city might have slightly different names
+export function normalizeCityName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    // Remove common suffixes/prefixes
+    .replace(/^city of /i, '')
+    .replace(/ city$/i, '')
+    .replace(/ metro$/i, '')
+    .replace(/ metropolitan area$/i, '')
+    // Normalize common variations
+    .replace(/new york city/i, 'new york')
+    .replace(/nyc/i, 'new york')
+    .replace(/jakarta special capital region/i, 'jakarta')
+    .replace(/dki jakarta/i, 'jakarta');
+}
+
+// Group photos by city name
+export function groupPhotosByCity(
+  photos: { location: { lat: number; lng: number; name?: string } }[]
+): Map<string, typeof photos> {
+  const groups = new Map<string, typeof photos>();
+
+  photos.forEach((photo) => {
+    const cityName = photo.location.name || 'Unknown Location';
+    const normalizedName = normalizeCityName(cityName);
+
+    // Find existing group with same normalized name
+    let foundKey: string | null = null;
+    for (const [key] of groups) {
+      if (normalizeCityName(key) === normalizedName) {
+        foundKey = key;
+        break;
+      }
+    }
+
+    if (foundKey) {
+      groups.get(foundKey)!.push(photo);
+    } else {
+      groups.set(cityName, [photo]);
+    }
+  });
+
+  return groups;
+}

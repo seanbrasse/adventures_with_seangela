@@ -455,10 +455,15 @@ export default function MapboxGlobe({
                   />
                 ))}
               </div>
-              <p className="text-sm font-medium text-gray-800">
+              {hoveredPoint.photos[0]?.location.name && (
+                <p className="text-sm font-semibold text-gray-800 mb-1">
+                  {hoveredPoint.photos[0].location.name}
+                </p>
+              )}
+              <p className="text-xs text-gray-600">
                 {hoveredPoint.photos.length} photo{hoveredPoint.photos.length !== 1 ? 's' : ''}
               </p>
-              <p className="text-xs text-gray-500">Click to view</p>
+              <p className="text-xs text-gray-400">Click to view</p>
             </div>
           </Popup>
         )}

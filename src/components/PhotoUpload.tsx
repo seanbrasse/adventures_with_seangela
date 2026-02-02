@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, MapPin, Check, AlertCircle, Loader2, Clipboard, Search, Calendar } from 'lucide-react';
 import type { Photo } from '../types/photo';
 import { extractPhotoData, uploadPhotoToStorage } from '../utils/exif';
+import { reverseGeocode } from '../utils/geocoding';
 import type { ExtractedPhotoData } from '../utils/exif';
 
 interface PhotoUploadProps {
@@ -145,13 +146,24 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
 
       const photoData = await extractPhotoData(file);
       if (photoData) {
+        // Auto-reverse geocode if photo has coordinates but no name
+        if (!photoData.needsLocation && mapboxToken && !photoData.location.name) {
+          const geocodeResult = await reverseGeocode(
+            photoData.location.lat,
+            photoData.location.lng,
+            mapboxToken
+          );
+          if (geocodeResult) {
+            photoData.location.name = geocodeResult.fullName;
+          }
+        }
         newPhotos.push(photoData);
       }
     }
 
     setPendingPhotos((prev) => [...prev, ...newPhotos]);
     setIsProcessing(false);
-  }, []);
+  }, [mapboxToken]);
 
   const handlePaste = useCallback(async (e: ClipboardEvent) => {
     const items = e.clipboardData?.items;
