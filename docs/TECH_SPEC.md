@@ -701,13 +701,139 @@ const PEOPLE = [
 
 ---
 
-## 14. Development Workflow
+## 14. Testing Requirements
+
+### Test Framework
+
+| Technology | Purpose |
+|------------|---------|
+| Vitest | Test runner (Vite-native) |
+| React Testing Library | Component testing |
+| @testing-library/jest-dom | DOM assertions |
+| jsdom | Browser environment simulation |
+
+### Coverage Thresholds
+
+**Target: 85% coverage across all metrics.**
+
+Current thresholds (increase as more tests are added):
+```typescript
+// vitest.config.ts
+thresholds: {
+  statements: 72,  // Target: 85
+  branches: 62,    // Target: 85
+  functions: 64,   // Target: 85
+  lines: 74,       // Target: 85
+}
+```
+
+**To reach 85%:** Add tests for:
+- Supabase integration paths in `usePhotoStorage.ts`
+- More UI interactions in `PhotoUpload.tsx` and `SettingsModal.tsx`
+- Edge cases in `MapboxGlobe.tsx`
+
+### Test File Structure
+
+```
+src/
+├── components/
+│   ├── App.tsx
+│   ├── App.test.tsx          # Component tests alongside source
+│   └── ...
+├── hooks/
+│   ├── usePhotoStorage.ts
+│   ├── usePhotoStorage.test.ts
+│   └── ...
+├── utils/
+│   ├── geocoding.ts
+│   ├── geocoding.test.ts
+│   └── ...
+└── test/
+    ├── setup.ts              # Global test setup and mocks
+    └── mocks/                # Mock implementations
+        ├── mapbox-gl.ts
+        ├── mapbox-gl.css.ts
+        └── react-map-gl.ts
+```
+
+### Running Tests
+
+```bash
+# Run tests in watch mode
+npm test
+
+# Run tests once
+npm run test:run
+
+# Run with coverage report
+npm run test:coverage
+```
+
+### Test Requirements by File Type
+
+**Components:**
+- Render without errors
+- User interactions (click, type, submit)
+- Conditional rendering
+- Props handling
+- Modal open/close behavior
+
+**Hooks:**
+- Initial state
+- State updates
+- Side effects (localStorage, API calls)
+- Edge cases (empty data, errors)
+
+**Utilities:**
+- All exported functions
+- Happy path and error cases
+- Edge cases and boundary values
+
+---
+
+## 15. Development Workflow
 
 ### Before Starting Work
 
 1. **Read PRD.md** - Understand product goals, features, and business rules
 2. **Read TECH_SPEC.md** - Review technical architecture, algorithms, and recent changes in changelog
 3. **Check the changelog** - See what's been done recently to understand current state
+4. **Run tests** - Ensure all tests pass before making changes:
+   ```bash
+   npm run test:run
+   ```
+
+### During Development
+
+1. **Write tests first** (TDD) or alongside code
+2. **Run tests frequently** to catch regressions early
+3. **Check coverage** for new code:
+   ```bash
+   npm run test:coverage
+   ```
+
+### Before Committing
+
+**MANDATORY: All commits must pass these checks:**
+
+1. **Run full test suite:**
+   ```bash
+   npm run test:run
+   ```
+   - ❌ DO NOT commit if any tests fail
+   - ✅ All tests must pass
+
+2. **Check coverage thresholds:**
+   ```bash
+   npm run test:coverage
+   ```
+   - ❌ DO NOT commit if coverage drops below 85%
+   - ✅ Coverage must meet or exceed thresholds
+
+3. **Fix broken tests:**
+   - If your changes break existing tests, fix them
+   - If tests are incorrectly written, update them with correct assertions
+   - Never skip or delete tests to make CI pass
 
 ### After Completing Work
 
@@ -729,18 +855,33 @@ const PEOPLE = [
 ### Quick Reference
 
 ```bash
-# Before work: read docs
+# Before work: read docs and run tests
 cat docs/PRD.md
 cat docs/TECH_SPEC.md
+npm run test:run
+
+# During work: test frequently
+npm test  # watch mode
+
+# Before commit: verify everything passes
+npm run test:run && npm run test:coverage
 
 # After work: update docs, then commit
-git add docs/
-git commit -m "Update documentation for [feature]"
+git add .
+git commit -m "Add [feature] with tests"
 ```
+
+### Commit Checklist
+
+- [ ] All tests pass (`npm run test:run`)
+- [ ] Coverage ≥ 85% (`npm run test:coverage`)
+- [ ] New code has tests
+- [ ] Documentation updated if needed
+- [ ] Changelog entry added for features
 
 ---
 
-## 15. Changelog
+## 16. Changelog
 
 | Date | Version | Changes |
 |------|---------|---------|
