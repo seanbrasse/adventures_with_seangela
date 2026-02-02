@@ -317,16 +317,19 @@ const LocationButton = styled.button`
   align-items: center;
   gap: 0.5rem;
   color: #fbbf24;
-  background: none;
-  border: none;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px dashed rgba(251, 191, 36, 0.4);
+  border-radius: 0.5rem;
   cursor: pointer;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  padding: 0;
-  transition: color 0.2s ease;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.2s ease;
 
   &:hover {
     color: #fcd34d;
+    background: rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.6);
   }
 `;
 
@@ -507,7 +510,8 @@ const SubmitButton = styled.button`
 const AutocompleteWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
 `;
 
 const SearchInputWrapper = styled.div`
@@ -516,63 +520,64 @@ const SearchInputWrapper = styled.div`
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 0.875rem 1rem 0.875rem 2.75rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0.875rem;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 0.625rem;
   color: #ffffff;
-  font-size: 1rem;
+  font-size: 0.9375rem;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   &:focus {
     outline: none;
-    border-color: #f472b6;
-    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
+    border-color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
   }
 `;
 
 const SearchIcon = styled.div`
   position: absolute;
-  left: 1rem;
+  left: 0.875rem;
   top: 50%;
   transform: translateY(-50%);
 
   svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    color: rgba(255, 255, 255, 0.4);
+    width: 1rem;
+    height: 1rem;
+    color: #fbbf24;
   }
 `;
 
 const LoadingIcon = styled.div`
   position: absolute;
-  right: 1rem;
+  right: 0.875rem;
   top: 50%;
   transform: translateY(-50%);
 
   svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    color: rgba(255, 255, 255, 0.4);
+    width: 1rem;
+    height: 1rem;
+    color: #fbbf24;
     animation: ${spin} 1s linear infinite;
   }
 `;
 
 const ResultsList = styled.div`
-  background: #1e1e32;
+  background: #1a1a28;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.875rem;
+  border-radius: 0.625rem;
   overflow: hidden;
-  max-height: 16rem;
+  max-height: 12rem;
   overflow-y: auto;
 `;
 
 const ResultItem = styled.button`
   width: 100%;
-  padding: 1rem;
+  padding: 0.75rem;
   text-align: left;
   background: transparent;
   border: none;
@@ -581,38 +586,38 @@ const ResultItem = styled.button`
   cursor: pointer;
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
-  transition: background 0.2s ease;
+  gap: 0.625rem;
+  transition: background 0.15s ease;
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(251, 191, 36, 0.1);
   }
 
   svg {
-    color: #f472b6;
+    color: #fbbf24;
     margin-top: 0.125rem;
     flex-shrink: 0;
   }
 
   span {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     line-height: 1.4;
   }
 `;
 
 const CancelTextButton = styled.button`
-  width: 100%;
-  padding: 0.625rem;
+  padding: 0.375rem 0.75rem;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8125rem;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: color 0.15s ease;
+  align-self: flex-start;
 
   &:hover {
     color: #ffffff;
@@ -756,6 +761,12 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
 
     setPendingPhotos((prev) => [...prev, ...newPhotos]);
     setIsProcessing(false);
+
+    // Auto-open location editor for the first photo that needs a location
+    const firstNeedsLocation = newPhotos.find((p) => p.needsLocation);
+    if (firstNeedsLocation) {
+      setEditingLocation(firstNeedsLocation.id);
+    }
   }, [mapboxToken]);
 
   const handlePaste = useCallback(async (e: ClipboardEvent) => {
