@@ -6,6 +6,7 @@ import { Heart, Plane, Globe, Map as MapIcon, Home } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
 import type { Photo, HomeBase, Trip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
+import SpaceAnimations from './SpaceAnimations';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 // Styled Components
@@ -737,6 +738,9 @@ export default function MapboxGlobe({
 
   return (
     <MapContainer>
+      {/* Space background animations - only show on minimal (dark) style */}
+      {isMinimalStyle && <SpaceAnimations />}
+
       {/* Map style toggle */}
       <ToggleContainer>
         <ToggleButton
