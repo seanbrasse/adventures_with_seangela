@@ -10,190 +10,162 @@ const Container = styled.div`
   z-index: 5;
   /* Radial mask to hide animations in center (behind globe effect) */
   mask-image: radial-gradient(
-    ellipse 45% 50% at 50% 50%,
+    ellipse 50% 55% at 50% 50%,
     transparent 0%,
-    transparent 70%,
+    transparent 60%,
     black 100%
   );
   -webkit-mask-image: radial-gradient(
-    ellipse 45% 50% at 50% 50%,
+    ellipse 50% 55% at 50% 50%,
     transparent 0%,
-    transparent 70%,
+    transparent 60%,
     black 100%
   );
 `;
 
-const ShootingStarElement = styled(motion.div)`
+const Comet = styled(motion.div)<{ $size: 'small' | 'medium' | 'large' }>`
   position: absolute;
-  width: 80px;
-  height: 2px;
-  background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
-  border-radius: 50%;
   transform-origin: right center;
 
+  /* Comet head - bright glowing core */
   &::before {
     content: '';
     position: absolute;
     right: 0;
-    top: -2px;
-    width: 6px;
-    height: 6px;
-    background: white;
+    top: 50%;
+    transform: translateY(-50%);
+    width: ${({ $size }) => ($size === 'large' ? '8px' : $size === 'medium' ? '6px' : '4px')};
+    height: ${({ $size }) => ($size === 'large' ? '8px' : $size === 'medium' ? '6px' : '4px')};
+    background: radial-gradient(circle, white 0%, rgba(200, 220, 255, 0.9) 40%, transparent 70%);
     border-radius: 50%;
-    box-shadow: 0 0 8px 3px rgba(255, 255, 255, 0.7);
+    box-shadow:
+      0 0 ${({ $size }) => ($size === 'large' ? '15px' : '10px')} ${({ $size }) => ($size === 'large' ? '8px' : '5px')} rgba(180, 200, 255, 0.8),
+      0 0 ${({ $size }) => ($size === 'large' ? '30px' : '20px')} ${({ $size }) => ($size === 'large' ? '15px' : '10px')} rgba(140, 170, 255, 0.5),
+      0 0 ${({ $size }) => ($size === 'large' ? '50px' : '30px')} ${({ $size }) => ($size === 'large' ? '25px' : '15px')} rgba(100, 140, 255, 0.3);
+  }
+
+  /* Comet tail - gradient streak */
+  &::after {
+    content: '';
+    position: absolute;
+    right: ${({ $size }) => ($size === 'large' ? '4px' : '3px')};
+    top: 50%;
+    transform: translateY(-50%);
+    width: ${({ $size }) => ($size === 'large' ? '200px' : $size === 'medium' ? '150px' : '100px')};
+    height: ${({ $size }) => ($size === 'large' ? '3px' : $size === 'medium' ? '2px' : '1.5px')};
+    background: linear-gradient(
+      to left,
+      rgba(200, 220, 255, 0.9) 0%,
+      rgba(160, 190, 255, 0.6) 10%,
+      rgba(120, 160, 255, 0.3) 30%,
+      rgba(100, 140, 255, 0.1) 60%,
+      transparent 100%
+    );
+    border-radius: 100px;
+    filter: blur(0.5px);
   }
 `;
 
-const FloatingEmoji = styled(motion.div)`
-  position: absolute;
-  font-size: 1.5rem;
-  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
-`;
-
-interface ShootingStar {
+interface CometData {
   id: number;
   startX: number;
   startY: number;
   angle: number;
-}
-
-interface FloatingObject {
-  id: number;
-  emoji: string;
-  startY: number;
+  size: 'small' | 'medium' | 'large';
+  duration: number;
+  distance: number;
 }
 
 export default function SpaceAnimations() {
-  const [shootingStars, setShootingStars] = useState<ShootingStar[]>([]);
-  const [floatingObjects, setFloatingObjects] = useState<FloatingObject[]>([]);
+  const [comets, setComets] = useState<CometData[]>([]);
 
-  // Spawn a shooting star
-  const spawnShootingStar = useCallback(() => {
-    const id = Date.now();
-    const star: ShootingStar = {
+  const spawnComet = useCallback(() => {
+    const id = Date.now() + Math.random();
+    const sizes: Array<'small' | 'medium' | 'large'> = ['small', 'small', 'medium', 'medium', 'large'];
+    const size = sizes[Math.floor(Math.random() * sizes.length)];
+
+    // Randomize starting position - prefer top and right edges
+    const edge = Math.random();
+    let startX: number;
+    let startY: number;
+
+    if (edge < 0.6) {
+      // Start from top edge
+      startX = Math.random() * 80 + 10; // 10-90% from left
+      startY = -5;
+    } else {
+      // Start from right edge
+      startX = 105;
+      startY = Math.random() * 50 + 5; // 5-55% from top
+    }
+
+    const comet: CometData = {
       id,
-      startX: Math.random() * 60 + 20, // 20-80% from left
-      startY: Math.random() * 30 + 5,  // 5-35% from top
-      angle: -30 - Math.random() * 30, // -30 to -60 degrees
+      startX,
+      startY,
+      angle: -25 - Math.random() * 35, // -25 to -60 degrees (diagonal down-left)
+      size,
+      duration: size === 'large' ? 4 : size === 'medium' ? 3.5 : 3,
+      distance: size === 'large' ? 1200 : size === 'medium' ? 1000 : 800,
     };
-    setShootingStars(prev => [...prev, star]);
+
+    setComets(prev => [...prev, comet]);
 
     // Remove after animation completes
     setTimeout(() => {
-      setShootingStars(prev => prev.filter(s => s.id !== id));
-    }, 2000);
+      setComets(prev => prev.filter(c => c.id !== id));
+    }, comet.duration * 1000 + 500);
   }, []);
 
-  // Spawn a floating object
-  const spawnFloatingObject = useCallback(() => {
-    const emojis = ['🚀', '🛸', '🌟', '💫'];
-    const id = Date.now();
-    const obj: FloatingObject = {
-      id,
-      emoji: emojis[Math.floor(Math.random() * emojis.length)],
-      startY: Math.random() * 40 + 10, // 10-50% from top
-    };
-    setFloatingObjects(prev => [...prev, obj]);
-
-    // Remove after animation completes
-    setTimeout(() => {
-      setFloatingObjects(prev => prev.filter(o => o.id !== id));
-    }, 35000);
-  }, []);
-
-  // Schedule shooting stars - every 20-40 seconds
+  // Schedule comets - every 25-45 seconds
   useEffect(() => {
     const scheduleNext = () => {
-      const delay = 20000 + Math.random() * 20000; // 20-40 seconds
+      const delay = 25000 + Math.random() * 20000; // 25-45 seconds
       return setTimeout(() => {
-        spawnShootingStar();
+        spawnComet();
         timerId = scheduleNext();
       }, delay);
     };
 
-    // Initial delay before first star (short delay for first one)
+    // First comet after a short delay
     let timerId = setTimeout(() => {
-      spawnShootingStar();
+      spawnComet();
       timerId = scheduleNext();
-    }, 2000);
+    }, 3000);
 
     return () => clearTimeout(timerId);
-  }, [spawnShootingStar]);
-
-  // Schedule floating objects - every 45-90 seconds
-  useEffect(() => {
-    const scheduleNext = () => {
-      const delay = 45000 + Math.random() * 45000; // 45-90 seconds
-      return setTimeout(() => {
-        spawnFloatingObject();
-        timerId = scheduleNext();
-      }, delay);
-    };
-
-    // Initial delay before first object (short delay for first one)
-    let timerId = setTimeout(() => {
-      spawnFloatingObject();
-      timerId = scheduleNext();
-    }, 5000);
-
-    return () => clearTimeout(timerId);
-  }, [spawnFloatingObject]);
+  }, [spawnComet]);
 
   return (
     <Container>
       <AnimatePresence>
-        {shootingStars.map(star => (
-          <ShootingStarElement
-            key={star.id}
+        {comets.map(comet => (
+          <Comet
+            key={comet.id}
+            $size={comet.size}
             initial={{
-              left: `${star.startX}%`,
-              top: `${star.startY}%`,
+              left: `${comet.startX}%`,
+              top: `${comet.startY}%`,
+              rotate: comet.angle,
               opacity: 0,
-              rotate: star.angle,
               x: 0,
               y: 0,
             }}
             animate={{
-              opacity: [0, 1, 1, 0],
-              x: -400,
-              y: 400,
+              opacity: [0, 1, 1, 0.8, 0],
+              x: -comet.distance * Math.cos(Math.abs(comet.angle) * Math.PI / 180),
+              y: comet.distance * Math.sin(Math.abs(comet.angle) * Math.PI / 180),
             }}
+            exit={{ opacity: 0 }}
             transition={{
-              duration: 1.5,
-              ease: 'easeIn',
+              duration: comet.duration,
+              ease: [0.25, 0.1, 0.25, 1],
               opacity: {
-                times: [0, 0.1, 0.7, 1],
+                times: [0, 0.05, 0.6, 0.85, 1],
+                duration: comet.duration,
               },
             }}
           />
-        ))}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {floatingObjects.map(obj => (
-          <FloatingEmoji
-            key={obj.id}
-            initial={{
-              right: -50,
-              top: `${obj.startY}%`,
-              opacity: 0,
-            }}
-            animate={{
-              right: '110%',
-              top: `${obj.startY + (Math.random() * 10 - 5)}%`,
-              opacity: [0, 1, 1, 0],
-            }}
-            transition={{
-              duration: 30,
-              ease: 'linear',
-              opacity: {
-                times: [0, 0.05, 0.95, 1],
-                duration: 30,
-              },
-            }}
-          >
-            {obj.emoji}
-          </FloatingEmoji>
         ))}
       </AnimatePresence>
     </Container>
