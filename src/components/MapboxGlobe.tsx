@@ -3,9 +3,230 @@ import Map, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-
 import type { MapRef } from 'react-map-gl/mapbox';
 import { format } from 'date-fns';
 import { Heart, Plane, Globe, Map as MapIcon } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
 import type { Photo, HomeBase } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 import 'mapbox-gl/dist/mapbox-gl.css';
+
+// Styled Components
+const MapContainer = styled.div`
+  width: 100%;
+  height: 100%;
+  position: relative;
+`;
+
+const ToggleContainer = styled.div`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+`;
+
+const ToggleButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 0.75rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+`;
+
+const ToggleLabel = styled.span`
+  @media (max-width: 640px) {
+    display: none;
+  }
+`;
+
+const HomeBaseMarker = styled.div<{ $color: string }>`
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background-color: ${({ $color }) => $color};
+`;
+
+const PlaneMarkerContainer = styled.div`
+  cursor: pointer;
+  transform-origin: center;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.25);
+  }
+`;
+
+const PlaneIcon = styled.div<{ $color: string }>`
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background-color: ${({ $color }) => $color};
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    color: white;
+  }
+`;
+
+const FlightPopup = styled.div`
+  padding: 0.75rem;
+  min-width: 160px;
+`;
+
+const FlightPopupTitle = styled.p`
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+`;
+
+const FlightPopupDivider = styled.div`
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+`;
+
+const FlightPopupLabel = styled.p`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.375rem;
+`;
+
+const FlightPopupList = styled.ul`
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+`;
+
+const FlightPopupItem = styled.li`
+  font-size: 0.75rem;
+  color: #4b5563;
+`;
+
+const FlightPopupMore = styled.li`
+  font-size: 0.75rem;
+  color: #9ca3af;
+`;
+
+const ping = keyframes`
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+`;
+
+const LocationMarkerContainer = styled.div`
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+`;
+
+const PingAnimation = styled.div`
+  position: absolute;
+  inset: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: -0.5rem;
+  background: rgba(244, 114, 182, 0.3);
+  border-radius: 50%;
+  animation: ${ping} 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+`;
+
+const LocationDot = styled.div`
+  position: relative;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: #ec4899;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    color: white;
+    fill: white;
+  }
+`;
+
+const PhotoCount = styled.div`
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  width: 1rem;
+  height: 1rem;
+  background: white;
+  color: #ec4899;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+`;
+
+const LocationPopup = styled.div`
+  padding: 0.5rem;
+`;
+
+const PopupImageGrid = styled.div`
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+`;
+
+const PopupThumbnail = styled.img`
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: 0.25rem;
+`;
+
+const PopupTitle = styled.p`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+`;
+
+const PopupPhotoCount = styled.p`
+  font-size: 0.75rem;
+  color: #4b5563;
+`;
+
+const PopupHint = styled.p`
+  font-size: 0.75rem;
+  color: #9ca3af;
+`;
 
 interface FlightLineVisit {
   date: Date;
@@ -269,27 +490,26 @@ export default function MapboxGlobe({
   }, []);
 
   return (
-    <div className="w-full h-full relative">
+    <MapContainer>
       {/* Map style toggle */}
-      <div className="absolute top-4 right-4 z-10">
-        <button
+      <ToggleContainer>
+        <ToggleButton
           onClick={() => setIsMinimalStyle(!isMinimalStyle)}
-          className="flex items-center gap-3 px-5 py-3 bg-black/60 backdrop-blur-sm rounded-xl text-white text-sm font-medium hover:bg-black/80 transition-colors border border-white/20"
           title={isMinimalStyle ? 'Switch to detailed view' : 'Switch to minimal view'}
         >
           {isMinimalStyle ? (
             <>
-              <MapIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Detailed</span>
+              <MapIcon />
+              <ToggleLabel>Detailed</ToggleLabel>
             </>
           ) : (
             <>
-              <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">Minimal</span>
+              <Globe />
+              <ToggleLabel>Minimal</ToggleLabel>
             </>
           )}
-        </button>
-      </div>
+        </ToggleButton>
+      </ToggleContainer>
 
       <Map
         ref={mapRef}
@@ -332,9 +552,8 @@ export default function MapboxGlobe({
               latitude={homeBase.lat}
               anchor="center"
             >
-              <div
-                className="w-4 h-4 rounded-full border-2 border-white shadow-lg"
-                style={{ backgroundColor: homeBase.color }}
+              <HomeBaseMarker
+                $color={homeBase.color}
                 title={`${homeBase.name}'s home: ${homeBase.city}`}
               />
             </Marker>
@@ -370,19 +589,15 @@ export default function MapboxGlobe({
             anchor="center"
             onClick={() => handleLineClick(plane)}
           >
-            <div
-              className="cursor-pointer transform transition-transform hover:scale-125"
+            <PlaneMarkerContainer
               style={{ transform: `rotate(${plane.bearing - 45}deg)` }}
               onMouseEnter={() => setHoveredLine(plane)}
               onMouseLeave={() => setHoveredLine(null)}
             >
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg"
-                style={{ backgroundColor: plane.color }}
-              >
-                <Plane className="w-3 h-3 text-white" />
-              </div>
-            </div>
+              <PlaneIcon $color={plane.color}>
+                <Plane />
+              </PlaneIcon>
+            </PlaneMarkerContainer>
           </Marker>
         ))}
 
@@ -396,28 +611,28 @@ export default function MapboxGlobe({
             closeOnClick={false}
             offset={20}
           >
-            <div className="p-3 min-w-[160px]">
-              <p className="font-semibold text-gray-800 text-sm mb-1">
+            <FlightPopup>
+              <FlightPopupTitle>
                 {hoveredLine.from.name} → {hoveredLine.to.name}
-              </p>
-              <div className="border-t border-gray-200 pt-2 mt-2">
-                <p className="text-xs text-gray-500 mb-1.5">
+              </FlightPopupTitle>
+              <FlightPopupDivider>
+                <FlightPopupLabel>
                   {hoveredLine.visits.length} visit{hoveredLine.visits.length !== 1 ? 's' : ''}
-                </p>
-                <ul className="space-y-0.5">
+                </FlightPopupLabel>
+                <FlightPopupList>
                   {hoveredLine.visits.slice(0, 5).map((visit, i) => (
-                    <li key={i} className="text-xs text-gray-600">
+                    <FlightPopupItem key={i}>
                       {format(visit.date, 'MMM yyyy')}
-                    </li>
+                    </FlightPopupItem>
                   ))}
                   {hoveredLine.visits.length > 5 && (
-                    <li className="text-xs text-gray-400">
+                    <FlightPopupMore>
                       +{hoveredLine.visits.length - 5} more
-                    </li>
+                    </FlightPopupMore>
                   )}
-                </ul>
-              </div>
-            </div>
+                </FlightPopupList>
+              </FlightPopupDivider>
+            </FlightPopup>
           </Popup>
         )}
 
@@ -432,26 +647,23 @@ export default function MapboxGlobe({
               handleMarkerClick(point);
             }}
           >
-            <div
-              className="relative cursor-pointer transform hover:scale-110 transition-transform"
+            <LocationMarkerContainer
               onMouseEnter={() => setHoveredPoint(point)}
               onMouseLeave={() => setHoveredPoint(null)}
             >
               {/* Pulsing ring */}
-              <div className="absolute inset-0 w-10 h-10 -m-2 bg-pink-400/30 rounded-full animate-ping" />
+              <PingAnimation />
 
               {/* Main marker */}
-              <div className="relative w-6 h-6 bg-pink-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
-                <Heart className="w-3 h-3 text-white fill-white" />
-              </div>
+              <LocationDot>
+                <Heart />
+              </LocationDot>
 
               {/* Photo count badge */}
               {point.photos.length > 1 && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-white text-pink-500 rounded-full text-xs font-bold flex items-center justify-center shadow">
-                  {point.photos.length}
-                </div>
+                <PhotoCount>{point.photos.length}</PhotoCount>
               )}
-            </div>
+            </LocationMarkerContainer>
           </Marker>
         ))}
 
@@ -464,31 +676,30 @@ export default function MapboxGlobe({
             closeOnClick={false}
             offset={20}
           >
-            <div className="p-2">
-              <div className="flex gap-1 mb-2">
+            <LocationPopup>
+              <PopupImageGrid>
                 {hoveredPoint.photos.slice(0, 3).map((photo, i) => (
-                  <img
+                  <PopupThumbnail
                     key={photo.id}
                     src={photo.thumbnail}
                     alt=""
-                    className="w-12 h-12 object-cover rounded"
                     style={{ marginLeft: i > 0 ? '-8px' : 0, zIndex: 3 - i }}
                   />
                 ))}
-              </div>
+              </PopupImageGrid>
               {hoveredPoint.photos[0]?.location.name && (
-                <p className="text-sm font-semibold text-gray-800 mb-1">
+                <PopupTitle>
                   {hoveredPoint.photos[0].location.name}
-                </p>
+                </PopupTitle>
               )}
-              <p className="text-xs text-gray-600">
+              <PopupPhotoCount>
                 {hoveredPoint.photos.length} photo{hoveredPoint.photos.length !== 1 ? 's' : ''}
-              </p>
-              <p className="text-xs text-gray-400">Click to view</p>
-            </div>
+              </PopupPhotoCount>
+              <PopupHint>Click to view</PopupHint>
+            </LocationPopup>
           </Popup>
         )}
       </Map>
-    </div>
+    </MapContainer>
   );
 }
