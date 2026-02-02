@@ -36,6 +36,7 @@ export interface HomeBase {
 export interface Trip {
   id: string;
   name: string; // Custom name or auto-generated
+  description?: string; // User-provided trip description
   locationName: string; // Destination city/place
   startDate: Date;
   endDate: Date;

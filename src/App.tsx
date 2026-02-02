@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import styled, { createGlobalStyle } from 'styled-components';
 import MapboxGlobe from './components/MapboxGlobe';
@@ -609,7 +609,7 @@ function App() {
     removeHomeBase,
     resetToDefaults,
   } = useSettings();
-  const { trips, flightLines } = useTrips(photos, settings.homeBases);
+  const { trips, flightLines, updateTrip, deleteTrip } = useTrips(photos, settings.homeBases);
 
   const [showUpload, setShowUpload] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
@@ -681,6 +681,31 @@ function App() {
     },
     [photos, updatePhoto]
   );
+
+  // Find the trip that contains the selected photos
+  const selectedTrip = useMemo(() => {
+    if (selectedPhotos.length === 0) return undefined;
+    const firstPhotoId = selectedPhotos[0].id;
+    return trips.find(trip => trip.photoIds.includes(firstPhotoId));
+  }, [selectedPhotos, trips]);
+
+  const handleDeleteTrip = useCallback((tripId: string, deletePhotos: boolean) => {
+    const trip = trips.find(t => t.id === tripId);
+    if (!trip) return;
+
+    if (deletePhotos) {
+      // Delete all photos in the trip
+      trip.photoIds.forEach(photoId => {
+        removePhoto(photoId);
+      });
+    }
+
+    // Delete the trip
+    deleteTrip(tripId);
+
+    // Close the gallery
+    handleCloseGallery();
+  }, [trips, removePhoto, deleteTrip, handleCloseGallery]);
 
   if (isLoading) {
     return (
@@ -826,6 +851,7 @@ function App() {
         {showGallery && selectedPhotos.length > 0 && (
           <PhotoGallery
             photos={selectedPhotos}
+            trip={selectedTrip}
             onClose={handleCloseGallery}
             onDeletePhoto={handleDeletePhoto}
             onRenameLocation={handleRenameLocation}
@@ -835,6 +861,8 @@ function App() {
                 prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
               );
             }}
+            onUpdateTrip={updateTrip}
+            onDeleteTrip={handleDeleteTrip}
             onAddPhoto={handleAddPhotoToLocation}
             locationName={selectedPhotos[0]?.location.name}
             mapboxToken={apiKey}

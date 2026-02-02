@@ -127,9 +127,25 @@ function determineTravelers(
   return travelers;
 }
 
+// Generate a stable trip ID based on location and start date
+// This ensures customizations are preserved when trips are regenerated
+function generateStableTripId(locationKey: string, startDate: Date): string {
+  const dateKey = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+  return `trip-${locationKey}-${dateKey}`;
+}
+
 // Auto-generate trips from photos based on date proximity and location
-function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[]): Trip[] {
+// Preserves existing trip customizations (name, description) when regenerating
+function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips: Trip[] = []): Trip[] {
   if (photos.length === 0) return [];
+
+  // Create a map of existing trips by their stable ID for quick lookup
+  const existingTripMap = new Map<string, Trip>();
+  for (const trip of existingTrips) {
+    const locationKey = `${trip.photoIds.length > 0 ? photos.find(p => p.id === trip.photoIds[0])?.location.lat.toFixed(1) : '0'},${trip.photoIds.length > 0 ? photos.find(p => p.id === trip.photoIds[0])?.location.lng.toFixed(1) : '0'}`;
+    const stableId = generateStableTripId(locationKey, trip.startDate);
+    existingTripMap.set(stableId, trip);
+  }
 
   // Sort photos by date
   const sortedPhotos = [...photos].sort(
@@ -178,12 +194,17 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[]): Trip[] {
           currentTrip.photos[0].location.name ||
           `${currentTrip.lat.toFixed(2)}, ${currentTrip.lng.toFixed(2)}`;
 
+        // Check if we have an existing trip with customizations
+        const stableId = generateStableTripId(currentTrip.locationKey, startDate);
+        const existingTrip = existingTripMap.get(stableId);
+
         trips.push({
-          id: uuidv4(),
-          name: `${locationName} - ${startDate.toLocaleDateString('en-US', {
+          id: existingTrip?.id || stableId,
+          name: existingTrip?.name || `${locationName} - ${startDate.toLocaleDateString('en-US', {
             month: 'short',
             year: 'numeric',
           })}`,
+          description: existingTrip?.description,
           locationName,
           startDate,
           endDate,
@@ -216,12 +237,17 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[]): Trip[] {
       currentTrip.photos[0].location.name ||
       `${currentTrip.lat.toFixed(2)}, ${currentTrip.lng.toFixed(2)}`;
 
+    // Check if we have an existing trip with customizations
+    const stableId = generateStableTripId(currentTrip.locationKey, startDate);
+    const existingTrip = existingTripMap.get(stableId);
+
     trips.push({
-      id: uuidv4(),
-      name: `${locationName} - ${startDate.toLocaleDateString('en-US', {
+      id: existingTrip?.id || stableId,
+      name: existingTrip?.name || `${locationName} - ${startDate.toLocaleDateString('en-US', {
         month: 'short',
         year: 'numeric',
       })}`,
+      description: existingTrip?.description,
       locationName,
       startDate,
       endDate,
@@ -284,17 +310,14 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       if (currentPhotoIds !== lastPhotoIdsRef.current) {
         lastPhotoIdsRef.current = currentPhotoIds;
 
-        // Always regenerate trips when photos change
-        // This ensures new photos get their own trips
-        const autoTrips = autoGenerateTrips(photos, homeBases);
-        setTrips(autoTrips);
+        // Regenerate trips when photos change, preserving existing customizations
+        setTrips(prevTrips => autoGenerateTrips(photos, homeBases, prevTrips));
       }
     }
   }, [photos, homeBases, isLoading]);
 
   const regenerateTrips = useCallback(() => {
-    const autoTrips = autoGenerateTrips(photos, homeBases);
-    setTrips(autoTrips);
+    setTrips(prevTrips => autoGenerateTrips(photos, homeBases, prevTrips));
   }, [photos, homeBases]);
 
   const updateTrip = useCallback((id: string, updates: Partial<Trip>) => {

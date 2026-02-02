@@ -1,9 +1,10 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Pencil, Check, Clock, Calendar, MessageSquare, Plus } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Pencil, Check, Clock, Calendar, MessageSquare, Plus, Settings } from 'lucide-react';
 import styled from 'styled-components';
-import type { Photo } from '../types/photo';
+import type { Photo, Trip } from '../types/photo';
 import { searchPlaces, type GeocodingResult } from '../utils/geocoding';
+import TripSettingsModal from './TripSettingsModal';
 
 export interface LocationContext {
   lat: number;
@@ -13,10 +14,13 @@ export interface LocationContext {
 
 interface PhotoGalleryProps {
   photos: Photo[];
+  trip?: Trip;
   onClose: () => void;
   onDeletePhoto: (id: string) => void;
   onRenameLocation?: (photoIds: string[], newName: string) => void;
   onUpdatePhoto?: (id: string, updates: Partial<Photo>) => void;
+  onUpdateTrip?: (id: string, updates: Partial<Trip>) => void;
+  onDeleteTrip?: (tripId: string, deletePhotos: boolean) => void;
   onAddPhoto?: (location: LocationContext) => void;
   locationName?: string;
   mapboxToken?: string;
@@ -221,6 +225,57 @@ const AutocompleteLoading = styled.div`
 const PhotoCount = styled.span`
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.5);
+`;
+
+const TripMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const TripDate = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+`;
+
+const TripDescription = styled.p`
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  margin-top: 0.75rem;
+  max-width: 500px;
+`;
+
+const SettingsButton = styled.button`
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: rgba(255, 255, 255, 0.6);
+  }
 `;
 
 const HeaderActions = styled.div`
@@ -717,10 +772,13 @@ const DeleteTooltip = styled.div`
 
 export default function PhotoGallery({
   photos,
+  trip,
   onClose,
   onDeletePhoto,
   onRenameLocation,
   onUpdatePhoto,
+  onUpdateTrip,
+  onDeleteTrip,
   onAddPhoto,
   locationName,
   mapboxToken,
@@ -730,6 +788,7 @@ export default function PhotoGallery({
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(locationName || '');
   const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
+  const [showTripSettings, setShowTripSettings] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -1000,12 +1059,31 @@ export default function PhotoGallery({
                 )}
               </TitleRow>
             )}
-            <PhotoCount>
-              {photos.length} photo{photos.length !== 1 ? 's' : ''}
-            </PhotoCount>
+            <TripMeta>
+              <PhotoCount>
+                {photos.length} photo{photos.length !== 1 ? 's' : ''}
+              </PhotoCount>
+              {trip && (
+                <TripDate>
+                  <Calendar />
+                  {format(trip.startDate, 'MMM d')} - {format(trip.endDate, 'MMM d, yyyy')}
+                </TripDate>
+              )}
+            </TripMeta>
+            {trip?.description && (
+              <TripDescription>{trip.description}</TripDescription>
+            )}
           </HeaderText>
         </HeaderLeft>
         <HeaderActions>
+          {trip && onUpdateTrip && onDeleteTrip && (
+            <SettingsButton
+              onClick={() => setShowTripSettings(true)}
+              title="Trip settings"
+            >
+              <Settings />
+            </SettingsButton>
+          )}
           {onAddPhoto && photos.length > 0 && (
             <AddPhotoButton
               onClick={() => {
@@ -1153,6 +1231,16 @@ export default function PhotoGallery({
             </DateGroup>
           ))}
         </GalleryView>
+      )}
+
+      {showTripSettings && trip && onUpdateTrip && onDeleteTrip && (
+        <TripSettingsModal
+          trip={trip}
+          photoCount={photos.length}
+          onClose={() => setShowTripSettings(false)}
+          onUpdateTrip={onUpdateTrip}
+          onDeleteTrip={onDeleteTrip}
+        />
       )}
     </Container>
   );
