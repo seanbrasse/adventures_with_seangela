@@ -1,8 +1,9 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Pencil, Check } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo } from '../types/photo';
+import { searchPlaces, type GeocodingResult } from '../utils/geocoding';
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -10,6 +11,7 @@ interface PhotoGalleryProps {
   onDeletePhoto: (id: string) => void;
   onRenameLocation?: (photoIds: string[], newName: string) => void;
   locationName?: string;
+  mapboxToken?: string;
 }
 
 // Styled Components
@@ -143,6 +145,69 @@ const SaveButton = styled.button`
     height: 1rem;
     color: #ffffff;
   }
+`;
+
+const InputWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+`;
+
+const AutocompleteDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.5rem;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+`;
+
+const AutocompleteItem = styled.button<{ $isSelected?: boolean }>`
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: ${({ $isSelected }) => ($isSelected ? 'rgba(236, 72, 153, 0.2)' : 'transparent')};
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    color: rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+  }
+`;
+
+const AutocompleteText = styled.span`
+  font-size: 0.9375rem;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const AutocompleteLoading = styled.div`
+  padding: 1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
 `;
 
 const PhotoCount = styled.span`
@@ -417,12 +482,18 @@ export default function PhotoGallery({
   onDeletePhoto,
   onRenameLocation,
   locationName,
+  mapboxToken,
 }: PhotoGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(locationName || '');
+  const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
+  const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (isEditingName && inputRef.current) {
@@ -431,23 +502,104 @@ export default function PhotoGallery({
     }
   }, [isEditingName]);
 
+  // Debounced search
+  const handleSearch = useCallback(
+    async (query: string) => {
+      if (!mapboxToken || query.length < 2) {
+        setSearchResults([]);
+        setShowDropdown(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const results = await searchPlaces(query, mapboxToken);
+        setSearchResults(results);
+        setShowDropdown(results.length > 0);
+        setSelectedResultIndex(-1);
+      } catch (error) {
+        console.error('Search error:', error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [mapboxToken]
+  );
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditedName(value);
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce search
+    searchTimeoutRef.current = setTimeout(() => {
+      handleSearch(value);
+    }, 300);
+  };
+
+  const handleSelectResult = (result: GeocodingResult) => {
+    setEditedName(result.place_name);
+    setShowDropdown(false);
+    setSearchResults([]);
+    // Auto-save after selection
+    if (onRenameLocation) {
+      const photoIds = photos.map(p => p.id);
+      onRenameLocation(photoIds, result.place_name);
+    }
+    setIsEditingName(false);
+  };
+
   const handleSaveName = () => {
     if (editedName.trim() && onRenameLocation) {
       const photoIds = photos.map(p => p.id);
       onRenameLocation(photoIds, editedName.trim());
     }
     setIsEditingName(false);
+    setShowDropdown(false);
+    setSearchResults([]);
   };
 
   const handleKeyDownName = (e: React.KeyboardEvent) => {
+    if (showDropdown && searchResults.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedResultIndex((prev) =>
+          prev < searchResults.length - 1 ? prev + 1 : prev
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedResultIndex((prev) => (prev > 0 ? prev - 1 : -1));
+      } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
+        e.preventDefault();
+        handleSelectResult(searchResults[selectedResultIndex]);
+        return;
+      }
+    }
+
     if (e.key === 'Enter') {
       handleSaveName();
     } else if (e.key === 'Escape') {
       setEditedName(locationName || '');
       setIsEditingName(false);
+      setShowDropdown(false);
+      setSearchResults([]);
     }
     e.stopPropagation();
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const photosByDate = useMemo(() => {
     const groups = new Map<string, Photo[]>();
@@ -518,14 +670,42 @@ export default function PhotoGallery({
           <HeaderText>
             {isEditingName ? (
               <TitleRow>
-                <TitleInput
-                  ref={inputRef}
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  onKeyDown={handleKeyDownName}
-                  onBlur={handleSaveName}
-                  placeholder="Location name"
-                />
+                <InputWrapper>
+                  <TitleInput
+                    ref={inputRef}
+                    value={editedName}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDownName}
+                    onBlur={() => {
+                      // Delay to allow click on dropdown items
+                      setTimeout(() => {
+                        if (!showDropdown) {
+                          handleSaveName();
+                        }
+                      }, 200);
+                    }}
+                    placeholder="Search for a place..."
+                  />
+                  {showDropdown && (
+                    <AutocompleteDropdown>
+                      {isSearching ? (
+                        <AutocompleteLoading>Searching...</AutocompleteLoading>
+                      ) : (
+                        searchResults.map((result, index) => (
+                          <AutocompleteItem
+                            key={result.id}
+                            $isSelected={index === selectedResultIndex}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => handleSelectResult(result)}
+                          >
+                            <MapPin />
+                            <AutocompleteText>{result.place_name}</AutocompleteText>
+                          </AutocompleteItem>
+                        ))
+                      )}
+                    </AutocompleteDropdown>
+                  )}
+                </InputWrapper>
                 <SaveButton onClick={handleSaveName} title="Save name">
                   <Check />
                 </SaveButton>

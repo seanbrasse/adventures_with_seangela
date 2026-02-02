@@ -72,6 +72,40 @@ export async function reverseGeocode(
   }
 }
 
+// Search for places by name
+export async function searchPlaces(
+  query: string,
+  mapboxToken: string
+): Promise<GeocodingResult[]> {
+  if (!mapboxToken || !query.trim()) {
+    return [];
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+        query
+      )}.json?access_token=${mapboxToken}&types=place,locality,region,country&limit=5`
+    );
+
+    if (!response.ok) {
+      console.error('Place search failed:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    return (data.features || []).map((feature: { id: string; place_name: string; center: [number, number]; text: string }) => ({
+      id: feature.id,
+      place_name: feature.place_name,
+      center: feature.center,
+      text: feature.text,
+    }));
+  } catch (error) {
+    console.error('Place search error:', error);
+    return [];
+  }
+}
+
 // Normalize city names for grouping
 // This handles cases where the same city might have slightly different names
 export function normalizeCityName(name: string): string {

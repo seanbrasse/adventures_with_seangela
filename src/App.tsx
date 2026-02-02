@@ -729,6 +729,7 @@ function App() {
             onDeletePhoto={handleDeletePhoto}
             onRenameLocation={handleRenameLocation}
             locationName={selectedPhotos[0]?.location.name}
+            mapboxToken={apiKey}
           />
         )}
 
