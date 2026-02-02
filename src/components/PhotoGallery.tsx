@@ -993,6 +993,9 @@ export default function PhotoGallery({
     }
   };
 
+  // Get the display title - prefer trip name, fall back to location name
+  const displayTitle = trip?.name || locationName || 'Photos';
+
   return (
     <Container onKeyDown={handleKeyDown} tabIndex={0}>
       <Header>
@@ -1001,64 +1004,7 @@ export default function PhotoGallery({
             <MapPin />
           </HeaderIcon>
           <HeaderText>
-            {isEditingName ? (
-              <TitleRow>
-                <InputWrapper>
-                  <TitleInput
-                    ref={inputRef}
-                    value={editedName}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDownName}
-                    onBlur={() => {
-                      // Delay to allow click on dropdown items
-                      setTimeout(() => {
-                        if (!showDropdown) {
-                          handleSaveName();
-                        }
-                      }, 200);
-                    }}
-                    placeholder="Search for a place..."
-                  />
-                  {showDropdown && (
-                    <AutocompleteDropdown>
-                      {isSearching ? (
-                        <AutocompleteLoading>Searching...</AutocompleteLoading>
-                      ) : (
-                        searchResults.map((result, index) => (
-                          <AutocompleteItem
-                            key={result.id}
-                            $isSelected={index === selectedResultIndex}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => handleSelectResult(result)}
-                          >
-                            <MapPin />
-                            <AutocompleteText>{result.place_name}</AutocompleteText>
-                          </AutocompleteItem>
-                        ))
-                      )}
-                    </AutocompleteDropdown>
-                  )}
-                </InputWrapper>
-                <SaveButton onClick={handleSaveName} title="Save name">
-                  <Check />
-                </SaveButton>
-              </TitleRow>
-            ) : (
-              <TitleRow>
-                <TitleText>{locationName || 'Photos'}</TitleText>
-                {onRenameLocation && (
-                  <EditButton
-                    onClick={() => {
-                      setEditedName(locationName || '');
-                      setIsEditingName(true);
-                    }}
-                    title="Rename location"
-                  >
-                    <Pencil />
-                  </EditButton>
-                )}
-              </TitleRow>
-            )}
+            <TitleText>{displayTitle}</TitleText>
             <TripMeta>
               <PhotoCount>
                 {photos.length} photo{photos.length !== 1 ? 's' : ''}

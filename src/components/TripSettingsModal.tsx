@@ -176,13 +176,21 @@ const DateField = styled.div`
   gap: 0.5rem;
 `;
 
-const DateDisplay = styled.div`
+const DateInput = styled.input`
   padding: 0.875rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9375rem;
+  color: #ffffff;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  color-scheme: dark;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(236, 72, 153, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
 `;
 
 const Divider = styled.div`
@@ -343,6 +351,11 @@ const SaveButton = styled.button`
   }
 `;
 
+// Helper to format date for input
+const formatDateForInput = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
+
 export default function TripSettingsModal({
   trip,
   photoCount,
@@ -352,15 +365,23 @@ export default function TripSettingsModal({
 }: TripSettingsModalProps) {
   const [name, setName] = useState(trip.name);
   const [description, setDescription] = useState(trip.description || '');
+  const [startDate, setStartDate] = useState(formatDateForInput(trip.startDate));
+  const [endDate, setEndDate] = useState(formatDateForInput(trip.endDate));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const hasChanges = name !== trip.name || description !== (trip.description || '');
+  const hasChanges =
+    name !== trip.name ||
+    description !== (trip.description || '') ||
+    startDate !== formatDateForInput(trip.startDate) ||
+    endDate !== formatDateForInput(trip.endDate);
 
   const handleSave = () => {
     if (hasChanges) {
       onUpdateTrip(trip.id, {
         name: name.trim(),
         description: description.trim() || undefined,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
       });
     }
     onClose();
@@ -406,18 +427,22 @@ export default function TripSettingsModal({
                 <Calendar />
                 Start Date
               </Label>
-              <DateDisplay>
-                {format(trip.startDate, 'MMM d, yyyy')}
-              </DateDisplay>
+              <DateInput
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
             </DateField>
             <DateField>
               <Label>
                 <Calendar />
                 End Date
               </Label>
-              <DateDisplay>
-                {format(trip.endDate, 'MMM d, yyyy')}
-              </DateDisplay>
+              <DateInput
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
             </DateField>
           </DateRow>
 
