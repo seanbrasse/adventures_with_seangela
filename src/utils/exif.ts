@@ -229,7 +229,7 @@ function createImageFromFile(file: File): Promise<HTMLImageElement> {
   });
 }
 
-export async function createThumbnail(file: File, maxSize = 200): Promise<string> {
+export async function createThumbnail(file: File, maxSize = 400): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -257,7 +257,8 @@ export async function createThumbnail(file: File, maxSize = 200): Promise<string
         canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
 
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+        // Higher quality (0.85) and larger size (400px) for sharper thumbnails on retina displays
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
       img.onerror = () => reject(new Error('Failed to load image'));
       img.src = e.target?.result as string;
