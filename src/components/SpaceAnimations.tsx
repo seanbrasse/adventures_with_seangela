@@ -7,7 +7,20 @@ const Container = styled.div`
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 0;
+  z-index: 5;
+  /* Radial mask to hide animations in center (behind globe effect) */
+  mask-image: radial-gradient(
+    ellipse 45% 50% at 50% 50%,
+    transparent 0%,
+    transparent 70%,
+    black 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 45% 50% at 50% 50%,
+    transparent 0%,
+    transparent 70%,
+    black 100%
+  );
 `;
 
 const ShootingStarElement = styled(motion.div)`
@@ -98,11 +111,11 @@ export default function SpaceAnimations() {
       }, delay);
     };
 
-    // Initial delay before first star
+    // Initial delay before first star (short delay for first one)
     let timerId = setTimeout(() => {
       spawnShootingStar();
       timerId = scheduleNext();
-    }, 5000 + Math.random() * 10000);
+    }, 2000);
 
     return () => clearTimeout(timerId);
   }, [spawnShootingStar]);
@@ -117,11 +130,11 @@ export default function SpaceAnimations() {
       }, delay);
     };
 
-    // Initial delay before first object
+    // Initial delay before first object (short delay for first one)
     let timerId = setTimeout(() => {
       spawnFloatingObject();
       timerId = scheduleNext();
-    }, 15000 + Math.random() * 15000);
+    }, 5000);
 
     return () => clearTimeout(timerId);
   }, [spawnFloatingObject]);
