@@ -111,20 +111,20 @@ function CityAutocomplete({
             setTimeout(() => setShowResults(false), 200);
           }}
           placeholder="Search for a city..."
-          className="w-full px-3 py-2 pl-9 bg-white/10 border border-white/20 rounded text-white text-sm placeholder-white/40"
+          className="w-full px-4 py-3 pl-11 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base placeholder-white/40 focus:outline-none focus:border-pink-500/50 focus:bg-white/[0.08] transition-all"
         />
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
         {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 animate-spin" />
+          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 animate-spin" />
         )}
       </div>
 
       {showResults && results.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-10 w-full mt-2 bg-[#1a1a28] border border-white/10 rounded-xl shadow-2xl max-h-56 overflow-y-auto">
           {results.map((result) => (
             <button
               key={result.id}
-              className="w-full px-3 py-2 text-left text-white text-sm hover:bg-white/10 transition-colors"
+              className="w-full px-4 py-3.5 text-left text-white text-base hover:bg-white/[0.06] transition-colors first:rounded-t-xl last:rounded-b-xl"
               onMouseDown={(e) => {
                 e.preventDefault();
                 onSelect(result);
@@ -234,57 +234,59 @@ export default function SettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6">
+      <div className="bg-[#12121c] rounded-3xl max-w-xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white/10 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-xl font-semibold text-white">Settings</h2>
+        <div className="flex items-center justify-between p-6 border-b border-white/8">
+          <h2 className="text-2xl font-semibold text-white">Settings</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            className="p-3 rounded-xl hover:bg-white/10 transition-colors"
           >
-            <X className="w-5 h-5 text-white" />
+            <X className="w-6 h-6 text-white" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-pink-400" />
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-medium text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-pink-400" />
+                </div>
                 Home Bases
               </h3>
               <button
                 onClick={onResetToDefaults}
-                className="flex items-center gap-1 text-sm text-white/60 hover:text-white transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-base text-white/60 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
                 Reset
               </button>
             </div>
-            <p className="text-white/60 text-sm mb-4">
+            <p className="text-white/60 text-base mb-6 leading-relaxed">
               Manage home locations for each person. Temporary homes override permanent ones during their active dates.
             </p>
 
             {/* People sections */}
             {PEOPLE.map((person) => (
-              <div key={person.id} className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
+              <div key={person.id} className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
                     style={{ backgroundColor: person.color }}
                   >
-                    <User className="w-4 h-4 text-white" />
+                    <User className="w-6 h-6 text-white" />
                   </div>
-                  <span className="text-white font-medium text-lg">{person.name}</span>
+                  <span className="text-white font-semibold text-xl">{person.name}</span>
                 </div>
 
-                <div className="space-y-2 ml-10">
+                <div className="space-y-3 ml-15">
                   {groupedHomeBases[person.id]?.map((homeBase) => (
                     <div
                       key={homeBase.id}
-                      className="bg-white/5 rounded-lg p-3"
+                      className="bg-white/[0.04] rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all"
                     >
                       {editingId === homeBase.id ? (
                         <EditHomeBaseForm
@@ -301,31 +303,31 @@ export default function SettingsModal({
                         />
                       ) : (
                         <div
-                          className="flex items-center gap-3 cursor-pointer"
+                          className="flex items-center gap-4 cursor-pointer"
                           onClick={() => setEditingId(homeBase.id)}
                         >
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-white text-sm font-medium">{homeBase.city}</span>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <span className="text-white text-base font-medium">{homeBase.city}</span>
                               {homeBase.isPermanent ? (
-                                <span className="text-xs px-2 py-0.5 bg-pink-500/20 text-pink-300 rounded-full flex items-center gap-1">
-                                  <Home className="w-3 h-3" />
+                                <span className="text-sm px-3 py-1 bg-pink-500/20 text-pink-300 rounded-full flex items-center gap-1.5">
+                                  <Home className="w-3.5 h-3.5" />
                                   Permanent
                                 </span>
                               ) : (
-                                <span className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
+                                <span className="text-sm px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full flex items-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5" />
                                   Temporary
                                 </span>
                               )}
                             </div>
                             {!homeBase.isPermanent && homeBase.startDate && homeBase.endDate && (
-                              <p className="text-white/50 text-xs mt-1">
+                              <p className="text-white/50 text-sm mt-2">
                                 {homeBase.startDate.toLocaleDateString()} - {homeBase.endDate.toLocaleDateString()}
                               </p>
                             )}
                           </div>
-                          <span className="text-white/40 text-xs">Edit</span>
+                          <span className="text-white/40 text-sm px-3 py-1.5 bg-white/5 rounded-lg">Edit</span>
                         </div>
                       )}
                     </div>
@@ -333,11 +335,11 @@ export default function SettingsModal({
 
                   {/* Add home base form for this person */}
                   {addingForPerson === person.id ? (
-                    <div className="bg-white/5 rounded-lg p-3 border border-dashed border-white/20">
-                      <h4 className="text-white text-sm font-medium mb-3">Add Home Base</h4>
-                      <div className="space-y-3">
+                    <div className="bg-white/[0.04] rounded-2xl p-6 border-2 border-dashed border-white/15">
+                      <h4 className="text-white text-lg font-medium mb-5">Add Home Base</h4>
+                      <div className="space-y-5">
                         <div>
-                          <label className="text-white/60 text-xs mb-1 block">City</label>
+                          <label className="text-white/60 text-sm mb-2 block font-medium">City</label>
                           <CityAutocomplete
                             value={newCitySearch}
                             onChange={setNewCitySearch}
@@ -345,14 +347,14 @@ export default function SettingsModal({
                             mapboxToken={mapboxToken}
                           />
                           {newHomeBase.city && (
-                            <p className="text-green-400 text-xs mt-1">
+                            <p className="text-green-400 text-sm mt-2">
                               Selected: {newHomeBase.city} ({newHomeBase.lat.toFixed(4)}, {newHomeBase.lng.toFixed(4)})
                             </p>
                           )}
                         </div>
 
                         <div>
-                          <label className="text-white/60 text-xs mb-1 block">Type</label>
+                          <label className="text-white/60 text-sm mb-2 block font-medium">Type</label>
                           <select
                             value={newHomeBase.isPermanent ? 'permanent' : 'temporary'}
                             onChange={(e) =>
@@ -361,7 +363,7 @@ export default function SettingsModal({
                                 isPermanent: e.target.value === 'permanent',
                               }))
                             }
-                            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                            className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
                           >
                             <option value="temporary">Temporary</option>
                             <option value="permanent">Permanent</option>
@@ -369,9 +371,9 @@ export default function SettingsModal({
                         </div>
 
                         {!newHomeBase.isPermanent && (
-                          <div className="flex gap-2">
+                          <div className="flex gap-4">
                             <div className="flex-1">
-                              <label className="text-white/60 text-xs mb-1 block">Start Date</label>
+                              <label className="text-white/60 text-sm mb-2 block font-medium">Start Date</label>
                               <input
                                 type="date"
                                 value={formatDateForInput(newHomeBase.startDate)}
@@ -381,11 +383,11 @@ export default function SettingsModal({
                                     startDate: parseDateInput(e.target.value),
                                   }))
                                 }
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
                               />
                             </div>
                             <div className="flex-1">
-                              <label className="text-white/60 text-xs mb-1 block">End Date</label>
+                              <label className="text-white/60 text-sm mb-2 block font-medium">End Date</label>
                               <input
                                 type="date"
                                 value={formatDateForInput(newHomeBase.endDate)}
@@ -395,13 +397,13 @@ export default function SettingsModal({
                                     endDate: parseDateInput(e.target.value),
                                   }))
                                 }
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                                className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
                               />
                             </div>
                           </div>
                         )}
 
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-3 pt-2">
                           <button
                             onClick={() => {
                               setAddingForPerson(null);
@@ -413,16 +415,16 @@ export default function SettingsModal({
                                 isPermanent: false,
                               });
                             }}
-                            className="px-3 py-1.5 text-white/60 hover:text-white text-sm"
+                            className="px-5 py-2.5 text-white/60 hover:text-white hover:bg-white/10 text-base rounded-xl transition-colors"
                           >
                             Cancel
                           </button>
                           <button
                             onClick={() => handleAddHomeBase(person.id)}
                             disabled={!newHomeBase.city}
-                            className="px-3 py-1.5 bg-pink-500 text-white rounded text-sm hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-5 py-2.5 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-xl text-base font-medium hover:from-pink-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-pink-500/25"
                           >
-                            Add
+                            Add Home Base
                           </button>
                         </div>
                       </div>
@@ -430,9 +432,9 @@ export default function SettingsModal({
                   ) : (
                     <button
                       onClick={() => setAddingForPerson(person.id)}
-                      className="w-full p-3 border border-dashed border-white/20 rounded-lg text-white/60 hover:text-white hover:border-white/40 transition-colors flex items-center justify-center gap-2 text-sm"
+                      className="w-full p-4 border-2 border-dashed border-white/15 rounded-2xl text-white/60 hover:text-white hover:border-white/30 hover:bg-white/[0.02] transition-all flex items-center justify-center gap-3 text-base"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-5 h-5" />
                       Add Home Base for {person.name}
                     </button>
                   )}
@@ -443,10 +445,10 @@ export default function SettingsModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/10">
+        <div className="p-6 border-t border-white/8">
           <button
             onClick={onClose}
-            className="w-full py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors"
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-600 text-white text-lg font-medium hover:from-pink-600 hover:to-pink-700 transition-all shadow-lg shadow-pink-500/25"
           >
             Done
           </button>
@@ -477,9 +479,9 @@ function EditHomeBaseForm({
   const [citySearch, setCitySearch] = useState(homeBase.city);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <div>
-        <label className="text-white/60 text-xs mb-1 block">City</label>
+        <label className="text-white/60 text-sm mb-2 block font-medium">City</label>
         <CityAutocomplete
           value={citySearch}
           onChange={setCitySearch}
@@ -489,13 +491,13 @@ function EditHomeBaseForm({
           }}
           mapboxToken={mapboxToken}
         />
-        <p className="text-white/50 text-xs mt-1">
+        <p className="text-white/50 text-sm mt-2">
           Current: {homeBase.city} ({homeBase.lat.toFixed(4)}, {homeBase.lng.toFixed(4)})
         </p>
       </div>
 
       <div>
-        <label className="text-white/60 text-xs mb-1 block">Type</label>
+        <label className="text-white/60 text-sm mb-2 block font-medium">Type</label>
         <select
           value={homeBase.isPermanent ? 'permanent' : 'temporary'}
           onChange={(e) =>
@@ -505,7 +507,7 @@ function EditHomeBaseForm({
               endDate: e.target.value === 'permanent' ? undefined : homeBase.endDate,
             })
           }
-          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+          className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
         >
           <option value="temporary">Temporary</option>
           <option value="permanent">Permanent</option>
@@ -513,49 +515,49 @@ function EditHomeBaseForm({
       </div>
 
       {!homeBase.isPermanent && (
-        <div className="flex gap-2">
+        <div className="flex gap-4">
           <div className="flex-1">
-            <label className="text-white/60 text-xs mb-1 block">Start Date</label>
+            <label className="text-white/60 text-sm mb-2 block font-medium">Start Date</label>
             <input
               type="date"
               value={formatDateForInput(homeBase.startDate)}
               onChange={(e) =>
                 onUpdate({ startDate: parseDateInput(e.target.value) })
               }
-              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+              className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
             />
           </div>
           <div className="flex-1">
-            <label className="text-white/60 text-xs mb-1 block">End Date</label>
+            <label className="text-white/60 text-sm mb-2 block font-medium">End Date</label>
             <input
               type="date"
               value={formatDateForInput(homeBase.endDate)}
               onChange={(e) =>
                 onUpdate({ endDate: parseDateInput(e.target.value) })
               }
-              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+              className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
             />
           </div>
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-4">
         <div className="flex-1">
-          <label className="text-white/60 text-xs mb-1 block">Radius (km)</label>
+          <label className="text-white/60 text-sm mb-2 block font-medium">Radius (km)</label>
           <input
             type="number"
             value={homeBase.radius}
             onChange={(e) => onUpdate({ radius: parseInt(e.target.value) || 40 })}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+            className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
           />
         </div>
       </div>
 
-      <div className="flex justify-between pt-2">
+      <div className="flex justify-between pt-3">
         {canDelete ? (
           <button
             onClick={onDelete}
-            className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm"
+            className="px-5 py-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 text-base rounded-xl transition-colors"
           >
             Delete
           </button>
@@ -564,7 +566,7 @@ function EditHomeBaseForm({
         )}
         <button
           onClick={onDone}
-          className="px-4 py-1.5 bg-pink-500 text-white rounded text-sm hover:bg-pink-600"
+          className="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-xl text-base font-medium hover:from-pink-600 hover:to-pink-700 transition-all shadow-lg shadow-pink-500/25"
         >
           Done
         </button>

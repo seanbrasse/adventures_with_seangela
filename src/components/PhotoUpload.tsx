@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, X, MapPin, Check, AlertCircle, Loader2, Clipboard } from 'lucide-react';
+import { Upload, X, MapPin, Check, AlertCircle, Loader2, Clipboard, Search, Calendar } from 'lucide-react';
 import type { Photo } from '../types/photo';
 import { extractPhotoData, uploadPhotoToStorage } from '../utils/exif';
 import type { ExtractedPhotoData } from '../utils/exif';
@@ -7,21 +7,126 @@ import type { ExtractedPhotoData } from '../utils/exif';
 interface PhotoUploadProps {
   onUpload: (photos: Photo[]) => void;
   onClose: () => void;
+  mapboxToken?: string;
 }
 
 interface PendingPhoto extends ExtractedPhotoData {
   // ExtractedPhotoData already has all fields we need
 }
 
-export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
+interface GeocodingResult {
+  id: string;
+  place_name: string;
+  center: [number, number];
+  text: string;
+}
+
+// Location autocomplete component
+function LocationAutocomplete({
+  onSelect,
+  mapboxToken,
+  onCancel,
+}: {
+  onSelect: (lat: number, lng: number, name: string) => void;
+  mapboxToken?: string;
+  onCancel: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<GeocodingResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchLocation = useCallback(
+    async (searchQuery: string) => {
+      if (!searchQuery || searchQuery.length < 2 || !mapboxToken) {
+        setResults([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+            searchQuery
+          )}.json?access_token=${mapboxToken}&types=place,locality,neighborhood,address,poi&limit=6`
+        );
+        const data = await response.json();
+        setResults(data.features || []);
+      } catch (error) {
+        console.error('Geocoding error:', error);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [mapboxToken]
+  );
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      searchLocation(query);
+    }, 300);
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [query, searchLocation]);
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search for a location..."
+          autoFocus
+          className="w-full pl-11 pr-4 py-3 bg-white/8 border border-white/15 rounded-xl text-white text-base placeholder-white/40 focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20"
+        />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+        {isLoading && (
+          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 animate-spin" />
+        )}
+      </div>
+
+      {results.length > 0 && (
+        <div className="bg-[#1a1a28] border border-white/10 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+          {results.map((result) => (
+            <button
+              key={result.id}
+              className="w-full px-4 py-3.5 text-left text-white hover:bg-white/8 transition-colors flex items-start gap-3 border-b border-white/5 last:border-0"
+              onClick={() => onSelect(result.center[1], result.center[0], result.text)}
+            >
+              <MapPin className="w-5 h-5 text-pink-400 mt-0.5 flex-shrink-0" />
+              <span className="text-[15px] leading-snug">{result.place_name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={onCancel}
+        className="w-full py-2.5 text-white/60 hover:text-white text-sm transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUploadProps) {
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [editingLocation, setEditingLocation] = useState<string | null>(null);
-  const [manualLat, setManualLat] = useState('');
-  const [manualLng, setManualLng] = useState('');
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [manualDate, setManualDate] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +137,6 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
     const newPhotos: PendingPhoto[] = [];
 
     for (const file of Array.from(files)) {
-      // Accept image/* types, HEIC files, and files with image extensions
       const isImage = file.type.startsWith('image/') ||
         file.type.includes('heic') ||
         /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
@@ -49,7 +153,6 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
     setIsProcessing(false);
   }, []);
 
-  // Handle paste from clipboard (Cmd+V) - works great with Photos app!
   const handlePaste = useCallback(async (e: ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -71,7 +174,6 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
     }
   }, [processFiles]);
 
-  // Add paste listener when modal is open
   useEffect(() => {
     document.addEventListener('paste', handlePaste);
     return () => document.removeEventListener('paste', handlePaste);
@@ -84,12 +186,10 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
 
       const files: File[] = [];
 
-      // Try to get files from dataTransfer.files first
       if (e.dataTransfer.files.length > 0) {
         files.push(...Array.from(e.dataTransfer.files));
       }
 
-      // Also try dataTransfer.items for better compatibility
       if (e.dataTransfer.items) {
         for (const item of Array.from(e.dataTransfer.items)) {
           if (item.kind === 'file') {
@@ -131,24 +231,29 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
     setPendingPhotos((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const handleSetLocation = (id: string) => {
-    const lat = parseFloat(manualLat);
-    const lng = parseFloat(manualLng);
-
-    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      return;
-    }
-
+  const handleSetLocation = (id: string, lat: number, lng: number, name: string) => {
     setPendingPhotos((prev) =>
       prev.map((p) =>
         p.id === id
-          ? { ...p, location: { lat, lng }, needsLocation: false }
+          ? { ...p, location: { lat, lng, name }, needsLocation: false }
           : p
       )
     );
     setEditingLocation(null);
-    setManualLat('');
-    setManualLng('');
+  };
+
+  const handleSetDate = (id: string) => {
+    if (!manualDate) return;
+    const date = new Date(manualDate);
+    if (isNaN(date.getTime())) return;
+
+    setPendingPhotos((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, date } : p
+      )
+    );
+    setEditingDate(null);
+    setManualDate('');
   };
 
   const handleSubmit = async () => {
@@ -192,36 +297,43 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
   const needsLocationCount = pendingPhotos.filter((p) => p.needsLocation).length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 md:p-8">
+      <div className="bg-[#12121c] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white/10 shadow-2xl animate-slide-up">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-xl font-semibold text-white">Add Photos</h2>
+        <div className="flex items-center justify-between px-8 py-6 border-b border-white/10">
+          <div>
+            <h2 className="text-2xl font-semibold text-white tracking-tight">Add Photos</h2>
+            <p className="text-white/50 text-sm mt-1">Upload photos to add them to your map</p>
+          </div>
           <button
             onClick={onClose}
             disabled={isUploading}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors disabled:opacity-50"
+            className="p-3 rounded-xl hover:bg-white/10 transition-colors disabled:opacity-50"
           >
-            <X className="w-5 h-5 text-white" />
+            <X className="w-6 h-6 text-white/70" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto px-8 py-6">
           {/* Uploading overlay */}
           {isUploading && (
-            <div className="mb-4 p-4 bg-pink-500/20 rounded-lg">
-              <div className="flex items-center gap-3 mb-2">
-                <Loader2 className="w-5 h-5 text-pink-400 animate-spin" />
-                <span className="text-white">Uploading photos...</span>
+            <div className="mb-6 p-6 bg-gradient-to-r from-pink-500/20 to-purple-500/20 rounded-2xl border border-pink-500/20">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-pink-400 animate-spin" />
+                </div>
+                <div>
+                  <p className="text-white font-medium text-lg">Uploading photos...</p>
+                  <p className="text-white/60 text-sm">{uploadProgress}% complete</p>
+                </div>
               </div>
-              <div className="w-full bg-white/20 rounded-full h-2">
+              <div className="w-full bg-white/10 rounded-full h-2.5">
                 <div
-                  className="bg-pink-500 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-pink-500 to-purple-500 h-2.5 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
-              <p className="text-white/60 text-sm mt-1">{uploadProgress}% complete</p>
             </div>
           )}
 
@@ -232,12 +344,12 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onClick={() => !isUploading && fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+            className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${
               isUploading
                 ? 'opacity-50 cursor-not-allowed border-white/10'
                 : dragActive
                 ? 'border-pink-400 bg-pink-400/10 cursor-pointer'
-                : 'border-white/20 hover:border-white/40 cursor-pointer'
+                : 'border-white/15 hover:border-white/30 hover:bg-white/5 cursor-pointer'
             }`}
           >
             <input
@@ -249,14 +361,16 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
               className="hidden"
               disabled={isUploading}
             />
-            <Upload className="w-12 h-12 mx-auto mb-4 text-white/60" />
-            <p className="text-white/80 mb-2">
-              Drag & drop photos here, or click to select
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-5">
+              <Upload className="w-8 h-8 text-pink-400" />
+            </div>
+            <p className="text-white text-lg font-medium mb-2">
+              Drag & drop photos here
             </p>
-            <p className="text-white/50 text-sm mb-3">
-              Photos with GPS data will be automatically placed on the map
+            <p className="text-white/50 mb-6">
+              or click to browse your files
             </p>
-            <div className="flex items-center justify-center gap-2 text-pink-400 text-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/5 rounded-xl text-pink-400 text-sm">
               <Clipboard className="w-4 h-4" />
               <span>Tip: Copy photos in Photos app, then paste here (Cmd+V)</span>
             </div>
@@ -264,87 +378,101 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
 
           {/* Processing indicator */}
           {isProcessing && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-white/60">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Processing photos...
+            <div className="mt-6 flex items-center justify-center gap-3 text-white/60">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-base">Processing photos...</span>
             </div>
           )}
 
           {/* Pending photos */}
           {pendingPhotos.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-white/80 font-medium mb-3">
+            <div className="mt-8">
+              <h3 className="text-white font-medium text-lg mb-4">
                 Selected Photos ({pendingPhotos.length})
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {pendingPhotos.map((photo) => (
                   <div
                     key={photo.id}
-                    className="flex items-center gap-3 p-3 bg-white/5 rounded-lg"
+                    className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/5"
                   >
                     <img
                       src={photo.thumbnail}
                       alt=""
-                      className="w-12 h-12 object-cover rounded"
+                      className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-white/80 text-sm truncate">
-                        {photo.description}
+                      <p className="text-white font-medium truncate mb-2">
+                        {photo.description || 'Untitled photo'}
                       </p>
+
+                      {/* Location */}
                       {photo.needsLocation ? (
                         editingLocation === photo.id ? (
-                          <div className="flex items-center gap-2 mt-1">
+                          <LocationAutocomplete
+                            mapboxToken={mapboxToken}
+                            onSelect={(lat, lng, name) => handleSetLocation(photo.id, lat, lng, name)}
+                            onCancel={() => setEditingLocation(null)}
+                          />
+                        ) : (
+                          <button
+                            onClick={() => setEditingLocation(photo.id)}
+                            className="flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors"
+                          >
+                            <AlertCircle className="w-4 h-4" />
+                            <span className="text-sm font-medium">Add location</span>
+                          </button>
+                        )
+                      ) : (
+                        <div className="flex items-center gap-2 text-emerald-400">
+                          <MapPin className="w-4 h-4" />
+                          <span className="text-sm">{photo.location.name || `${photo.location.lat.toFixed(4)}, ${photo.location.lng.toFixed(4)}`}</span>
+                        </div>
+                      )}
+
+                      {/* Date */}
+                      <div className="mt-2">
+                        {editingDate === photo.id ? (
+                          <div className="flex items-center gap-2">
                             <input
-                              type="number"
-                              placeholder="Lat"
-                              value={manualLat}
-                              onChange={(e) => setManualLat(e.target.value)}
-                              className="w-20 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
-                              step="any"
-                            />
-                            <input
-                              type="number"
-                              placeholder="Lng"
-                              value={manualLng}
-                              onChange={(e) => setManualLng(e.target.value)}
-                              className="w-20 px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-xs"
-                              step="any"
+                              type="date"
+                              value={manualDate}
+                              onChange={(e) => setManualDate(e.target.value)}
+                              className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
                             />
                             <button
-                              onClick={() => handleSetLocation(photo.id)}
-                              className="p-1 bg-green-500 rounded hover:bg-green-600"
+                              onClick={() => handleSetDate(photo.id)}
+                              className="p-2 bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors"
                             >
-                              <Check className="w-3 h-3 text-white" />
+                              <Check className="w-4 h-4 text-white" />
                             </button>
                             <button
-                              onClick={() => setEditingLocation(null)}
-                              className="p-1 bg-white/20 rounded hover:bg-white/30"
+                              onClick={() => { setEditingDate(null); setManualDate(''); }}
+                              className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
                             >
-                              <X className="w-3 h-3 text-white" />
+                              <X className="w-4 h-4 text-white" />
                             </button>
                           </div>
                         ) : (
                           <button
-                            onClick={() => setEditingLocation(photo.id)}
-                            className="flex items-center gap-1 text-amber-400 text-xs mt-1 hover:text-amber-300"
+                            onClick={() => {
+                              setEditingDate(photo.id);
+                              setManualDate(photo.date.toISOString().split('T')[0]);
+                            }}
+                            className="flex items-center gap-2 text-white/50 hover:text-white/70 transition-colors"
                           >
-                            <AlertCircle className="w-3 h-3" />
-                            No location - click to set manually
+                            <Calendar className="w-4 h-4" />
+                            <span className="text-sm">{photo.date.toLocaleDateString()}</span>
                           </button>
-                        )
-                      ) : (
-                        <div className="flex items-center gap-1 text-green-400 text-xs mt-1">
-                          <MapPin className="w-3 h-3" />
-                          {photo.location.lat.toFixed(4)}, {photo.location.lng.toFixed(4)}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => handleRemove(photo.id)}
                       disabled={isUploading}
-                      className="p-2 rounded-full hover:bg-white/10 disabled:opacity-50"
+                      className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-50 transition-colors"
                     >
-                      <X className="w-4 h-4 text-white/60" />
+                      <X className="w-5 h-5 text-white/50" />
                     </button>
                   </div>
                 ))}
@@ -354,33 +482,33 @@ export default function PhotoUpload({ onUpload, onClose }: PhotoUploadProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/10 flex items-center justify-between">
-          <div className="text-sm text-white/60">
+        <div className="px-8 py-6 border-t border-white/10 flex items-center justify-between bg-white/[0.02]">
+          <div className="text-sm">
             {validCount > 0 && (
-              <span className="text-green-400">{validCount} ready to add</span>
+              <span className="text-emerald-400 font-medium">{validCount} ready to add</span>
             )}
             {needsLocationCount > 0 && (
-              <span className="ml-2 text-amber-400">
+              <span className="ml-3 text-amber-400">
                 {needsLocationCount} need location
               </span>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={onClose}
               disabled={isUploading}
-              className="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors disabled:opacity-50"
+              className="px-6 py-3 rounded-xl bg-white/8 text-white hover:bg-white/12 transition-colors disabled:opacity-50 font-medium"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={validCount === 0 || isUploading}
-              className="px-4 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-pink-600 text-white hover:from-pink-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-lg shadow-pink-500/25"
             >
               {isUploading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   Uploading...
                 </>
               ) : (

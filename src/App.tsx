@@ -200,7 +200,7 @@ function App() {
 
       {/* Photo upload modal */}
       {showUpload && (
-        <PhotoUpload onUpload={handleUpload} onClose={() => setShowUpload(false)} />
+        <PhotoUpload onUpload={handleUpload} onClose={() => setShowUpload(false)} mapboxToken={apiKey} />
       )}
 
       {/* Photo gallery modal */}
@@ -215,18 +215,18 @@ function App() {
 
       {/* API Key input modal */}
       {showApiKeyInput && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-2xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center">
-                <Key className="w-6 h-6 text-pink-400" />
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-[#12121c] rounded-3xl max-w-lg w-full p-8 border border-white/10 shadow-2xl">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
+                <Key className="w-7 h-7 text-pink-400" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Mapbox API Key</h2>
-                <p className="text-white/60 text-sm">Required to display the map</p>
+                <h2 className="text-2xl font-semibold text-white">Mapbox API Key</h2>
+                <p className="text-white/60 text-base">Required to display the map</p>
               </div>
             </div>
-            <p className="text-white/70 text-sm mb-4">
+            <p className="text-white/70 text-base mb-6 leading-relaxed">
               Get your free API key from{' '}
               <a
                 href="https://mapbox.com"
@@ -243,7 +243,7 @@ function App() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="pk.eyJ1Ijo..."
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 mb-4 focus:outline-none focus:border-pink-400"
+              className="w-full px-5 py-4 bg-white/[0.06] border border-white/10 rounded-2xl text-white text-lg placeholder-white/40 mb-6 focus:outline-none focus:border-pink-500/50 focus:bg-white/[0.08] transition-all"
             />
             <button
               onClick={() => {
@@ -252,11 +252,11 @@ function App() {
                 }
               }}
               disabled={!apiKey.trim()}
-              className="w-full py-3 rounded-lg bg-pink-500 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white font-medium"
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-white text-lg font-medium shadow-lg shadow-pink-500/25"
             >
               Continue
             </button>
-            <p className="text-white/50 text-xs mt-3 text-center">
+            <p className="text-white/50 text-sm mt-4 text-center">
               Tip: Add VITE_MAPBOX_TOKEN to a .env file to skip this step
             </p>
           </div>

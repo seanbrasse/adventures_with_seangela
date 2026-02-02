@@ -8,7 +8,7 @@ export interface ExtractedPhotoData {
   id: string;
   file: File;
   thumbnail: string;
-  location: { lat: number; lng: number };
+  location: { lat: number; lng: number; name?: string };
   date: Date;
   description: string;
   needsLocation: boolean;
