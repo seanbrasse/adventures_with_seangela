@@ -274,7 +274,7 @@ export default function MapboxGlobe({
       <div className="absolute top-4 right-4 z-10">
         <button
           onClick={() => setIsMinimalStyle(!isMinimalStyle)}
-          className="flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-sm rounded-lg text-white text-sm hover:bg-black/80 transition-colors border border-white/20"
+          className="flex items-center gap-2.5 px-4 py-2.5 bg-black/60 backdrop-blur-sm rounded-lg text-white text-sm hover:bg-black/80 transition-colors border border-white/20"
           title={isMinimalStyle ? 'Switch to detailed view' : 'Switch to minimal view'}
         >
           {isMinimalStyle ? (

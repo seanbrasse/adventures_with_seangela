@@ -54,13 +54,13 @@ const EmptyText = styled.p`
 `;
 
 const StatsSection = styled.div`
-  padding: 1.5rem 1.25rem;
+  padding: 1.25rem;
 `;
 
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.875rem;
+  gap: 1rem;
 `;
 
 const StatCard = styled.div`
