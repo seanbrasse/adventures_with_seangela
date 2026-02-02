@@ -73,6 +73,7 @@ export async function reverseGeocode(
 }
 
 // Search for places by name
+// Includes neighborhoods, districts, and POIs for more granular location selection
 export async function searchPlaces(
   query: string,
   mapboxToken: string
@@ -82,10 +83,11 @@ export async function searchPlaces(
   }
 
   try {
+    // Include neighborhood and district types for more specific locations like "Bushwick"
     const response = await fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
         query
-      )}.json?access_token=${mapboxToken}&types=place,locality,region,country&limit=5`
+      )}.json?access_token=${mapboxToken}&types=neighborhood,locality,place,district,region,country&limit=8`
     );
 
     if (!response.ok) {
