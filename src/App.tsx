@@ -145,8 +145,12 @@ const SidebarWrapper = styled.div<{ $collapsed: boolean }>`
 
   @media (min-width: 768px) {
     display: flex;
-    position: relative;
-    flex-shrink: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 20;
+    height: auto;
+    max-height: 100%;
   }
 `;
 
@@ -166,12 +170,15 @@ const SidebarContainer = styled.aside<{ $open: boolean; $collapsed: boolean }>`
 
   @media (min-width: 768px) {
     position: relative;
+    inset: auto;
     transform: translateX(0);
     width: ${({ $collapsed }) => ($collapsed ? '0px' : '380px')};
     min-width: ${({ $collapsed }) => ($collapsed ? '0px' : '380px')};
     max-width: none;
+    max-height: 100vh;
     overflow: hidden;
     transition: width 0.3s ease, min-width 0.3s ease;
+    border-radius: 0 0 1rem 0;
   }
 `;
 
@@ -242,9 +249,9 @@ const CloseButton = styled.button`
 `;
 
 const SidebarContent = styled.div`
-  flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
   width: 100%;
+  max-height: calc(100vh - 200px);
 `;
 
 const SidebarFooter = styled.div`
