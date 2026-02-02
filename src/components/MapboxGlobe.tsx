@@ -507,15 +507,19 @@ export default function MapboxGlobe({
   }, [photos, homeBases]);
 
   // Focus on selected location
+  // Padding to offset for sidebar
+  const mapPadding = { left: sidebarCollapsed ? 0 : 200, top: 0, right: 0, bottom: 0 };
+
   useEffect(() => {
     if (mapRef.current && selectedLocation) {
       mapRef.current.flyTo({
         center: [selectedLocation.lng, selectedLocation.lat],
         zoom: 8,
         duration: 2000,
+        padding: mapPadding,
       });
     }
-  }, [selectedLocation]);
+  }, [selectedLocation, sidebarCollapsed]);
 
   // Initial view - fit to all points or show globe
   useEffect(() => {
@@ -525,6 +529,7 @@ export default function MapboxGlobe({
           center: [pointsData[0].lng, pointsData[0].lat],
           zoom: 4,
           duration: 2000,
+          padding: mapPadding,
         });
       } else if (pointsData.length > 1) {
         const lngs = pointsData.map(p => p.lng);
@@ -534,12 +539,12 @@ export default function MapboxGlobe({
           [Math.max(...lngs) + 10, Math.max(...lats) + 10]
         ];
         mapRef.current.fitBounds(bounds, {
-          padding: 50,
+          padding: { ...mapPadding, top: 50, right: 50, bottom: 50 },
           duration: 2000,
         });
       }
     }
-  }, [pointsData.length]);
+  }, [pointsData.length, sidebarCollapsed]);
 
   // Resize map when sidebar collapses/expands
   useEffect(() => {
@@ -677,9 +682,10 @@ export default function MapboxGlobe({
         center: [line.to.lng, line.to.lat],
         zoom: 6,
         duration: 2000,
+        padding: { left: sidebarCollapsed ? 0 : 200, top: 0, right: 0, bottom: 0 },
       });
     }
-  }, []);
+  }, [sidebarCollapsed]);
 
   // Recenter to midpoint between home bases
   const handleRecenter = useCallback(() => {
@@ -696,10 +702,11 @@ export default function MapboxGlobe({
           center: [midpoint.lng, midpoint.lat],
           zoom: 1.5,
           duration: 2000,
+          padding: { left: sidebarCollapsed ? 0 : 200, top: 0, right: 0, bottom: 0 },
         });
       }
     }
-  }, [homeBases]);
+  }, [homeBases, sidebarCollapsed]);
 
   // Handle clicks on the flight line layers
   const handleMapClick = useCallback((e: MapLayerMouseEvent) => {
@@ -768,6 +775,7 @@ export default function MapboxGlobe({
           longitude: 0,
           latitude: 20,
           zoom: 1.5,
+          padding: { left: sidebarCollapsed ? 0 : 200, top: 0, right: 0, bottom: 0 },
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={isMinimalStyle ? MAP_STYLES.minimal : MAP_STYLES.detailed}
