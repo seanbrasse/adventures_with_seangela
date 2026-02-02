@@ -10,6 +10,50 @@ interface StoredTrip extends Omit<Trip, 'startDate' | 'endDate'> {
   endDate: string;
 }
 
+// Normalize city names for route consolidation
+// Extracts the primary city name and normalizes variations
+function normalizeCityName(name: string): string {
+  // First, extract the primary city (usually first part before comma)
+  const parts = name.split(',').map((p) => p.trim());
+  let city = parts[0];
+
+  // Check if any part is a known major city (handle cases like "Dubai Marina, Dubai")
+  const knownCities = [
+    'dubai',
+    'jakarta',
+    'new york',
+    'nyc',
+    'singapore',
+    'tokyo',
+    'london',
+    'paris',
+    'bali',
+    'bangkok',
+    'hong kong',
+  ];
+
+  for (const part of parts) {
+    const lowerPart = part.toLowerCase().trim();
+    if (knownCities.includes(lowerPart)) {
+      city = part;
+      break;
+    }
+  }
+
+  // Normalize the city name
+  return city
+    .toLowerCase()
+    .trim()
+    .replace(/^city of /i, '')
+    .replace(/ city$/i, '')
+    .replace(/ metro$/i, '')
+    .replace(/ metropolitan area$/i, '')
+    .replace(/new york city/i, 'new york')
+    .replace(/nyc/i, 'new york')
+    .replace(/jakarta special capital region/i, 'jakarta')
+    .replace(/dki jakarta/i, 'jakarta');
+}
+
 // Calculate distance between two points in km (Haversine formula)
 function getDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -380,9 +424,11 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
     >();
 
     for (const line of rawLines) {
-      // Create a key based on from city, to city, and traveler
-      // Use city names for matching to consolidate even if coords differ slightly
-      const routeKey = `${line.from.name}->${line.to.name}::${line.travelerId}`;
+      // Create a key based on normalized city names and traveler
+      // This ensures "Dubai Marina, Dubai" and "Dubai, UAE" consolidate together
+      const normalizedFrom = normalizeCityName(line.from.name);
+      const normalizedTo = normalizeCityName(line.to.name);
+      const routeKey = `${normalizedFrom}->${normalizedTo}::${line.travelerId}`;
 
       if (consolidatedMap.has(routeKey)) {
         // Add this visit to existing route
@@ -395,7 +441,7 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       } else {
         // Create new consolidated route
         consolidatedMap.set(routeKey, {
-          id: `route-${line.from.name}-${line.to.name}-${line.travelerId}`,
+          id: `route-${normalizedFrom}-${normalizedTo}-${line.travelerId}`,
           from: line.from,
           to: line.to,
           color: line.color,
