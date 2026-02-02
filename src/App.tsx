@@ -646,6 +646,7 @@ function App() {
 
   const handleAddPhotoToLocation = useCallback((location: LocationContext) => {
     setUploadTargetLocation(location);
+    setShowGallery(false);
     setShowUpload(true);
   }, []);
 
