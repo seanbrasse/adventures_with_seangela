@@ -507,8 +507,9 @@ export default function MapboxGlobe({
   }, [photos, homeBases]);
 
   // Focus on selected location
-  // Padding to offset for sidebar
-  const mapPadding = { left: sidebarCollapsed ? 0 : 200, top: 0, right: 0, bottom: 0 };
+  // Padding to offset for sidebar (380px sidebar + 24px toggle = 404px)
+  const SIDEBAR_WIDTH = 404;
+  const mapPadding = { left: sidebarCollapsed ? 0 : SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0 };
 
   useEffect(() => {
     if (mapRef.current && selectedLocation) {
@@ -682,7 +683,7 @@ export default function MapboxGlobe({
         center: [line.to.lng, line.to.lat],
         zoom: 6,
         duration: 2000,
-        padding: { left: sidebarCollapsed ? 0 : 200, top: 0, right: 0, bottom: 0 },
+        padding: { left: sidebarCollapsed ? 0 : SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0 },
       });
     }
   }, [sidebarCollapsed]);
@@ -702,7 +703,7 @@ export default function MapboxGlobe({
           center: [midpoint.lng, midpoint.lat],
           zoom: 1.5,
           duration: 2000,
-          padding: { left: sidebarCollapsed ? 0 : 200, top: 0, right: 0, bottom: 0 },
+          padding: { left: sidebarCollapsed ? 0 : SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0 },
         });
       }
     }
@@ -775,7 +776,7 @@ export default function MapboxGlobe({
           longitude: 0,
           latitude: 20,
           zoom: 1.5,
-          padding: { left: sidebarCollapsed ? 0 : 200, top: 0, right: 0, bottom: 0 },
+          padding: { left: sidebarCollapsed ? 0 : SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0 },
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={isMinimalStyle ? MAP_STYLES.minimal : MAP_STYLES.detailed}
