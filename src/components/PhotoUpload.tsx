@@ -752,7 +752,14 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken }: PhotoUpl
             mapboxToken
           );
           if (geocodeResult) {
-            photoData.location.name = geocodeResult.fullName;
+            // Use the city center coordinates instead of exact GPS
+            // This generalizes locations so all photos in the same city
+            // appear at the same point (e.g., "Brooklyn" center, not an apartment)
+            photoData.location = {
+              lat: geocodeResult.center.lat,
+              lng: geocodeResult.center.lng,
+              name: geocodeResult.fullName,
+            };
           }
         }
         newPhotos.push(photoData);

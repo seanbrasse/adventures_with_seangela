@@ -56,14 +56,14 @@ export interface AppSettings {
 // Default settings
 export const DEFAULT_HOME_BASES: HomeBase[] = [
   {
-    id: 'sean-nyc',
+    id: 'sean-brooklyn',
     personId: 'sean',
     name: 'Sean',
-    city: 'NYC',
-    lat: 40.7128,
-    lng: -74.0060,
+    city: 'Brooklyn',
+    lat: 40.6501,
+    lng: -73.9496,
     color: '#3B82F6', // Blue
-    radius: 50, // 50km covers all NYC boroughs
+    radius: 30, // 30km covers Brooklyn
     isPermanent: true,
   },
   {

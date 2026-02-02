@@ -3,7 +3,7 @@ import type { AppSettings, HomeBase } from '../types/photo';
 import { DEFAULT_HOME_BASES } from '../types/photo';
 
 const SETTINGS_KEY = 'photo-map-settings';
-const SETTINGS_VERSION = 2; // Bump this when schema changes
+const SETTINGS_VERSION = 3; // Bump this when schema changes (v3: Brooklyn instead of NYC)
 
 // Stored home base with dates as strings
 interface StoredHomeBase extends Omit<HomeBase, 'startDate' | 'endDate'> {

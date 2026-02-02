@@ -42,6 +42,10 @@ A beautiful, interactive web application that maps photos to locations on a 3D g
 
 #### Location Handling
 - **With GPS:** Auto-reverse geocodes to city name (e.g., "Dubai, United Arab Emirates")
+- **Location Generalization:** Photo coordinates are snapped to city center (not exact GPS)
+  - Prevents revealing specific addresses (e.g., apartment locations)
+  - All photos in same city appear at one point on the map
+  - Flight lines connect to a single point per city
 - **Without GPS:** Shows prominent "Add location" button with yellow/amber styling
 - Auto-opens location search for the first photo needing a location
 - Uses Mapbox Geocoding API for both forward and reverse geocoding
@@ -65,7 +69,7 @@ Photos are grouped by location using a two-tier system:
 ### 2.4 Home Bases & Flight Lines
 
 #### People
-- **Sean:** Home base in NYC (blue, #3B82F6)
+- **Sean:** Home base in Brooklyn (blue, #3B82F6)
 - **Angela:** Home base in Jakarta (pink, #EC4899)
 - People are fixed - cannot add or remove
 

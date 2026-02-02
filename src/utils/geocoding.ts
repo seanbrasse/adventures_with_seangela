@@ -11,6 +11,7 @@ export interface ReverseGeocodingResult {
   city: string;
   country: string;
   fullName: string;
+  center: { lat: number; lng: number };  // City center coordinates for generalization
 }
 
 // Reverse geocode coordinates to get city name
@@ -53,10 +54,17 @@ export async function reverseGeocode(
       }
     }
 
+    // Get the city center coordinates from the feature
+    // Mapbox returns [lng, lat] in the center array
+    const center = feature.center
+      ? { lat: feature.center[1], lng: feature.center[0] }
+      : { lat, lng };  // Fallback to original if no center
+
     return {
       city,
       country,
       fullName: country ? `${city}, ${country}` : city,
+      center,
     };
   } catch (error) {
     console.error('Reverse geocoding error:', error);

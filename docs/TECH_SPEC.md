@@ -176,7 +176,29 @@ Algorithm:
 
 This handles EXIF parsers that incorrectly drop the sign for Western hemisphere coordinates.
 
-### 4.2 Photo Grouping
+### 4.2 Location Generalization
+
+Location: `src/utils/geocoding.ts` - `reverseGeocode()`
+
+When a photo is reverse geocoded, the coordinates are snapped to the city center:
+
+```
+Input: Photo with exact GPS coordinates (e.g., 40.6943, -73.9249 - Bushwick apartment)
+Output: Photo with city center coordinates (e.g., 40.6501, -73.9496 - Brooklyn center)
+
+Process:
+1. Call Mapbox reverse geocoding API with exact coordinates
+2. Extract city name from response
+3. Extract city center coordinates from response's `center` field
+4. Store city center coordinates instead of exact GPS
+
+Benefits:
+- Privacy: Doesn't reveal exact addresses/apartments
+- Cleaner map: All photos in same city appear at one point
+- Flight lines: Connect to single point per city (no overlapping lines)
+```
+
+### 4.4 Photo Grouping
 
 Location: `src/utils/exif.ts` - `groupPhotosByLocation()`
 
@@ -203,7 +225,7 @@ Algorithm:
 - Remove suffixes: " city", " metro", " metropolitan area"
 - Aliases: "nyc" → "new york", "dki jakarta" → "jakarta"
 
-### 4.3 Active Home Base Selection
+### 4.5 Active Home Base Selection
 
 Location: `src/hooks/useTrips.ts` - `getActiveHomeBase()`
 
@@ -219,7 +241,7 @@ Algorithm:
 4. If no permanent, return first available home
 ```
 
-### 4.4 Great Circle Arc Generation
+### 4.6 Great Circle Arc Generation
 
 Location: `src/components/MapboxGlobe.tsx` - `generateArcPoints()`
 
@@ -237,7 +259,7 @@ Algorithm:
    d. Add [lng, lat] to result
 ```
 
-### 4.5 Bearing Calculation
+### 4.7 Bearing Calculation
 
 Location: `src/components/MapboxGlobe.tsx` - `getBearing()`
 
@@ -589,14 +611,14 @@ If Mapbox token not in env, app prompts user to enter it.
 ```typescript
 const DEFAULT_HOME_BASES: HomeBase[] = [
   {
-    id: 'sean-nyc',
+    id: 'sean-brooklyn',
     personId: 'sean',
     name: 'Sean',
-    city: 'NYC',
-    lat: 40.7128,
-    lng: -74.0060,
+    city: 'Brooklyn',
+    lat: 40.6501,
+    lng: -73.9496,
     color: '#3B82F6',
-    radius: 50,
+    radius: 30,
     isPermanent: true,
   },
   {
@@ -734,3 +756,5 @@ git commit -m "Update documentation for [feature]"
 | 2026-02 | 1.9 | Improved location input UX: auto-open search, prominent "Add location" button |
 | 2026-02 | 1.10 | Added npm refresh script for quick dev workflow |
 | 2026-02 | 1.11 | Added trips counter (locations visited since Sep 2024) |
+| 2026-02 | 1.12 | Location generalization: photos use city center coordinates instead of exact GPS |
+| 2026-02 | 1.13 | Updated Sean's home base from NYC to Brooklyn |
