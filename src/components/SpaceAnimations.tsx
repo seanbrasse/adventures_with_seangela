@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Particles, { initParticlesEngine } from '@tsparticles/react';
 import { loadSlim } from '@tsparticles/slim';
+import { loadEmittersPlugin } from '@tsparticles/plugin-emitters';
 import styled from 'styled-components';
 import type { ISourceOptions } from '@tsparticles/engine';
 
@@ -28,73 +29,54 @@ const Container = styled.div`
 const particlesConfig: ISourceOptions = {
   fullScreen: false,
   fpsLimit: 60,
+  background: {
+    color: 'transparent',
+  },
   particles: {
     number: {
-      value: 0, // Start with no particles, emit them over time
+      value: 0,
     },
     color: {
-      value: ['#ffffff', '#b0c4ff', '#e0e8ff'],
+      value: '#ffffff',
     },
     shape: {
       type: 'circle',
     },
     opacity: {
-      value: { min: 0.6, max: 1 },
-      animation: {
-        enable: true,
-        speed: 0.5,
-        startValue: 'max',
-        destroy: 'min',
-      },
+      value: 1,
     },
     size: {
-      value: { min: 1, max: 3 },
-    },
-    trail: {
-      enable: true,
-      length: 30,
-      fill: {
-        color: '#000000',
-      },
+      value: 2,
     },
     move: {
       enable: true,
-      speed: { min: 15, max: 25 },
-      direction: 'bottom-left' as const,
+      speed: 25,
+      direction: 'bottom-left',
       straight: true,
       outModes: {
-        default: 'destroy' as const,
+        default: 'destroy',
       },
     },
     life: {
       duration: {
-        value: 4,
+        value: 5,
       },
       count: 1,
     },
-    shadow: {
-      enable: true,
-      color: '#a0b8ff',
-      blur: 10,
-    },
   },
   emitters: {
-    direction: 'bottom-left' as const,
+    direction: 'bottom-left',
     position: {
       x: 100,
-      y: { min: 5, max: 50 },
+      y: 20,
     },
     rate: {
       quantity: 1,
-      delay: { min: 20, max: 40 }, // Emit every 20-40 seconds
+      delay: 3, // Every 3 seconds for testing
     },
     size: {
       width: 0,
-      height: 50,
-    },
-    life: {
-      duration: -1, // Infinite
-      count: 0,
+      height: 30,
     },
   },
   detectRetina: true,
@@ -106,6 +88,7 @@ export default function SpaceAnimations() {
   useEffect(() => {
     initParticlesEngine(async (engine) => {
       await loadSlim(engine);
+      await loadEmittersPlugin(engine);
     }).then(() => {
       setInit(true);
     });
