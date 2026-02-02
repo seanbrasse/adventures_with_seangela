@@ -11,19 +11,6 @@ const Container = styled.div`
   overflow: hidden;
   pointer-events: none;
   z-index: 5;
-  /* Radial mask to hide particles in center (behind globe effect) */
-  mask-image: radial-gradient(
-    ellipse 55% 60% at 50% 50%,
-    transparent 0%,
-    transparent 50%,
-    black 100%
-  );
-  -webkit-mask-image: radial-gradient(
-    ellipse 55% 60% at 50% 50%,
-    transparent 0%,
-    transparent 50%,
-    black 100%
-  );
 `;
 
 const particlesConfig: ISourceOptions = {
@@ -43,42 +30,56 @@ const particlesConfig: ISourceOptions = {
       type: 'circle',
     },
     opacity: {
-      value: 1,
+      value: 0.9,
     },
     size: {
-      value: 2,
+      value: { min: 1, max: 2 },
+    },
+    shadow: {
+      enable: true,
+      color: '#ffffff',
+      blur: 8,
     },
     move: {
       enable: true,
-      speed: 25,
-      direction: 'bottom-left',
+      speed: 12,
+      direction: 'left',
       straight: true,
       outModes: {
         default: 'destroy',
       },
+      trail: {
+        enable: true,
+        length: 20,
+        fill: {
+          color: '#0a0a14',
+        },
+      },
     },
     life: {
       duration: {
-        value: 5,
+        value: 8,
       },
       count: 1,
     },
   },
-  emitters: {
-    direction: 'bottom-left',
-    position: {
-      x: 100,
-      y: 20,
+  emitters: [
+    {
+      direction: 'left',
+      position: {
+        x: 100,
+        y: { min: 10, max: 90 },
+      },
+      rate: {
+        quantity: 1,
+        delay: { min: 10, max: 20 },
+      },
+      size: {
+        width: 0,
+        height: 0,
+      },
     },
-    rate: {
-      quantity: 1,
-      delay: 3, // Every 3 seconds for testing
-    },
-    size: {
-      width: 0,
-      height: 30,
-    },
-  },
+  ],
   detectRetina: true,
 };
 
