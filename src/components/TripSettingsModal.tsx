@@ -351,9 +351,12 @@ const SaveButton = styled.button`
   }
 `;
 
-// Helper to format date for input
+// Helper to format date for input (using local time, not UTC)
 const formatDateForInput = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export default function TripSettingsModal({
@@ -377,11 +380,15 @@ export default function TripSettingsModal({
 
   const handleSave = () => {
     if (hasChanges) {
+      // Parse dates as local time (not UTC) by using date parts
+      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+
       onUpdateTrip(trip.id, {
         name: name.trim(),
         description: description.trim() || undefined,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: new Date(startYear, startMonth - 1, startDay),
+        endDate: new Date(endYear, endMonth - 1, endDay),
       });
     }
     onClose();
