@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
-import { X, ChevronLeft, ChevronRight, Trash2, MapPin } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Pencil, Check } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo } from '../types/photo';
 
@@ -8,6 +8,7 @@ interface PhotoGalleryProps {
   photos: Photo[];
   onClose: () => void;
   onDeletePhoto: (id: string) => void;
+  onRenameLocation?: (photoIds: string[], newName: string) => void;
   locationName?: string;
 }
 
@@ -65,6 +66,83 @@ const Title = styled.h2`
   color: #ffffff;
   letter-spacing: -0.01em;
   margin-bottom: 0.375rem;
+`;
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.375rem;
+`;
+
+const TitleText = styled.h2`
+  font-size: 1.625rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+`;
+
+const EditButton = styled.button`
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+  }
+`;
+
+const TitleInput = styled.input`
+  font-size: 1.625rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  outline: none;
+  width: 100%;
+  max-width: 400px;
+
+  &:focus {
+    border-color: #ec4899;
+    background: rgba(255, 255, 255, 0.15);
+  }
+`;
+
+const SaveButton = styled.button`
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: #ec4899;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: #db2777;
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    color: #ffffff;
+  }
 `;
 
 const PhotoCount = styled.span`
@@ -337,10 +415,39 @@ export default function PhotoGallery({
   photos,
   onClose,
   onDeletePhoto,
+  onRenameLocation,
   locationName,
 }: PhotoGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(locationName || '');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditingName && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditingName]);
+
+  const handleSaveName = () => {
+    if (editedName.trim() && onRenameLocation) {
+      const photoIds = photos.map(p => p.id);
+      onRenameLocation(photoIds, editedName.trim());
+    }
+    setIsEditingName(false);
+  };
+
+  const handleKeyDownName = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveName();
+    } else if (e.key === 'Escape') {
+      setEditedName(locationName || '');
+      setIsEditingName(false);
+    }
+    e.stopPropagation();
+  };
 
   const photosByDate = useMemo(() => {
     const groups = new Map<string, Photo[]>();
@@ -409,7 +516,36 @@ export default function PhotoGallery({
             <MapPin />
           </HeaderIcon>
           <HeaderText>
-            <Title>{locationName || 'Photos'}</Title>
+            {isEditingName ? (
+              <TitleRow>
+                <TitleInput
+                  ref={inputRef}
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onKeyDown={handleKeyDownName}
+                  onBlur={handleSaveName}
+                  placeholder="Location name"
+                />
+                <SaveButton onClick={handleSaveName} title="Save name">
+                  <Check />
+                </SaveButton>
+              </TitleRow>
+            ) : (
+              <TitleRow>
+                <TitleText>{locationName || 'Photos'}</TitleText>
+                {onRenameLocation && (
+                  <EditButton
+                    onClick={() => {
+                      setEditedName(locationName || '');
+                      setIsEditingName(true);
+                    }}
+                    title="Rename location"
+                  >
+                    <Pencil />
+                  </EditButton>
+                )}
+              </TitleRow>
+            )}
             <PhotoCount>
               {photos.length} photo{photos.length !== 1 ? 's' : ''}
             </PhotoCount>

@@ -541,7 +541,7 @@ const LoadingText = styled.p`
 `;
 
 function App() {
-  const { photos, isLoading, addPhotos, removePhoto } = usePhotoStorage();
+  const { photos, isLoading, addPhotos, removePhoto, updatePhoto } = usePhotoStorage();
   const {
     settings,
     updateHomeBase,
@@ -587,6 +587,30 @@ function App() {
       setSelectedPhotos((prev) => prev.filter((p) => p.id !== id));
     },
     [removePhoto]
+  );
+
+  const handleRenameLocation = useCallback(
+    (photoIds: string[], newName: string) => {
+      photoIds.forEach((id) => {
+        const photo = photos.find((p) => p.id === id);
+        if (photo) {
+          updatePhoto(id, {
+            location: {
+              ...photo.location,
+              name: newName,
+            },
+          });
+        }
+      });
+      // Update selected photos to reflect the new name
+      setSelectedPhotos((prev) =>
+        prev.map((p) => ({
+          ...p,
+          location: { ...p.location, name: newName },
+        }))
+      );
+    },
+    [photos, updatePhoto]
   );
 
   if (isLoading) {
@@ -703,6 +727,7 @@ function App() {
             photos={selectedPhotos}
             onClose={handleCloseGallery}
             onDeletePhoto={handleDeletePhoto}
+            onRenameLocation={handleRenameLocation}
             locationName={selectedPhotos[0]?.location.name}
           />
         )}
