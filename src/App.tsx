@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import styled, { createGlobalStyle } from 'styled-components';
 import MapboxGlobe from './components/MapboxGlobe';
@@ -34,6 +34,8 @@ const GlobalStyle = createGlobalStyle`
     -moz-osx-font-smoothing: grayscale;
     background: #0a0a14;
     color: #ffffff;
+    /* Prevent browser pinch-zoom on touch devices */
+    touch-action: pan-x pan-y;
   }
 `;
 
@@ -623,6 +625,19 @@ function App() {
   const [apiKey, setApiKey] = useState(MAPBOX_TOKEN || '');
   const [showApiKeyInput, setShowApiKeyInput] = useState(!MAPBOX_TOKEN);
   const [uploadTargetLocation, setUploadTargetLocation] = useState<LocationContext | null>(null);
+
+  // Prevent browser zoom from trackpad pinch (Ctrl+wheel)
+  // This allows only the map to handle zoom gestures
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('wheel', handleWheel, { passive: false });
+    return () => document.removeEventListener('wheel', handleWheel);
+  }, []);
 
   const handleLocationClick = useCallback((locationPhotos: Photo[]) => {
     setSelectedPhotos(locationPhotos);
