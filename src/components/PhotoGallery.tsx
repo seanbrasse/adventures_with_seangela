@@ -420,6 +420,8 @@ const CaptionRow = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const CaptionHeader = styled.div`
@@ -444,6 +446,8 @@ const CaptionDisplay = styled.div`
   background: rgba(255, 255, 255, 0.03);
   border-radius: 0.5rem;
   transition: background 0.2s ease;
+  min-width: 0;
+  overflow: hidden;
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
@@ -455,6 +459,9 @@ const CaptionText = styled.p`
   color: rgba(255, 255, 255, 0.9);
   font-size: 0.9375rem;
   line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
 `;
 
 const CaptionPlaceholder = styled.p`
@@ -462,6 +469,7 @@ const CaptionPlaceholder = styled.p`
   color: rgba(255, 255, 255, 0.4);
   font-size: 0.9375rem;
   font-style: italic;
+  min-width: 0;
 `;
 
 const CaptionEditButton = styled.button`
@@ -472,6 +480,7 @@ const CaptionEditButton = styled.button`
   cursor: pointer;
   opacity: 0.5;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 
   &:hover {
     opacity: 1;
