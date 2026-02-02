@@ -89,23 +89,24 @@ const PlaneIcon = styled.div<{ $color: string; $rotation: number }>`
   }
 `;
 
-const ArrowMarkerContainer = styled.div<{ $rotation: number }>`
+const ChevronMarker = styled.div<{ $color: string; $rotation: number }>`
+  width: 8px;
+  height: 8px;
+  position: relative;
   cursor: pointer;
-  transform: rotate(${({ $rotation }) => $rotation}deg);
-  transition: transform 0.2s ease;
 
-  &:hover {
-    transform: rotate(${({ $rotation }) => $rotation}deg) scale(1.2);
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid ${({ $color }) => $color};
+    border-top: 2px solid ${({ $color }) => $color};
+    transform: translate(-50%, -50%) rotate(${({ $rotation }) => $rotation - 45}deg);
+    opacity: 0.9;
   }
-`;
-
-const ArrowIcon = styled.div<{ $color: string }>`
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 10px solid ${({ $color }) => $color};
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 `;
 
 const FlightPopup = styled.div`
@@ -394,7 +395,7 @@ export default function MapboxGlobe({
 }: MapboxGlobeProps) {
   const mapRef = useRef<MapRef>(null);
   const [hoveredPoint, setHoveredPoint] = useState<PointData | null>(null);
-  const [hoveredLine, setHoveredLine] = useState<(FlightLine & { midpoint: { lat: number; lng: number }; bearing: number; arrowPosition: { lng: number; lat: number }; arrowBearing: number }) | null>(null);
+  const [hoveredLine, setHoveredLine] = useState<(FlightLine & { midpoint: { lat: number; lng: number }; bearing: number }) | null>(null);
   const [isMinimalStyle, setIsMinimalStyle] = useState(true); // Minimal is default
 
   // Map style URLs
@@ -553,7 +554,7 @@ export default function MapboxGlobe({
     };
   }, [flightLines]);
 
-  // Calculate midpoints, bearings, and arrow positions for flight lines
+  // Calculate midpoints and bearings for plane icons
   const planePositions = useMemo(() => {
     return flightLines.map((line) => {
       const midpoint = getMidpoint(
@@ -569,7 +570,26 @@ export default function MapboxGlobe({
         line.to.lat
       );
 
-      // Calculate arrow position (97% along the arc, right at destination)
+      return {
+        ...line,
+        midpoint,
+        bearing,
+      };
+    });
+  }, [flightLines]);
+
+  // Calculate chevron positions along flight lines for direction indication
+  const chevronPositions = useMemo(() => {
+    const chevrons: Array<{
+      id: string;
+      lineId: string;
+      color: string;
+      lat: number;
+      lng: number;
+      bearing: number;
+    }> = [];
+
+    flightLines.forEach((line) => {
       const arcPoints = generateArcPoints(
         line.from.lng,
         line.from.lat,
@@ -577,26 +597,34 @@ export default function MapboxGlobe({
         line.to.lat,
         100
       );
-      const arrowIndex = Math.floor(arcPoints.length * 0.97);
-      const arrowPoint = arcPoints[arrowIndex];
-      const prevArrowPoint = arcPoints[Math.max(arrowIndex - 1, 0)];
 
-      // Calculate bearing at the arrow point for proper orientation
-      const arrowBearing = getBearing(
-        prevArrowPoint[0],
-        prevArrowPoint[1],
-        arrowPoint[0],
-        arrowPoint[1]
-      );
+      // Place chevrons at 25%, 50%, 75%, and 95% along the path
+      const positions = [0.25, 0.5, 0.75, 0.95];
 
-      return {
-        ...line,
-        midpoint,
-        bearing,
-        arrowPosition: { lng: arrowPoint[0], lat: arrowPoint[1] },
-        arrowBearing,
-      };
+      positions.forEach((pos, i) => {
+        const index = Math.floor(arcPoints.length * pos);
+        const point = arcPoints[index];
+        const prevPoint = arcPoints[Math.max(index - 1, 0)];
+
+        const bearing = getBearing(
+          prevPoint[0],
+          prevPoint[1],
+          point[0],
+          point[1]
+        );
+
+        chevrons.push({
+          id: `${line.id}-chevron-${i}`,
+          lineId: line.id,
+          color: line.color,
+          lat: point[1],
+          lng: point[0],
+          bearing,
+        });
+      });
     });
+
+    return chevrons;
   }, [flightLines]);
 
   const handleMarkerClick = useCallback((point: PointData) => {
@@ -621,16 +649,23 @@ export default function MapboxGlobe({
     const feature = e.features[0];
     const lineId = feature.properties?.id;
     if (lineId) {
-      const line = flightLines.find(l => l.id === lineId);
+      // Handle both visible line and hit area clicks
+      const actualLineId = lineId.replace('-hit', '');
+      const line = flightLines.find(l => l.id === actualLineId);
       if (line) {
         handleLineClick(line);
       }
     }
   }, [flightLines, handleLineClick]);
 
-  // Set up interactive layers for flight lines
+  // Set up interactive layers for flight lines (both visible and hit area)
   const interactiveLayerIds = useMemo(() => {
-    return flightLines.map(line => `flight-line-${line.id}`);
+    const ids: string[] = [];
+    flightLines.forEach(line => {
+      ids.push(`flight-line-${line.id}`);
+      ids.push(`flight-line-hit-${line.id}`);
+    });
+    return ids;
   }, [flightLines]);
 
   return (
@@ -709,7 +744,21 @@ export default function MapboxGlobe({
         {/* Flight lines */}
         {flightLines.length > 0 && (
           <Source id="flight-lines" type="geojson" data={flightLinesGeoJSON}>
-            {/* Render each line as a separate layer with its color */}
+            {/* Invisible wider hit area for easier clicking */}
+            {flightLines.map((line) => (
+              <Layer
+                key={`hit-${line.id}`}
+                id={`flight-line-hit-${line.id}`}
+                type="line"
+                filter={['==', ['get', 'id'], line.id]}
+                paint={{
+                  'line-color': line.color,
+                  'line-width': 16,
+                  'line-opacity': 0,
+                }}
+              />
+            ))}
+            {/* Visible dashed line */}
             {flightLines.map((line) => (
               <Layer
                 key={line.id}
@@ -720,12 +769,28 @@ export default function MapboxGlobe({
                   'line-color': line.color,
                   'line-width': 2.5,
                   'line-opacity': 0.85,
-                  'line-dasharray': [3, 2],
+                  'line-dasharray': [4, 3],
                 }}
               />
             ))}
           </Source>
         )}
+
+        {/* Directional chevrons along flight lines */}
+        {chevronPositions.map((chevron) => {
+          const line = flightLines.find(l => l.id === chevron.lineId);
+          return (
+            <Marker
+              key={chevron.id}
+              longitude={chevron.lng}
+              latitude={chevron.lat}
+              anchor="center"
+              onClick={() => line && handleLineClick(line)}
+            >
+              <ChevronMarker $color={chevron.color} $rotation={chevron.bearing} />
+            </Marker>
+          );
+        })}
 
         {/* Plane icons at midpoints */}
         {planePositions.map((plane) => (
@@ -744,21 +809,6 @@ export default function MapboxGlobe({
                 <Plane />
               </PlaneIcon>
             </PlaneMarkerContainer>
-          </Marker>
-        ))}
-
-        {/* Arrow indicators at destination end of flight lines */}
-        {planePositions.map((plane) => (
-          <Marker
-            key={`arrow-${plane.id}`}
-            longitude={plane.arrowPosition.lng}
-            latitude={plane.arrowPosition.lat}
-            anchor="center"
-            onClick={() => handleLineClick(plane)}
-          >
-            <ArrowMarkerContainer $rotation={plane.arrowBearing}>
-              <ArrowIcon $color={plane.color} />
-            </ArrowMarkerContainer>
           </Marker>
         ))}
 
