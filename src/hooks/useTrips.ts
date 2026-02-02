@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { Photo, Trip, HomeBase } from '../types/photo';
+import { groupPhotosByLocation } from '../utils/exif';
 
 const TRIPS_KEY = 'photo-map-trips';
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
@@ -362,6 +363,19 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
   // Compute flight lines based on trips and home bases
   // Consolidate multiple trips to same destination into single lines
   const flightLines = useMemo(() => {
+    // Group all photos to find where markers are actually displayed
+    // This ensures flight lines go to the exact marker positions
+    const photoGroups = groupPhotosByLocation(photos);
+
+    // Create a map from photo ID to its marker coordinates
+    const photoToMarkerCoords = new Map<string, { lat: number; lng: number }>();
+    for (const [key, groupPhotos] of photoGroups) {
+      const [lat, lng] = key.split(',').map(Number);
+      for (const photo of groupPhotos) {
+        photoToMarkerCoords.set(photo.id, { lat, lng });
+      }
+    }
+
     // First, collect all individual flight line data
     const rawLines: {
       tripId: string;
@@ -377,10 +391,11 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       const tripPhotos = photos.filter((p) => trip.photoIds.includes(p.id));
       if (tripPhotos.length === 0) continue;
 
-      // Use the first photo's location as destination to match where markers are displayed
-      // (groupPhotosByLocation uses the first photo's coordinates as the group key)
-      const destLat = tripPhotos[0].location.lat;
-      const destLng = tripPhotos[0].location.lng;
+      // Get the marker coordinates for this trip's photos
+      // Use the coordinates where the marker is actually displayed
+      const markerCoords = photoToMarkerCoords.get(tripPhotos[0].id);
+      const destLat = markerCoords?.lat ?? tripPhotos[0].location.lat;
+      const destLng = markerCoords?.lng ?? tripPhotos[0].location.lng;
 
       // Create lines for each traveler (now using personId)
       for (const personId of trip.travelers) {
