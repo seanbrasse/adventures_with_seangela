@@ -153,7 +153,7 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
 
   // Helper to find the best existing trip for a set of photos
   // Prefers trips that have customizations (non-auto-generated name or description)
-  const findBestExistingTrip = (photoIds: string[], locationName: string, startDate: Date): Trip | undefined => {
+  const findBestExistingTrip = (photoIds: string[], _locationName: string, _startDate: Date): Trip | undefined => {
     // Find all existing trips that share photos with this new trip
     const matchingTrips = new Set<Trip>();
     for (const photoId of photoIds) {

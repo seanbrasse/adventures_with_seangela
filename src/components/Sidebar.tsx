@@ -88,6 +88,8 @@ const ClickableStatCard = styled.button`
   cursor: pointer;
   text-align: left;
   width: 100%;
+  font: inherit;
+  color: inherit;
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
