@@ -238,9 +238,36 @@ const CloseButton = styled.button`
 const FullscreenView = styled.div`
   flex: 1;
   display: flex;
+  align-items: stretch;
+  position: relative;
+  overflow: hidden;
+`;
+
+const ImageSection = styled.div`
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  min-width: 0;
+`;
+
+const DetailsSection = styled.div`
+  width: 320px;
+  background: rgba(0, 0, 0, 0.4);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: 900px) {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 5;
+    width: 300px;
+  }
 `;
 
 const NavButton = styled.button<{ $position: 'left' | 'right' }>`
@@ -275,15 +302,15 @@ const NavButton = styled.button<{ $position: 'left' | 'right' }>`
 const ImageContainer = styled.div`
   max-width: 100%;
   max-height: 100%;
-  padding: 2.5rem;
+  padding: 2rem;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
 `;
 
 const MainImage = styled.img`
   max-width: 100%;
-  max-height: 70vh;
+  max-height: 85vh;
   object-fit: contain;
   border-radius: 1rem;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
@@ -309,14 +336,18 @@ const ImageDescription = styled.p`
 const PhotoDetailsPanel = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-top: 1.5rem;
-  padding: 1.25rem 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  flex: 1;
+`;
+
+const DetailsPanelTitle = styled.h3`
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
 `;
 
 const DetailRow = styled.div`
@@ -928,80 +959,84 @@ export default function PhotoGallery({
 
       {selectedIndex !== null ? (
         <FullscreenView>
-          <NavButton
-            $position="left"
-            onClick={handlePrev}
-            disabled={selectedIndex === 0}
-          >
-            <ChevronLeft />
-          </NavButton>
+          <ImageSection>
+            <NavButton
+              $position="left"
+              onClick={handlePrev}
+              disabled={selectedIndex === 0}
+            >
+              <ChevronLeft />
+            </NavButton>
 
-          <ImageContainer>
-            <MainImage
-              src={allPhotos[selectedIndex].url}
-              alt={allPhotos[selectedIndex].description || 'Photo'}
-            />
-            <ImageInfo>
-              <PhotoDetailsPanel>
+            <ImageContainer>
+              <MainImage
+                src={allPhotos[selectedIndex].url}
+                alt={allPhotos[selectedIndex].description || 'Photo'}
+              />
+            </ImageContainer>
+
+            <NavButton
+              $position="right"
+              onClick={handleNext}
+              disabled={selectedIndex === allPhotos.length - 1}
+            >
+              <ChevronRight />
+            </NavButton>
+          </ImageSection>
+
+          <DetailsSection>
+            <PhotoDetailsPanel>
+              <DetailsPanelTitle>Photo Details</DetailsPanelTitle>
+              <DetailRow>
+                <Calendar />
+                <DetailLabel>Date</DetailLabel>
+                <DetailValue>{format(allPhotos[selectedIndex].date, 'EEEE, MMMM d, yyyy')}</DetailValue>
+              </DetailRow>
+              <DetailRow>
+                <Clock />
+                <DetailLabel>Time</DetailLabel>
+                <DetailValue>{format(allPhotos[selectedIndex].date, 'h:mm a')}</DetailValue>
+              </DetailRow>
+              {allPhotos[selectedIndex].location.name && (
                 <DetailRow>
-                  <Calendar />
-                  <DetailLabel>Date</DetailLabel>
-                  <DetailValue>{format(allPhotos[selectedIndex].date, 'EEEE, MMMM d, yyyy')}</DetailValue>
+                  <MapPin />
+                  <DetailLabel>Location</DetailLabel>
+                  <DetailValue>{allPhotos[selectedIndex].location.name}</DetailValue>
                 </DetailRow>
-                <DetailRow>
-                  <Clock />
-                  <DetailLabel>Time</DetailLabel>
-                  <DetailValue>{format(allPhotos[selectedIndex].date, 'h:mm a')}</DetailValue>
-                </DetailRow>
-                {allPhotos[selectedIndex].location.name && (
-                  <DetailRow>
-                    <MapPin />
-                    <DetailLabel>Location</DetailLabel>
-                    <DetailValue>{allPhotos[selectedIndex].location.name}</DetailValue>
-                  </DetailRow>
+              )}
+              <CaptionRow>
+                <CaptionHeader>
+                  <MessageSquare />
+                  Caption
+                </CaptionHeader>
+                {isEditingCaption ? (
+                  <CaptionInputWrapper>
+                    <CaptionTextarea
+                      ref={captionInputRef}
+                      value={editedCaption}
+                      onChange={(e) => setEditedCaption(e.target.value)}
+                      onKeyDown={handleCaptionKeyDown}
+                      placeholder="Add a caption..."
+                    />
+                    <CaptionSaveButton onClick={handleSaveCaption} title="Save caption">
+                      <Check />
+                    </CaptionSaveButton>
+                  </CaptionInputWrapper>
+                ) : (
+                  <CaptionDisplay onClick={handleStartEditCaption}>
+                    {allPhotos[selectedIndex].description ? (
+                      <CaptionText>{allPhotos[selectedIndex].description}</CaptionText>
+                    ) : (
+                      <CaptionPlaceholder>Click to add a caption...</CaptionPlaceholder>
+                    )}
+                    <CaptionEditButton title="Edit caption">
+                      <Pencil />
+                    </CaptionEditButton>
+                  </CaptionDisplay>
                 )}
-                <CaptionRow>
-                  <CaptionHeader>
-                    <MessageSquare />
-                    Caption
-                  </CaptionHeader>
-                  {isEditingCaption ? (
-                    <CaptionInputWrapper>
-                      <CaptionTextarea
-                        ref={captionInputRef}
-                        value={editedCaption}
-                        onChange={(e) => setEditedCaption(e.target.value)}
-                        onKeyDown={handleCaptionKeyDown}
-                        placeholder="Add a caption..."
-                      />
-                      <CaptionSaveButton onClick={handleSaveCaption} title="Save caption">
-                        <Check />
-                      </CaptionSaveButton>
-                    </CaptionInputWrapper>
-                  ) : (
-                    <CaptionDisplay onClick={handleStartEditCaption}>
-                      {allPhotos[selectedIndex].description ? (
-                        <CaptionText>{allPhotos[selectedIndex].description}</CaptionText>
-                      ) : (
-                        <CaptionPlaceholder>Click to add a caption...</CaptionPlaceholder>
-                      )}
-                      <CaptionEditButton title="Edit caption">
-                        <Pencil />
-                      </CaptionEditButton>
-                    </CaptionDisplay>
-                  )}
-                </CaptionRow>
-              </PhotoDetailsPanel>
-            </ImageInfo>
-          </ImageContainer>
-
-          <NavButton
-            $position="right"
-            onClick={handleNext}
-            disabled={selectedIndex === allPhotos.length - 1}
-          >
-            <ChevronRight />
-          </NavButton>
+              </CaptionRow>
+            </PhotoDetailsPanel>
+          </DetailsSection>
 
           <FullscreenCloseButton onClick={() => setSelectedIndex(null)}>
             <X />
