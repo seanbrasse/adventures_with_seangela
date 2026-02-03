@@ -851,6 +851,7 @@ function App() {
               onPlacesClick={handlePlacesClick}
               onPlannedTripClick={handlePlannedTripClick}
               onAddPlannedTrip={handleAddPlannedTrip}
+              onAddPhotos={() => setShowUpload(true)}
             />
           </SidebarContent>
         </MobileSidebarContainer>
@@ -874,6 +875,7 @@ function App() {
                 onPlacesClick={handlePlacesClick}
                 onPlannedTripClick={handlePlannedTripClick}
                 onAddPlannedTrip={handleAddPlannedTrip}
+                onAddPhotos={() => setShowUpload(true)}
               />
             </SidebarContent>
 

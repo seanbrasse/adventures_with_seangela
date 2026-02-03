@@ -14,6 +14,7 @@ interface SidebarProps {
   onPlacesClick?: () => void;
   onPlannedTripClick?: (trip: PlannedTrip) => void;
   onAddPlannedTrip?: () => void;
+  onAddPhotos?: () => void;
 }
 
 // Styled Components
@@ -581,6 +582,68 @@ const AddPlannedTripButton = styled.button`
   }
 `;
 
+// Your Trips empty state styled components
+const TripsEmpty = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(236, 72, 153, 0.04) 0%, transparent 100%);
+  border-radius: 1rem;
+  border: 1px dashed rgba(236, 72, 153, 0.2);
+  margin-top: 0.5rem;
+`;
+
+const TripsEmptyIcon = styled.div`
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.1);
+`;
+
+const TripsEmptyTitle = styled.p`
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.375rem;
+`;
+
+const TripsEmptyText = styled.p`
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 1.25rem;
+  line-height: 1.4;
+`;
+
+const AddTripsButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #ec4899 0%, #d946ef 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25);
+
+  &:hover {
+    background: linear-gradient(135deg, #d946ef 0%, #a855f7 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(236, 72, 153, 0.3);
+  }
+`;
+
 export default function Sidebar({
   photos,
   trips = [],
@@ -589,6 +652,7 @@ export default function Sidebar({
   onPlacesClick,
   onPlannedTripClick,
   onAddPlannedTrip,
+  onAddPhotos,
 }: SidebarProps) {
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
@@ -717,39 +781,73 @@ export default function Sidebar({
           </ToggleContainer>
 
           {viewMode === 'trips' ? (
-            <LocationsList>
-              {locations.map((loc) => {
-                const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
-                return (
-                  <LocationCard
-                    key={loc.key}
-                    onClick={() => onLocationSelect(loc.photos)}
-                  >
-                    <Thumbnail>
-                      <img
-                        src={loc.photos[0].thumbnail}
-                        alt=""
-                      />
-                    </Thumbnail>
+            <>
+              {locations.length > 0 && (
+                <SectionHeaderWithAdd>
+                  <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.4)' }}>
+                    {locations.length} trip{locations.length !== 1 ? 's' : ''}
+                  </span>
+                  {onAddPhotos && (
+                    <AddButton onClick={onAddPhotos} title="Add photos">
+                      <Plus size={14} />
+                    </AddButton>
+                  )}
+                </SectionHeaderWithAdd>
+              )}
+              {locations.length > 0 ? (
+                <LocationsList>
+                  {locations.map((loc) => {
+                    const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
+                    return (
+                      <LocationCard
+                        key={loc.key}
+                        onClick={() => onLocationSelect(loc.photos)}
+                      >
+                        <Thumbnail>
+                          <img
+                            src={loc.photos[0].thumbnail}
+                            alt=""
+                          />
+                        </Thumbnail>
 
-                    <LocationInfo>
-                      <LocationName>
-                        {locationName}
-                      </LocationName>
-                      <LocationMeta>
-                        <span>
-                          {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
-                        </span>
-                        <MetaDot>•</MetaDot>
-                        <span>
-                          {format(loc.latestDate, 'MMM d, yyyy')}
-                        </span>
-                      </LocationMeta>
-                    </LocationInfo>
-                  </LocationCard>
-                );
-              })}
-            </LocationsList>
+                        <LocationInfo>
+                          <LocationName>
+                            {locationName}
+                          </LocationName>
+                          <LocationMeta>
+                            <span>
+                              {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
+                            </span>
+                            <MetaDot>•</MetaDot>
+                            <span>
+                              {format(loc.latestDate, 'MMM d, yyyy')}
+                            </span>
+                          </LocationMeta>
+                        </LocationInfo>
+                      </LocationCard>
+                    );
+                  })}
+                </LocationsList>
+              ) : (
+                <TripsEmpty>
+                  <TripsEmptyIcon>
+                    <Image size={24} color="#ec4899" />
+                  </TripsEmptyIcon>
+                  <TripsEmptyTitle>
+                    Start your journey
+                  </TripsEmptyTitle>
+                  <TripsEmptyText>
+                    Add photos from your trips to create memories on your map
+                  </TripsEmptyText>
+                  {onAddPhotos && (
+                    <AddTripsButton onClick={onAddPhotos}>
+                      <Plus size={16} />
+                      Add Photos
+                    </AddTripsButton>
+                  )}
+                </TripsEmpty>
+              )}
+            </>
           ) : (
             <>
               {plannedTrips.length > 0 && (

@@ -97,8 +97,8 @@ describe('Sidebar component', () => {
 
     render(<Sidebar photos={photos} trips={trips} onLocationSelect={mockOnLocationSelect} />);
 
-    // Should show trips together label
-    expect(screen.getByText(/trip/)).toBeInTheDocument();
+    // Should show trips together label in stats section
+    expect(screen.getByText(/trips together/)).toBeInTheDocument();
   });
 
   it('should not show trips counter when no photos after Sep 2024', () => {
