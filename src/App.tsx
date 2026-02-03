@@ -178,7 +178,7 @@ const SidebarContainer = styled.aside<{ $open: boolean; $collapsed: boolean }>`
     width: ${({ $collapsed }) => ($collapsed ? '0px' : '380px')};
     min-width: ${({ $collapsed }) => ($collapsed ? '0px' : '380px')};
     max-width: none;
-    max-height: 100vh;
+    height: 100vh;
     overflow: hidden;
     transition: width 0.3s ease, min-width 0.3s ease;
     border-radius: 0 0 1rem 0;
@@ -252,9 +252,10 @@ const CloseButton = styled.button`
 `;
 
 const SidebarContent = styled.div`
+  flex: 1;
   overflow-y: auto;
   width: 100%;
-  max-height: calc(100vh - 200px);
+  min-height: 0;
 `;
 
 const SidebarFooter = styled.div`
