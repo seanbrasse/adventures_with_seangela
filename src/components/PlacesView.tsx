@@ -13,6 +13,7 @@ interface PlacesViewProps {
   onLocationSelect: (photos: Photo[]) => void;
   onPlannedTripClick?: (trip: PlannedTrip) => void;
   onAddPlannedTrip?: () => void;
+  onAddTrip?: () => void;
 }
 
 const Overlay = styled.div`
@@ -539,6 +540,7 @@ export default function PlacesView({
   onLocationSelect,
   onPlannedTripClick,
   onAddPlannedTrip,
+  onAddTrip,
 }: PlacesViewProps) {
   const [viewMode, setViewMode] = useState<'past' | 'planned'>('past');
 
@@ -787,7 +789,13 @@ export default function PlacesView({
               Planned
             </ToggleButton>
           </ToggleContainer>
-          {viewMode === 'planned' && onAddPlannedTrip && plannedTrips.length > 0 && (
+          {viewMode === 'past' && onAddTrip && (
+            <AddPlannedButton onClick={onAddTrip}>
+              <Plus />
+              Add
+            </AddPlannedButton>
+          )}
+          {viewMode === 'planned' && onAddPlannedTrip && (
             <AddPlannedButton onClick={onAddPlannedTrip}>
               <Plus />
               Add

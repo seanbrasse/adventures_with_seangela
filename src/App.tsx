@@ -1061,6 +1061,7 @@ function App() {
             onLocationSelect={handleLocationClick}
             onPlannedTripClick={handlePlannedTripClick}
             onAddPlannedTrip={handleAddPlannedTrip}
+            onAddTrip={handleAddTrip}
           />
         )}
 

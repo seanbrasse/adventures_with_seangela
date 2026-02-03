@@ -785,47 +785,39 @@ export default function Sidebar({
           {viewMode === 'trips' ? (
             <>
               {locations.length > 0 ? (
-                <>
-                  <LocationsList>
-                    {locations.map((loc) => {
-                      const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
-                      return (
-                        <LocationCard
-                          key={loc.key}
-                          onClick={() => onLocationSelect(loc.photos)}
-                        >
-                          <Thumbnail>
-                            <img
-                              src={loc.photos[0].thumbnail}
-                              alt=""
-                            />
-                          </Thumbnail>
+                <LocationsList>
+                  {locations.map((loc) => {
+                    const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
+                    return (
+                      <LocationCard
+                        key={loc.key}
+                        onClick={() => onLocationSelect(loc.photos)}
+                      >
+                        <Thumbnail>
+                          <img
+                            src={loc.photos[0].thumbnail}
+                            alt=""
+                          />
+                        </Thumbnail>
 
-                          <LocationInfo>
-                            <LocationName>
-                              {locationName}
-                            </LocationName>
-                            <LocationMeta>
-                              <span>
-                                {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
-                              </span>
-                              <MetaDot>•</MetaDot>
-                              <span>
-                                {format(loc.latestDate, 'MMM d, yyyy')}
-                              </span>
-                            </LocationMeta>
-                          </LocationInfo>
-                        </LocationCard>
-                      );
-                    })}
-                  </LocationsList>
-                  {onAddTrip && (
-                    <AddTripsButton onClick={onAddTrip} style={{ marginTop: '1rem', width: '100%' }}>
-                      <Plus size={16} />
-                      Add Trip
-                    </AddTripsButton>
-                  )}
-                </>
+                        <LocationInfo>
+                          <LocationName>
+                            {locationName}
+                          </LocationName>
+                          <LocationMeta>
+                            <span>
+                              {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
+                            </span>
+                            <MetaDot>•</MetaDot>
+                            <span>
+                              {format(loc.latestDate, 'MMM d, yyyy')}
+                            </span>
+                          </LocationMeta>
+                        </LocationInfo>
+                      </LocationCard>
+                    );
+                  })}
+                </LocationsList>
               ) : (
                 <TripsEmpty>
                   <TripsEmptyIcon>
@@ -928,12 +920,6 @@ export default function Sidebar({
                   );
                 })}
               </LocationsList>
-              {plannedTrips.length > 0 && onAddPlannedTrip && (
-                <AddPlannedTripButton onClick={onAddPlannedTrip} style={{ marginTop: '1rem', width: '100%' }}>
-                  <Plus size={16} />
-                  Plan a Trip
-                </AddPlannedTripButton>
-              )}
               {plannedTrips.length === 0 && (
                 <PlannedTripsEmpty>
                   <PlannedTripsEmptyIcon>
