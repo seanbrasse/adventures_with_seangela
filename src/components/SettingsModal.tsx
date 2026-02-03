@@ -599,12 +599,19 @@ const CurrentCity = styled.p`
 
 function formatDateForInput(date?: Date): string {
   if (!date) return '';
-  return date.toISOString().split('T')[0];
+  // Format as local date to avoid timezone shift
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function parseDateInput(value: string): Date | undefined {
   if (!value) return undefined;
-  return new Date(value);
+  // Parse as local date to avoid timezone shift
+  // Input format is "YYYY-MM-DD"
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
 }
 
 // City autocomplete component using Mapbox Geocoding API
