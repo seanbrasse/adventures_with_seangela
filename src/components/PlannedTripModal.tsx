@@ -662,7 +662,7 @@ export default function PlannedTripModal({
   const handleDestinationSelect = (result: GeocodingResult) => {
     setFormData((prev) => ({
       ...prev,
-      destinationName: result.text,
+      destinationName: result.place_name,
       lat: result.center[1],
       lng: result.center[0],
     }));
