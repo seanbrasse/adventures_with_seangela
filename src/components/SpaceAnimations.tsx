@@ -102,11 +102,11 @@ const createCometConfig = (delay: number): ISourceOptions => ({
   detectRetina: true,
 });
 
-// Front comets - appear every 20-30 seconds
-const frontConfig = createCometConfig(25);
+// Front comets - appear every 8 seconds
+const frontConfig = createCometConfig(8);
 
-// Back comets - appear every 30-40 seconds
-const backConfig = createCometConfig(35);
+// Back comets - appear every 12 seconds
+const backConfig = createCometConfig(12);
 
 export default function SpaceAnimations() {
   const [init, setInit] = useState(false);
