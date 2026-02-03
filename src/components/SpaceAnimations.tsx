@@ -11,7 +11,7 @@ const FrontContainer = styled.div`
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 5;
+  z-index: 100;
 `;
 
 // Container for comets behind the globe
@@ -20,7 +20,7 @@ const BackContainer = styled.div`
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
 `;
 
 const createCometConfig = (yMin: number, yMax: number): ISourceOptions => ({
@@ -86,7 +86,7 @@ const createCometConfig = (yMin: number, yMax: number): ISourceOptions => ({
     },
     rate: {
       quantity: 5,
-      delay: 8,
+      delay: 2,
     },
     size: {
       width: 0,
