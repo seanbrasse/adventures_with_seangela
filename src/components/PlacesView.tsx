@@ -1,15 +1,18 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { X, MapPin, Calendar, Plane, Image, ChevronRight } from 'lucide-react';
+import { X, MapPin, Calendar, Plane, Image, ChevronRight, Plus, Lightbulb, Search, BookmarkCheck } from 'lucide-react';
 import styled from 'styled-components';
-import type { Photo, Trip } from '../types/photo';
+import type { Photo, Trip, PlannedTrip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 
 interface PlacesViewProps {
   photos: Photo[];
   trips: Trip[];
+  plannedTrips?: PlannedTrip[];
   onClose: () => void;
   onLocationSelect: (photos: Photo[]) => void;
+  onPlannedTripClick?: (trip: PlannedTrip) => void;
+  onAddPlannedTrip?: () => void;
 }
 
 const Overlay = styled.div`
@@ -291,6 +294,233 @@ const EmptyState = styled.div`
   color: rgba(255, 255, 255, 0.5);
 `;
 
+const ToggleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+`;
+
+const ToggleButton = styled.button<{ $active: boolean }>`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: ${({ $active }) => ($active ? 'rgba(255, 255, 255, 0.12)' : 'transparent')};
+  color: ${({ $active }) => ($active ? '#ffffff' : 'rgba(255, 255, 255, 0.5)')};
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: ${({ $active }) => ($active ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)')};
+    color: ${({ $active }) => ($active ? '#ffffff' : 'rgba(255, 255, 255, 0.7)')};
+  }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const AddPlannedButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+`;
+
+const PlannedTripCard = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.25rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+`;
+
+const PlannedTripIcon = styled.div<{ $status: 'idea' | 'researching' | 'booked' }>`
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  background: ${({ $status }) =>
+    $status === 'booked' ? 'rgba(34, 197, 94, 0.15)' :
+    $status === 'researching' ? 'rgba(59, 130, 246, 0.15)' :
+    'rgba(245, 158, 11, 0.15)'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: ${({ $status }) =>
+      $status === 'booked' ? '#22c55e' :
+      $status === 'researching' ? '#3b82f6' :
+      '#f59e0b'};
+  }
+`;
+
+const PlannedTripInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const PlannedTripName = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.375rem;
+`;
+
+const PlannedTripMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+`;
+
+const StatusBadge = styled.span<{ $status: 'idea' | 'researching' | 'booked' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: ${({ $status }) =>
+    $status === 'booked' ? 'rgba(34, 197, 94, 0.15)' :
+    $status === 'researching' ? 'rgba(59, 130, 246, 0.15)' :
+    'rgba(245, 158, 11, 0.15)'};
+  color: ${({ $status }) =>
+    $status === 'booked' ? '#22c55e' :
+    $status === 'researching' ? '#3b82f6' :
+    '#f59e0b'};
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+`;
+
+const PlannedTripDescription = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const PlannedTripArrow = styled.div`
+  padding-top: 0.25rem;
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: rgba(255, 255, 255, 0.3);
+  }
+`;
+
+const EmptyPlannedState = styled.div`
+  text-align: center;
+  padding: 4rem 2rem;
+`;
+
+const EmptyPlannedIcon = styled.div`
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+
+  svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: #f472b6;
+  }
+`;
+
+const EmptyPlannedTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+`;
+
+const EmptyPlannedText = styled.p`
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 1.5rem;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+`;
+
+const EmptyAddButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+    transform: translateY(-1px);
+  }
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+`;
+
 interface LocationWithTrips {
   key: string;
   lat: number;
@@ -304,9 +534,14 @@ interface LocationWithTrips {
 export default function PlacesView({
   photos,
   trips,
+  plannedTrips = [],
   onClose,
   onLocationSelect,
+  onPlannedTripClick,
+  onAddPlannedTrip,
 }: PlacesViewProps) {
+  const [viewMode, setViewMode] = useState<'past' | 'planned'>('past');
+
   const locationsWithTrips = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
     const locations: LocationWithTrips[] = [];
@@ -368,26 +603,165 @@ export default function PlacesView({
     return `${format(trip.startDate, 'MMM d, yyyy')} - ${format(trip.endDate, 'MMM d, yyyy')}`;
   };
 
-  if (locationsWithTrips.length === 0) {
+  const getStatusIcon = (status: 'idea' | 'researching' | 'booked') => {
+    switch (status) {
+      case 'booked':
+        return BookmarkCheck;
+      case 'researching':
+        return Search;
+      default:
+        return Lightbulb;
+    }
+  };
+
+  const getStatusLabel = (status: 'idea' | 'researching' | 'booked') => {
+    switch (status) {
+      case 'booked':
+        return 'Booked';
+      case 'researching':
+        return 'Researching';
+      default:
+        return 'Just an idea';
+    }
+  };
+
+  const renderPastTrips = () => {
+    if (locationsWithTrips.length === 0) {
+      return (
+        <EmptyState>No places yet. Add some photos to get started!</EmptyState>
+      );
+    }
+
     return (
-      <Overlay onClick={onClose}>
-        <Header onClick={(e) => e.stopPropagation()}>
-          <HeaderLeft>
-            <HeaderIcon>
-              <MapPin />
-            </HeaderIcon>
-            <HeaderTitle>Your Trips</HeaderTitle>
-          </HeaderLeft>
-          <CloseButton onClick={onClose}>
-            <X />
-          </CloseButton>
-        </Header>
-        <Content>
-          <EmptyState>No places yet. Add some photos to get started!</EmptyState>
-        </Content>
-      </Overlay>
+      <PlacesList>
+        {locationsWithTrips.map((location) => (
+          <PlaceCard key={location.key}>
+            <PlaceHeader onClick={() => handlePlaceClick(location)}>
+              <PlaceThumbnail>
+                <img src={location.photos[0].thumbnail} alt="" />
+              </PlaceThumbnail>
+              <PlaceInfo>
+                <PlaceName>{location.name}</PlaceName>
+                <PlaceMeta>
+                  <MetaItem>
+                    <Image />
+                    {location.photos.length} photo{location.photos.length !== 1 ? 's' : ''}
+                  </MetaItem>
+                  {location.trips.length > 0 && (
+                    <MetaItem>
+                      <Plane />
+                      {location.trips.length} trip{location.trips.length !== 1 ? 's' : ''}
+                    </MetaItem>
+                  )}
+                </PlaceMeta>
+              </PlaceInfo>
+              <PlaceArrow>
+                <ChevronRight />
+              </PlaceArrow>
+            </PlaceHeader>
+
+            {location.trips.length > 0 && (
+              <TripsSection>
+                <TripsTitle>Trips to {location.name}</TripsTitle>
+                {location.trips.map((trip) => {
+                  const tripPhotoCount = trip.photoIds.filter((id) =>
+                    location.photos.some((p) => p.id === id)
+                  ).length;
+                  return (
+                    <TripCard
+                      key={trip.id}
+                      onClick={(e) => handleTripClick(trip, e)}
+                    >
+                      <TripIcon>
+                        <Plane />
+                      </TripIcon>
+                      <TripInfo>
+                        <TripName>{trip.name}</TripName>
+                        <TripDates>
+                          <Calendar />
+                          {formatTripDates(trip)}
+                        </TripDates>
+                        {trip.description && (
+                          <TripDescription>{trip.description}</TripDescription>
+                        )}
+                        <TripPhotos>
+                          {tripPhotoCount} photo{tripPhotoCount !== 1 ? 's' : ''} from this trip
+                        </TripPhotos>
+                      </TripInfo>
+                      <TripArrow>
+                        <ChevronRight />
+                      </TripArrow>
+                    </TripCard>
+                  );
+                })}
+              </TripsSection>
+            )}
+          </PlaceCard>
+        ))}
+      </PlacesList>
     );
-  }
+  };
+
+  const renderPlannedTrips = () => {
+    if (plannedTrips.length === 0) {
+      return (
+        <EmptyPlannedState>
+          <EmptyPlannedIcon>
+            <Plane />
+          </EmptyPlannedIcon>
+          <EmptyPlannedTitle>No planned trips yet</EmptyPlannedTitle>
+          <EmptyPlannedText>
+            Start dreaming about your next adventure together!
+          </EmptyPlannedText>
+          {onAddPlannedTrip && (
+            <EmptyAddButton onClick={onAddPlannedTrip}>
+              <Plus />
+              Plan a Trip
+            </EmptyAddButton>
+          )}
+        </EmptyPlannedState>
+      );
+    }
+
+    return (
+      <PlacesList>
+        {plannedTrips.map((trip) => {
+          const StatusIcon = getStatusIcon(trip.bookingStatus);
+          return (
+            <PlannedTripCard
+              key={trip.id}
+              onClick={() => onPlannedTripClick?.(trip)}
+            >
+              <PlannedTripIcon $status={trip.bookingStatus}>
+                <StatusIcon />
+              </PlannedTripIcon>
+              <PlannedTripInfo>
+                <PlannedTripName>{trip.destinationName}</PlannedTripName>
+                <PlannedTripMeta>
+                  <StatusBadge $status={trip.bookingStatus}>
+                    <StatusIcon />
+                    {getStatusLabel(trip.bookingStatus)}
+                  </StatusBadge>
+                  {trip.potentialStartDate && (
+                    <span>
+                      <Calendar size={14} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
+                      {format(trip.potentialStartDate, 'MMM yyyy')}
+                    </span>
+                  )}
+                </PlannedTripMeta>
+                {trip.description && (
+                  <PlannedTripDescription>{trip.description}</PlannedTripDescription>
+                )}
+              </PlannedTripInfo>
+              <PlannedTripArrow>
+                <ChevronRight />
+              </PlannedTripArrow>
+            </PlannedTripCard>
+          );
+        })}
+      </PlacesList>
+    );
+  };
 
   return (
     <Overlay onClick={onClose}>
@@ -398,78 +772,35 @@ export default function PlacesView({
           </HeaderIcon>
           <HeaderTitle>Your Trips</HeaderTitle>
         </HeaderLeft>
-        <CloseButton onClick={onClose}>
-          <X />
-        </CloseButton>
+        <HeaderActions>
+          <ToggleContainer>
+            <ToggleButton
+              $active={viewMode === 'past'}
+              onClick={() => setViewMode('past')}
+            >
+              Past
+            </ToggleButton>
+            <ToggleButton
+              $active={viewMode === 'planned'}
+              onClick={() => setViewMode('planned')}
+            >
+              Planned
+            </ToggleButton>
+          </ToggleContainer>
+          {viewMode === 'planned' && onAddPlannedTrip && plannedTrips.length > 0 && (
+            <AddPlannedButton onClick={onAddPlannedTrip}>
+              <Plus />
+              Add
+            </AddPlannedButton>
+          )}
+          <CloseButton onClick={onClose}>
+            <X />
+          </CloseButton>
+        </HeaderActions>
       </Header>
 
       <Content onClick={(e) => e.stopPropagation()}>
-        <PlacesList>
-          {locationsWithTrips.map((location) => (
-            <PlaceCard key={location.key}>
-              <PlaceHeader onClick={() => handlePlaceClick(location)}>
-                <PlaceThumbnail>
-                  <img src={location.photos[0].thumbnail} alt="" />
-                </PlaceThumbnail>
-                <PlaceInfo>
-                  <PlaceName>{location.name}</PlaceName>
-                  <PlaceMeta>
-                    <MetaItem>
-                      <Image />
-                      {location.photos.length} photo{location.photos.length !== 1 ? 's' : ''}
-                    </MetaItem>
-                    {location.trips.length > 0 && (
-                      <MetaItem>
-                        <Plane />
-                        {location.trips.length} trip{location.trips.length !== 1 ? 's' : ''}
-                      </MetaItem>
-                    )}
-                  </PlaceMeta>
-                </PlaceInfo>
-                <PlaceArrow>
-                  <ChevronRight />
-                </PlaceArrow>
-              </PlaceHeader>
-
-              {location.trips.length > 0 && (
-                <TripsSection>
-                  <TripsTitle>Trips to {location.name}</TripsTitle>
-                  {location.trips.map((trip) => {
-                    const tripPhotoCount = trip.photoIds.filter((id) =>
-                      location.photos.some((p) => p.id === id)
-                    ).length;
-                    return (
-                      <TripCard
-                        key={trip.id}
-                        onClick={(e) => handleTripClick(trip, e)}
-                      >
-                        <TripIcon>
-                          <Plane />
-                        </TripIcon>
-                        <TripInfo>
-                          <TripName>{trip.name}</TripName>
-                          <TripDates>
-                            <Calendar />
-                            {formatTripDates(trip)}
-                          </TripDates>
-                          {trip.description && (
-                            <TripDescription>{trip.description}</TripDescription>
-                          )}
-                          <TripPhotos>
-                            {tripPhotoCount} photo{tripPhotoCount !== 1 ? 's' : ''} from this trip
-                          </TripPhotos>
-                        </TripInfo>
-                        <TripArrow>
-                          <ChevronRight />
-                        </TripArrow>
-                      </TripCard>
-                    );
-                  })}
-                </TripsSection>
-              )}
-            </PlaceCard>
-          ))}
-        </PlacesList>
+        {viewMode === 'past' ? renderPastTrips() : renderPlannedTrips()}
       </Content>
     </Overlay>
   );
