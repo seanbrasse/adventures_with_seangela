@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { X, MapPin, Search, Loader2, Calendar, FileText, Users } from 'lucide-react';
+import { X, MapPin, Search, Loader2, Calendar, FileText } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
 import type { Trip } from '../types/photo';
 
@@ -17,12 +17,6 @@ interface GeocodingResult {
   center: [number, number];
   text: string;
 }
-
-// Fixed travelers
-const TRAVELERS = [
-  { id: 'angela', name: 'Angela', color: '#EC4899' },
-  { id: 'sean', name: 'Sean', color: '#3B82F6' },
-];
 
 // Animations
 const spin = keyframes`
@@ -329,40 +323,6 @@ const DateSeparator = styled.span`
   font-size: 1rem;
 `;
 
-const TravelerGrid = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const TravelerButton = styled.button<{ $active: boolean; $color: string }>`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.625rem;
-  padding: 1rem;
-  border-radius: 1rem;
-  border: 1px solid ${({ $active }) => ($active ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.06)')};
-  background: ${({ $active }) => ($active ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.03)')};
-  color: ${({ $active }) => ($active ? '#ffffff' : 'rgba(255, 255, 255, 0.5)')};
-  font-size: 0.9375rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${({ $active }) => ($active ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.06)')};
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-`;
-
-const TravelerDot = styled.span<{ $color: string; $active: boolean }>`
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 50%;
-  background: ${({ $color, $active }) => ($active ? $color : 'rgba(255, 255, 255, 0.3)')};
-`;
-
 const Footer = styled.div`
   padding: 1.75rem 2.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -583,24 +543,6 @@ export default function TripModal({
     setDestinationSearch(result.place_name);
   };
 
-  const toggleTraveler = (travelerId: string) => {
-    setFormData((prev) => {
-      const currentTravelers = prev.travelers;
-      if (currentTravelers.includes(travelerId)) {
-        // Don't allow removing all travelers
-        if (currentTravelers.length === 1) return prev;
-        return {
-          ...prev,
-          travelers: currentTravelers.filter((t) => t !== travelerId),
-        };
-      }
-      return {
-        ...prev,
-        travelers: [...currentTravelers, travelerId],
-      };
-    });
-  };
-
   const handleSave = () => {
     if (!formData.locationName || !formData.startDate || !formData.endDate) return;
 
@@ -620,7 +562,7 @@ export default function TripModal({
     onSave(tripData);
   };
 
-  const isValid = formData.locationName && formData.startDate && formData.endDate && formData.travelers.length > 0;
+  const isValid = formData.locationName && formData.startDate && formData.endDate;
 
   return (
     <Overlay>
@@ -709,29 +651,6 @@ export default function TripModal({
                   }
                 />
               </DateRow>
-            </FormGroup>
-
-            <FormGroup>
-              <Label>
-                <Users />
-                Who Traveled
-              </Label>
-              <TravelerGrid>
-                {TRAVELERS.map((traveler) => {
-                  const isSelected = formData.travelers.includes(traveler.id);
-                  return (
-                    <TravelerButton
-                      key={traveler.id}
-                      $active={isSelected}
-                      $color={traveler.color}
-                      onClick={() => toggleTraveler(traveler.id)}
-                    >
-                      <TravelerDot $color={traveler.color} $active={isSelected} />
-                      {traveler.name}
-                    </TravelerButton>
-                  );
-                })}
-              </TravelerGrid>
             </FormGroup>
 
             <FormGroup>
