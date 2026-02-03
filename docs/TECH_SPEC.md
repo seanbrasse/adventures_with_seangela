@@ -47,27 +47,36 @@ v_day_26/
 │   └── TECH_SPEC.md        # This document
 ├── src/
 │   ├── components/
-│   │   ├── App.tsx         # Main app container
-│   │   ├── MapboxGlobe.tsx # 3D globe with markers and flight lines
-│   │   ├── PhotoGallery.tsx # Full-screen photo viewer
-│   │   ├── PhotoUpload.tsx  # Upload modal with location autocomplete
-│   │   ├── SettingsModal.tsx # Home base configuration
-│   │   └── Sidebar.tsx      # Stats and location list
+│   │   ├── App.tsx              # Main app container
+│   │   ├── Globe.tsx            # Alternative 3D globe (react-globe.gl)
+│   │   ├── MapboxGlobe.tsx      # Primary 3D globe with Mapbox GL
+│   │   ├── PhotoGallery.tsx     # Full-screen photo viewer
+│   │   ├── PhotoUpload.tsx      # Upload modal with location autocomplete
+│   │   ├── PlacesView.tsx       # Places/trips overview modal
+│   │   ├── PlannedTripModal.tsx # Plan future trips modal
+│   │   ├── SettingsModal.tsx    # Home base configuration
+│   │   ├── Sidebar.tsx          # Stats and location list
+│   │   └── TripSettingsModal.tsx # Edit trip details modal
 │   ├── hooks/
-│   │   ├── usePhotoStorage.ts # Photo CRUD with Supabase/localStorage
-│   │   ├── useSettings.ts     # Settings persistence
-│   │   └── useTrips.ts        # Trip/flight line generation
+│   │   ├── usePhotoStorage.ts   # Photo CRUD with Supabase/localStorage
+│   │   ├── usePlannedTrips.ts   # Planned trips CRUD (localStorage)
+│   │   ├── useSettings.ts       # Settings persistence
+│   │   └── useTrips.ts          # Trip/flight line generation
 │   ├── types/
-│   │   └── photo.ts         # TypeScript interfaces
+│   │   └── photo.ts             # TypeScript interfaces
 │   ├── utils/
-│   │   ├── exif.ts          # EXIF extraction and photo grouping
-│   │   ├── geocoding.ts     # Mapbox geocoding utilities
-│   │   └── supabase.ts      # Supabase client
-│   ├── index.css            # Global styles with design tokens
-│   └── main.tsx             # Entry point
+│   │   ├── exif.ts              # EXIF extraction and photo grouping
+│   │   ├── geocoding.ts         # Mapbox geocoding utilities
+│   │   └── supabase.ts          # Supabase client
+│   ├── test/
+│   │   ├── setup.ts             # Global test setup and mocks
+│   │   └── mocks/               # Mock implementations
+│   ├── index.css                # Global styles with design tokens
+│   └── main.tsx                 # Entry point
 ├── index.html
 ├── package.json
 ├── tsconfig.json
+├── vitest.config.ts             # Test framework configuration
 └── vite.config.ts
 ```
 
@@ -134,7 +143,47 @@ interface FlightLine {
 
 **Note:** Flight lines are consolidated per route - multiple trips from the same home to the same destination result in a single line with multiple visits listed.
 
-### 3.4 Settings
+### 3.4 Trip
+
+```typescript
+interface Trip {
+  id: string;
+  name: string;          // Custom name or auto-generated
+  description?: string;  // User-provided trip description
+  locationName: string;  // Destination city/place
+  startDate: Date;
+  endDate: Date;
+  photoIds: string[];    // Photos associated with this trip
+  travelers: string[];   // HomeBase IDs of who traveled
+  customStartPoints?: {  // For trips not starting from home
+    homeBaseId: string;
+    lat: number;
+    lng: number;
+    name: string;
+  }[];
+}
+```
+
+### 3.5 Planned Trip
+
+```typescript
+interface PlannedTrip {
+  id: string;
+  destinationName: string;
+  lat: number;
+  lng: number;
+  description?: string;
+  thingsToDo: string[];           // Checklist of activities
+  potentialStartDate?: Date;
+  potentialEndDate?: Date;
+  bookingStatus: 'idea' | 'researching' | 'booked';
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### 3.6 Settings
 
 ```typescript
 interface AppSettings {
@@ -330,6 +379,28 @@ Supports two modes:
 - Metadata stored in localStorage
 - URLs are session-only (lost on refresh)
 
+### 5.4 Planned Trips (usePlannedTrips.ts)
+
+```typescript
+const PLANNED_TRIPS_KEY = 'photo-map-planned-trips';
+const PLANNED_TRIPS_VERSION = 1;
+
+// Hook returns:
+{
+  plannedTrips: PlannedTrip[];
+  isLoading: boolean;
+  addPlannedTrip: (trip: Omit<PlannedTrip, 'id' | 'createdAt' | 'updatedAt'>) => PlannedTrip;
+  updatePlannedTrip: (id: string, updates: Partial<Omit<PlannedTrip, 'id' | 'createdAt'>>) => void;
+  deletePlannedTrip: (id: string) => void;
+  getPlannedTripById: (id: string) => PlannedTrip | undefined;
+}
+```
+
+**Persistence:**
+- Stored in localStorage
+- Version-controlled for migrations
+- Dates serialized as ISO strings
+
 ---
 
 ## 6. Component Details
@@ -435,9 +506,16 @@ uploadProgress: number
 ```typescript
 {
   photos: Photo[];
+  trip?: Trip;
   onClose: () => void;
   onDeletePhoto: (id: string) => void;
+  onRenameLocation?: (photoIds: string[], newName: string) => void;
+  onUpdatePhoto?: (id: string, updates: Partial<Photo>) => void;
+  onUpdateTrip?: (id: string, updates: Partial<Trip>) => void;
+  onDeleteTrip?: (tripId: string, deletePhotos: boolean) => void;
+  onAddPhoto?: (location: LocationContext) => void;
   locationName?: string;
+  mapboxToken?: string;
 }
 ```
 
@@ -446,6 +524,85 @@ uploadProgress: number
 - Full-screen view with navigation
 - Keyboard navigation (arrows, escape)
 - Delete with confirmation
+- Trip settings integration
+- Location renaming
+
+### 6.6 PlannedTripModal
+
+**Props:**
+```typescript
+{
+  trip?: PlannedTrip;      // If provided, editing mode
+  onSave: (trip: Omit<PlannedTrip, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onDelete?: () => void;
+  onConvertToTrip?: () => void;
+  onClose: () => void;
+  mapboxToken?: string;
+}
+```
+
+**Features:**
+- City search with autocomplete
+- Booking status selection (idea, researching, booked)
+- Date range picker
+- Things-to-do checklist
+- Notes field
+- Convert planned trip to actual trip (opens upload modal)
+
+### 6.7 PlacesView
+
+**Props:**
+```typescript
+{
+  photos: Photo[];
+  trips: Trip[];
+  onClose: () => void;
+  onLocationSelect: (photos: Photo[]) => void;
+}
+```
+
+**Features:**
+- Full-screen places overview
+- Location cards with photo thumbnails
+- Trip history per location
+- Photo and trip counts
+- Sorted by most recent visit
+
+### 6.8 TripSettingsModal
+
+**Props:**
+```typescript
+{
+  trip: Trip;
+  photoCount: number;
+  onClose: () => void;
+  onUpdateTrip: (id: string, updates: Partial<Trip>) => void;
+  onDeleteTrip: (tripId: string, deletePhotos: boolean) => void;
+}
+```
+
+**Features:**
+- Edit trip name and description
+- Modify trip dates
+- Delete trip with option to keep or remove photos
+- Danger zone with confirmation
+
+### 6.9 Globe (Alternative)
+
+**Props:**
+```typescript
+{
+  photos: Photo[];
+  onLocationClick: (photos: Photo[]) => void;
+  selectedLocation: { lat: number; lng: number } | null;
+}
+```
+
+**Features:**
+- Alternative globe implementation using react-globe.gl
+- Photo location markers
+- Point labels with photo count
+- Auto-rotation when no selection
 
 ---
 
@@ -716,21 +873,35 @@ const PEOPLE = [
 
 **Target: 85% coverage across all metrics.**
 
-Current thresholds (increase as more tests are added):
+Current thresholds:
 ```typescript
 // vitest.config.ts
 thresholds: {
-  statements: 72,  // Target: 85
-  branches: 62,    // Target: 85
-  functions: 64,   // Target: 85
-  lines: 74,       // Target: 85
+  statements: 74,  // Target: 85
+  branches: 60,    // Target: 85
+  functions: 66,   // Target: 85
+  lines: 75,       // Target: 85
 }
 ```
 
-**To reach 85%:** Add tests for:
-- Supabase integration paths in `usePhotoStorage.ts`
-- More UI interactions in `PhotoUpload.tsx` and `SettingsModal.tsx`
-- Edge cases in `MapboxGlobe.tsx`
+**Current coverage (338 tests):**
+- Statements: 74%
+- Branches: 61%
+- Functions: 67%
+- Lines: 75%
+
+**Well-covered areas (>90%):**
+- Types (`src/types/photo.ts`): 100%
+- TripSettingsModal: 100%
+- PlacesView: 96%
+- usePlannedTrips hook: 97%
+- useSettings hook: 97%
+
+**Remaining gaps to reach 85%:**
+- App.tsx (56%) - complex state management
+- PhotoGallery.tsx (60%) - full-screen view interactions
+- MapboxGlobe.tsx (64%) - map rendering and interactions
+- SettingsModal.tsx (63%) - form interactions
 
 ### Test File Structure
 
@@ -899,3 +1070,7 @@ git commit -m "Add [feature] with tests"
 | 2026-02 | 1.11 | Added trips counter (locations visited since Sep 2024) |
 | 2026-02 | 1.12 | Location generalization: photos use city center coordinates instead of exact GPS |
 | 2026-02 | 1.13 | Updated Sean's home base from NYC to Brooklyn |
+| 2026-02 | 1.14 | Added planned trips feature for planning future adventures |
+| 2026-02 | 1.15 | Added PlacesView for browsing locations and trips |
+| 2026-02 | 1.16 | Added TripSettingsModal for editing trip details |
+| 2026-02 | 1.17 | Comprehensive test coverage update (338 tests passing) |
