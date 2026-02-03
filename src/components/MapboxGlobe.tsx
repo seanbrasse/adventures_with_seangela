@@ -1,10 +1,10 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import Map, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
-import type { MapRef, MapLayerMouseEvent } from 'react-map-gl/mapbox';
+import type { MapRef } from 'react-map-gl/mapbox';
 import { format } from 'date-fns';
-import { Heart, Plane, Globe, Map as MapIcon, Home } from 'lucide-react';
+import { Heart, Plane, Globe, Map as MapIcon, Home, HelpCircle } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
-import type { Photo, HomeBase, Trip } from '../types/photo';
+import type { Photo, HomeBase, Trip, PlannedTrip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -294,6 +294,74 @@ const PopupTripCount = styled.p`
   }
 `;
 
+// Planned trip marker styles
+const PlannedTripMarkerContainer = styled.div`
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+`;
+
+const PlannedTripDot = styled.div<{ $status: 'idea' | 'researching' | 'booked' }>`
+  position: relative;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: ${({ $status }) =>
+    $status === 'booked' ? '#22c55e' :
+    $status === 'researching' ? '#3b82f6' :
+    '#f59e0b'};
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    color: white;
+  }
+`;
+
+const PlannedTripPopup = styled.div`
+  padding: 0.75rem;
+  min-width: 180px;
+`;
+
+const PlannedTripPopupTitle = styled.p`
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+`;
+
+const PlannedTripPopupStatus = styled.span<{ $status: 'idea' | 'researching' | 'booked' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: ${({ $status }) =>
+    $status === 'booked' ? 'rgba(34, 197, 94, 0.1)' :
+    $status === 'researching' ? 'rgba(59, 130, 246, 0.1)' :
+    'rgba(245, 158, 11, 0.1)'};
+  color: ${({ $status }) =>
+    $status === 'booked' ? '#16a34a' :
+    $status === 'researching' ? '#2563eb' :
+    '#d97706'};
+`;
+
+const PlannedTripPopupDate = styled.p`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.375rem;
+`;
+
 interface FlightLineVisit {
   date: Date;
   tripId: string;
@@ -312,7 +380,9 @@ interface FlightLine {
 interface MapboxGlobeProps {
   photos: Photo[];
   trips?: Trip[];
+  plannedTrips?: PlannedTrip[];
   onLocationClick: (photos: Photo[]) => void;
+  onPlannedTripClick?: (trip: PlannedTrip) => void;
   selectedLocation: { lat: number; lng: number } | null;
   accessToken: string;
   flightLines?: FlightLine[];
@@ -417,7 +487,9 @@ interface PointData {
 export default function MapboxGlobe({
   photos,
   trips = [],
+  plannedTrips = [],
   onLocationClick,
+  onPlannedTripClick,
   selectedLocation,
   accessToken,
   flightLines = [],
@@ -427,6 +499,7 @@ export default function MapboxGlobe({
   const mapRef = useRef<MapRef>(null);
   const [hoveredPoint, setHoveredPoint] = useState<PointData | null>(null);
   const [hoveredLine, setHoveredLine] = useState<(FlightLine & { midpoint: { lat: number; lng: number }; bearing: number }) | null>(null);
+  const [hoveredPlannedTrip, setHoveredPlannedTrip] = useState<PlannedTrip | null>(null);
   const [isMinimalStyle, setIsMinimalStyle] = useState(true); // Minimal is default
 
   // Map style URLs
@@ -710,7 +783,7 @@ export default function MapboxGlobe({
   }, [homeBases, sidebarCollapsed]);
 
   // Handle clicks on the flight line layers
-  const handleMapClick = useCallback((e: MapLayerMouseEvent) => {
+  const handleMapClick = useCallback((e: { features?: Array<{ properties?: { id?: string } }> }) => {
     if (!e.features || e.features.length === 0) return;
 
     const feature = e.features[0];
@@ -1002,6 +1075,61 @@ export default function MapboxGlobe({
               })()}
               <PopupHint>Click to view</PopupHint>
             </LocationPopup>
+          </Popup>
+        )}
+
+        {/* Planned trip markers */}
+        {plannedTrips.map((trip) => (
+          <Marker
+            key={`planned-${trip.id}`}
+            longitude={trip.lng}
+            latitude={trip.lat}
+            anchor="center"
+            onClick={(e: { originalEvent: MouseEvent }) => {
+              e.originalEvent.stopPropagation();
+              onPlannedTripClick?.(trip);
+            }}
+          >
+            <PlannedTripMarkerContainer
+              onMouseEnter={() => setHoveredPlannedTrip(trip)}
+              onMouseLeave={() => setHoveredPlannedTrip(null)}
+            >
+              <PlannedTripDot $status={trip.bookingStatus}>
+                <HelpCircle />
+              </PlannedTripDot>
+            </PlannedTripMarkerContainer>
+          </Marker>
+        ))}
+
+        {/* Planned trip popup */}
+        {hoveredPlannedTrip && (
+          <Popup
+            longitude={hoveredPlannedTrip.lng}
+            latitude={hoveredPlannedTrip.lat}
+            anchor="bottom"
+            closeButton={false}
+            closeOnClick={false}
+            offset={20}
+          >
+            <PlannedTripPopup>
+              <PlannedTripPopupTitle>
+                {hoveredPlannedTrip.destinationName}
+              </PlannedTripPopupTitle>
+              <PlannedTripPopupStatus $status={hoveredPlannedTrip.bookingStatus}>
+                {hoveredPlannedTrip.bookingStatus === 'booked' ? 'Booked' :
+                 hoveredPlannedTrip.bookingStatus === 'researching' ? 'Researching' :
+                 'Just an idea'}
+              </PlannedTripPopupStatus>
+              {hoveredPlannedTrip.potentialStartDate && (
+                <PlannedTripPopupDate>
+                  {format(hoveredPlannedTrip.potentialStartDate, 'MMM d, yyyy')}
+                  {hoveredPlannedTrip.potentialEndDate && (
+                    <> - {format(hoveredPlannedTrip.potentialEndDate, 'MMM d, yyyy')}</>
+                  )}
+                </PlannedTripPopupDate>
+              )}
+              <PopupHint>Click to edit</PopupHint>
+            </PlannedTripPopup>
           </Popup>
         )}
       </Map>

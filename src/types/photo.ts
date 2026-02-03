@@ -50,6 +50,21 @@ export interface Trip {
   }[];
 }
 
+export interface PlannedTrip {
+  id: string;
+  destinationName: string;
+  lat: number;
+  lng: number;
+  description?: string;
+  thingsToDo: string[];
+  potentialStartDate?: Date;
+  potentialEndDate?: Date;
+  bookingStatus: 'idea' | 'researching' | 'booked';
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface AppSettings {
   homeBases: HomeBase[];
 }

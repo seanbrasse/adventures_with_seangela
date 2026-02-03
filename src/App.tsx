@@ -7,10 +7,12 @@ import PhotoUpload from './components/PhotoUpload';
 import Sidebar from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
 import PlacesView from './components/PlacesView';
+import PlannedTripModal from './components/PlannedTripModal';
 import { usePhotoStorage } from './hooks/usePhotoStorage';
 import { useSettings } from './hooks/useSettings';
 import { useTrips } from './hooks/useTrips';
-import type { Photo } from './types/photo';
+import { usePlannedTrips } from './hooks/usePlannedTrips';
+import type { Photo, PlannedTrip } from './types/photo';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
 
@@ -620,8 +622,16 @@ function App() {
     resetToDefaults,
   } = useSettings();
   const { trips, flightLines, updateTrip, deleteTrip } = useTrips(photos, settings.homeBases);
+  const {
+    plannedTrips,
+    addPlannedTrip,
+    updatePlannedTrip,
+    deletePlannedTrip,
+  } = usePlannedTrips();
 
   const [showUpload, setShowUpload] = useState(false);
+  const [showPlannedTripModal, setShowPlannedTripModal] = useState(false);
+  const [editingPlannedTrip, setEditingPlannedTrip] = useState<PlannedTrip | undefined>(undefined);
   const [showGallery, setShowGallery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPlacesView, setShowPlacesView] = useState(false);
@@ -735,6 +745,51 @@ function App() {
     handleCloseGallery();
   }, [trips, removePhoto, deleteTrip, handleCloseGallery]);
 
+  // Planned trip handlers
+  const handleAddPlannedTrip = useCallback(() => {
+    setEditingPlannedTrip(undefined);
+    setShowPlannedTripModal(true);
+  }, []);
+
+  const handlePlannedTripClick = useCallback((trip: PlannedTrip) => {
+    setEditingPlannedTrip(trip);
+    setShowPlannedTripModal(true);
+  }, []);
+
+  const handleSavePlannedTrip = useCallback((tripData: Omit<PlannedTrip, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (editingPlannedTrip) {
+      updatePlannedTrip(editingPlannedTrip.id, tripData);
+    } else {
+      addPlannedTrip(tripData);
+    }
+    setShowPlannedTripModal(false);
+    setEditingPlannedTrip(undefined);
+  }, [editingPlannedTrip, addPlannedTrip, updatePlannedTrip]);
+
+  const handleDeletePlannedTrip = useCallback(() => {
+    if (editingPlannedTrip) {
+      deletePlannedTrip(editingPlannedTrip.id);
+      setShowPlannedTripModal(false);
+      setEditingPlannedTrip(undefined);
+    }
+  }, [editingPlannedTrip, deletePlannedTrip]);
+
+  const handleConvertPlannedTrip = useCallback(() => {
+    // Convert planned trip to show the upload modal with the location pre-filled
+    if (editingPlannedTrip) {
+      setUploadTargetLocation({
+        lat: editingPlannedTrip.lat,
+        lng: editingPlannedTrip.lng,
+        name: editingPlannedTrip.destinationName,
+      });
+      // Delete the planned trip
+      deletePlannedTrip(editingPlannedTrip.id);
+      setShowPlannedTripModal(false);
+      setEditingPlannedTrip(undefined);
+      setShowUpload(true);
+    }
+  }, [editingPlannedTrip, deletePlannedTrip]);
+
   if (isLoading) {
     return (
       <>
@@ -788,7 +843,15 @@ function App() {
           </SidebarHeader>
 
           <SidebarContent>
-            <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} onPlacesClick={handlePlacesClick} />
+            <Sidebar
+              photos={photos}
+              trips={trips}
+              plannedTrips={plannedTrips}
+              onLocationSelect={handleLocationClick}
+              onPlacesClick={handlePlacesClick}
+              onPlannedTripClick={handlePlannedTripClick}
+              onAddPlannedTrip={handleAddPlannedTrip}
+            />
           </SidebarContent>
         </MobileSidebarContainer>
 
@@ -803,7 +866,15 @@ function App() {
             </SidebarHeader>
 
             <SidebarContent>
-              <Sidebar photos={photos} trips={trips} onLocationSelect={handleLocationClick} onPlacesClick={handlePlacesClick} />
+              <Sidebar
+                photos={photos}
+                trips={trips}
+                plannedTrips={plannedTrips}
+                onLocationSelect={handleLocationClick}
+                onPlacesClick={handlePlacesClick}
+                onPlannedTripClick={handlePlannedTripClick}
+                onAddPlannedTrip={handleAddPlannedTrip}
+              />
             </SidebarContent>
 
             <SidebarFooter>
@@ -832,7 +903,9 @@ function App() {
             <MapboxGlobe
               photos={photos}
               trips={trips}
+              plannedTrips={plannedTrips}
               onLocationClick={handleLocationClick}
+              onPlannedTripClick={handlePlannedTripClick}
               selectedLocation={selectedLocation}
               accessToken={apiKey}
               flightLines={flightLines}
@@ -958,6 +1031,21 @@ function App() {
             onRemoveHomeBase={removeHomeBase}
             onResetToDefaults={resetToDefaults}
             onClose={() => setShowSettings(false)}
+            mapboxToken={apiKey}
+          />
+        )}
+
+        {/* Planned trip modal */}
+        {showPlannedTripModal && (
+          <PlannedTripModal
+            trip={editingPlannedTrip}
+            onSave={handleSavePlannedTrip}
+            onDelete={editingPlannedTrip ? handleDeletePlannedTrip : undefined}
+            onConvertToTrip={editingPlannedTrip ? handleConvertPlannedTrip : undefined}
+            onClose={() => {
+              setShowPlannedTripModal(false);
+              setEditingPlannedTrip(undefined);
+            }}
             mapboxToken={apiKey}
           />
         )}
