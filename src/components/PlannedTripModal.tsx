@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { X, MapPin, Plus, Trash2, Search, Loader2, Calendar, BookmarkCheck, Lightbulb, FileText } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
 import type { PlannedTrip } from '../types/photo';
 
 interface PlannedTripModalProps {
@@ -17,6 +18,507 @@ interface GeocodingResult {
   center: [number, number];
   text: string;
 }
+
+// Animations
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+// Styled Components
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+`;
+
+const Modal = styled.div`
+  background: linear-gradient(180deg, #16162a 0%, #111120 100%);
+  border-radius: 1.75rem;
+  max-width: 40rem;
+  width: 100%;
+  max-height: 88vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem 2.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+`;
+
+const HeaderContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const HeaderIcon = styled.div`
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(249, 115, 22, 0.15) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.15);
+
+  svg {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #fbbf24;
+  }
+`;
+
+const HeaderText = styled.div``;
+
+const Title = styled.h2`
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+`;
+
+const Subtitle = styled.p`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const CloseButton = styled.button`
+  padding: 0.875rem;
+  border-radius: 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: rgba(255, 255, 255, 0.6);
+  }
+`;
+
+const Content = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 2.5rem;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+`;
+
+const FormGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+`;
+
+const FormGroup = styled.div``;
+
+const Label = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.75rem;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+`;
+
+const SearchWrapper = styled.div`
+  position: relative;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 1rem 1.25rem 1rem 3.25rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  color: #ffffff;
+  font-size: 1.0625rem;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(251, 191, 36, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 1.125rem;
+  top: 50%;
+  transform: translateY(-50%);
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: rgba(255, 255, 255, 0.4);
+  }
+`;
+
+const LoadingIcon = styled.div`
+  position: absolute;
+  right: 1.125rem;
+  top: 50%;
+  transform: translateY(-50%);
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: rgba(255, 255, 255, 0.4);
+    animation: ${spin} 1s linear infinite;
+  }
+`;
+
+const ResultsList = styled.div`
+  position: absolute;
+  z-index: 10;
+  width: 100%;
+  margin-top: 0.5rem;
+  background: #1a1a28;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  overflow: hidden;
+  max-height: 14rem;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+`;
+
+const ResultItem = styled.button`
+  width: 100%;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: rgba(251, 191, 36, 0.1);
+  }
+`;
+
+const SelectedCity = styled.p`
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  color: #34d399;
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  color: #ffffff;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: none;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(251, 191, 36, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const DateRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const DateInput = styled.input`
+  flex: 1;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  color: #ffffff;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(251, 191, 36, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const DateSeparator = styled.span`
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1rem;
+`;
+
+const StatusGrid = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const StatusButton = styled.button<{ $active: boolean; $color: string }>`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid ${({ $active }) => ($active ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.06)')};
+  background: ${({ $active }) => ($active ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.03)')};
+  color: ${({ $active }) => ($active ? '#ffffff' : 'rgba(255, 255, 255, 0.5)')};
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${({ $active }) => ($active ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.06)')};
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: ${({ $active, $color }) => ($active ? $color : 'inherit')};
+  }
+`;
+
+const TodoList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+`;
+
+const TodoItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+`;
+
+const TodoText = styled.span`
+  flex: 1;
+  font-size: 1rem;
+  color: #ffffff;
+`;
+
+const TodoDeleteButton = styled.button`
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(248, 113, 113, 0.15);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  &:hover svg {
+    color: #f87171;
+  }
+`;
+
+const AddTodoRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const AddTodoInput = styled.input`
+  flex: 1;
+  padding: 0.875rem 1.125rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.875rem;
+  color: #ffffff;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(251, 191, 36, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const AddTodoButton = styled.button`
+  padding: 0.875rem 1rem;
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #ffffff;
+  }
+`;
+
+const Footer = styled.div`
+  padding: 1.75rem 2.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+`;
+
+const FooterButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+`;
+
+const DeleteButton = styled.button`
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  background: transparent;
+  border: none;
+  color: #f87171;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(248, 113, 113, 0.1);
+  }
+`;
+
+const ConvertButton = styled.button`
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  background: rgba(34, 197, 94, 0.15);
+  border: none;
+  color: #34d399;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(34, 197, 94, 0.25);
+  }
+`;
+
+const Spacer = styled.div`
+  flex: 1;
+`;
+
+const CancelButton = styled.button`
+  padding: 1rem 1.75rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+`;
+
+const SubmitButton = styled.button`
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border: none;
+  color: #1a1a28;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.25);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
 
 function formatDateForInput(date?: Date): string {
   if (!date) return '';
@@ -86,34 +588,34 @@ function CityAutocomplete({
   }, [value, searchCity]);
 
   return (
-    <div className="relative">
-      <div className="relative">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setShowResults(true);
-          }}
-          onFocus={() => setShowResults(true)}
-          onBlur={() => {
-            setTimeout(() => setShowResults(false), 200);
-          }}
-          placeholder="Search for a destination..."
-          className="w-full px-4 py-3 pl-11 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base placeholder-white/40 focus:outline-none focus:border-pink-500/50 focus:bg-white/[0.08] transition-all"
-        />
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-        {isLoading && (
-          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 animate-spin" />
-        )}
-      </div>
+    <SearchWrapper>
+      <SearchInput
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setShowResults(true);
+        }}
+        onFocus={() => setShowResults(true)}
+        onBlur={() => {
+          setTimeout(() => setShowResults(false), 200);
+        }}
+        placeholder="Search for a destination..."
+      />
+      <SearchIcon>
+        <Search />
+      </SearchIcon>
+      {isLoading && (
+        <LoadingIcon>
+          <Loader2 />
+        </LoadingIcon>
+      )}
 
       {showResults && results.length > 0 && (
-        <div className="absolute z-10 w-full mt-2 bg-[#1a1a28] border border-white/10 rounded-xl shadow-2xl max-h-56 overflow-y-auto">
+        <ResultsList>
           {results.map((result) => (
-            <button
+            <ResultItem
               key={result.id}
-              className="w-full px-4 py-3.5 text-left text-white text-base hover:bg-white/[0.06] transition-colors first:rounded-t-xl last:rounded-b-xl"
               onMouseDown={(e) => {
                 e.preventDefault();
                 onSelect(result);
@@ -121,18 +623,18 @@ function CityAutocomplete({
               }}
             >
               {result.place_name}
-            </button>
+            </ResultItem>
           ))}
-        </div>
+        </ResultsList>
       )}
-    </div>
+    </SearchWrapper>
   );
 }
 
 const BOOKING_STATUSES = [
-  { value: 'idea', label: 'Just an idea', icon: Lightbulb, color: 'text-yellow-400' },
-  { value: 'researching', label: 'Researching', icon: Search, color: 'text-blue-400' },
-  { value: 'booked', label: 'Booked', icon: BookmarkCheck, color: 'text-green-400' },
+  { value: 'idea', label: 'Idea', icon: Lightbulb, color: '#fbbf24' },
+  { value: 'researching', label: 'Researching', icon: Search, color: '#3b82f6' },
+  { value: 'booked', label: 'Booked', icon: BookmarkCheck, color: '#22c55e' },
 ] as const;
 
 export default function PlannedTripModal({
@@ -192,66 +694,61 @@ export default function PlannedTripModal({
   const isValid = formData.destinationName && formData.lat && formData.lng;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6">
-      <div className="bg-[#12121c] rounded-3xl max-w-xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white/10 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/8">
-          <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-amber-400" />
-            </div>
-            {trip ? 'Edit Planned Trip' : 'Plan a Trip'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-3 rounded-xl hover:bg-white/10 transition-colors"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
-        </div>
+    <Overlay>
+      <Modal>
+        <Header>
+          <HeaderContent>
+            <HeaderIcon>
+              <MapPin />
+            </HeaderIcon>
+            <HeaderText>
+              <Title>{trip ? 'Edit Trip' : 'Plan a Trip'}</Title>
+              <Subtitle>Where would you like to go?</Subtitle>
+            </HeaderText>
+          </HeaderContent>
+          <CloseButton onClick={onClose}>
+            <X />
+          </CloseButton>
+        </Header>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Destination */}
-          <div>
-            <label className="text-white/60 text-sm mb-2 block font-medium">Destination</label>
-            <CityAutocomplete
-              value={destinationSearch}
-              onChange={setDestinationSearch}
-              onSelect={handleDestinationSelect}
-              mapboxToken={mapboxToken}
-            />
-            {formData.destinationName && (
-              <p className="text-green-400 text-sm mt-2">
-                Selected: {formData.destinationName}
-              </p>
-            )}
-          </div>
+        <Content>
+          <FormGrid>
+            <FormGroup>
+              <Label>
+                <MapPin />
+                Destination
+              </Label>
+              <CityAutocomplete
+                value={destinationSearch}
+                onChange={setDestinationSearch}
+                onSelect={handleDestinationSelect}
+                mapboxToken={mapboxToken}
+              />
+              {formData.destinationName && (
+                <SelectedCity>Selected: {formData.destinationName}</SelectedCity>
+              )}
+            </FormGroup>
 
-          {/* Description */}
-          <div>
-            <label className="text-white/60 text-sm mb-2 block font-medium flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="What's this trip about?"
-              rows={2}
-              className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base placeholder-white/40 focus:outline-none focus:border-pink-500/50 focus:bg-white/[0.08] transition-all resize-none"
-            />
-          </div>
+            <FormGroup>
+              <Label>
+                <FileText />
+                Description
+              </Label>
+              <TextArea
+                value={formData.description}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="What's this trip about?"
+                rows={2}
+              />
+            </FormGroup>
 
-          {/* Potential Dates */}
-          <div>
-            <label className="text-white/60 text-sm mb-2 block font-medium flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Potential Dates
-            </label>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <input
+            <FormGroup>
+              <Label>
+                <Calendar />
+                Potential Dates
+              </Label>
+              <DateRow>
+                <DateInput
                   type="date"
                   value={formatDateForInput(formData.potentialStartDate)}
                   onChange={(e) =>
@@ -260,12 +757,9 @@ export default function PlannedTripModal({
                       potentialStartDate: parseDateInput(e.target.value),
                     }))
                   }
-                  className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
                 />
-              </div>
-              <span className="text-white/40 self-center">to</span>
-              <div className="flex-1">
-                <input
+                <DateSeparator>to</DateSeparator>
+                <DateInput
                   type="date"
                   value={formatDateForInput(formData.potentialEndDate)}
                   onChange={(e) =>
@@ -274,124 +768,87 @@ export default function PlannedTripModal({
                       potentialEndDate: parseDateInput(e.target.value),
                     }))
                   }
-                  className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
                 />
-              </div>
-            </div>
-          </div>
+              </DateRow>
+            </FormGroup>
 
-          {/* Booking Status */}
-          <div>
-            <label className="text-white/60 text-sm mb-2 block font-medium">Status</label>
-            <div className="flex gap-2">
-              {BOOKING_STATUSES.map((status) => {
-                const Icon = status.icon;
-                const isSelected = formData.bookingStatus === status.value;
-                return (
-                  <button
-                    key={status.value}
-                    onClick={() => setFormData((prev) => ({ ...prev, bookingStatus: status.value }))}
-                    className={`flex-1 px-4 py-3 rounded-xl border transition-all flex items-center justify-center gap-2 text-sm font-medium ${
-                      isSelected
-                        ? 'bg-white/10 border-white/20 text-white'
-                        : 'bg-white/[0.03] border-white/5 text-white/50 hover:bg-white/[0.06] hover:border-white/10'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 ${isSelected ? status.color : ''}`} />
-                    {status.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+            <FormGroup>
+              <Label>Status</Label>
+              <StatusGrid>
+                {BOOKING_STATUSES.map((status) => {
+                  const Icon = status.icon;
+                  const isSelected = formData.bookingStatus === status.value;
+                  return (
+                    <StatusButton
+                      key={status.value}
+                      $active={isSelected}
+                      $color={status.color}
+                      onClick={() => setFormData((prev) => ({ ...prev, bookingStatus: status.value }))}
+                    >
+                      <Icon />
+                      {status.label}
+                    </StatusButton>
+                  );
+                })}
+              </StatusGrid>
+            </FormGroup>
 
-          {/* Things To Do */}
-          <div>
-            <label className="text-white/60 text-sm mb-2 block font-medium">Things to Do</label>
-            <div className="space-y-2 mb-3">
-              {formData.thingsToDo.map((todo, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.04] rounded-xl border border-white/5"
-                >
-                  <span className="flex-1 text-white text-sm">{todo}</span>
-                  <button
-                    onClick={() => handleRemoveTodo(index)}
-                    className="p-1.5 text-white/40 hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newTodo}
-                onChange={(e) => setNewTodo(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
-                placeholder="Add something to do..."
-                className="flex-1 px-4 py-2.5 bg-white/[0.06] border border-white/10 rounded-xl text-white text-sm placeholder-white/40 focus:outline-none focus:border-pink-500/50"
+            <FormGroup>
+              <Label>Things to Do</Label>
+              {formData.thingsToDo.length > 0 && (
+                <TodoList>
+                  {formData.thingsToDo.map((todo, index) => (
+                    <TodoItem key={index}>
+                      <TodoText>{todo}</TodoText>
+                      <TodoDeleteButton onClick={() => handleRemoveTodo(index)}>
+                        <Trash2 />
+                      </TodoDeleteButton>
+                    </TodoItem>
+                  ))}
+                </TodoList>
+              )}
+              <AddTodoRow>
+                <AddTodoInput
+                  type="text"
+                  value={newTodo}
+                  onChange={(e) => setNewTodo(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
+                  placeholder="Add something to do..."
+                />
+                <AddTodoButton onClick={handleAddTodo} disabled={!newTodo.trim()}>
+                  <Plus />
+                </AddTodoButton>
+              </AddTodoRow>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Notes</Label>
+              <TextArea
+                value={formData.notes}
+                onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                placeholder="Any additional notes..."
+                rows={3}
               />
-              <button
-                onClick={handleAddTodo}
-                disabled={!newTodo.trim()}
-                className="px-4 py-2.5 bg-white/10 hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors"
-              >
-                <Plus className="w-5 h-5 text-white" />
-              </button>
-            </div>
-          </div>
+            </FormGroup>
+          </FormGrid>
+        </Content>
 
-          {/* Notes */}
-          <div>
-            <label className="text-white/60 text-sm mb-2 block font-medium">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-              placeholder="Any additional notes..."
-              rows={3}
-              className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base placeholder-white/40 focus:outline-none focus:border-pink-500/50 focus:bg-white/[0.08] transition-all resize-none"
-            />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-white/8">
-          <div className="flex gap-3">
+        <Footer>
+          <FooterButtons>
             {trip && onDelete && (
-              <button
-                onClick={onDelete}
-                className="px-5 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors"
-              >
-                Delete
-              </button>
+              <DeleteButton onClick={onDelete}>Delete</DeleteButton>
             )}
             {trip && onConvertToTrip && (
-              <button
-                onClick={onConvertToTrip}
-                className="px-5 py-3 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-xl transition-colors font-medium"
-              >
-                Convert to Trip
-              </button>
+              <ConvertButton onClick={onConvertToTrip}>Convert to Trip</ConvertButton>
             )}
-            <div className="flex-1" />
-            <button
-              onClick={onClose}
-              className="px-5 py-3 text-white/60 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!isValid}
-              className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-amber-500/25"
-            >
+            <Spacer />
+            <CancelButton onClick={onClose}>Cancel</CancelButton>
+            <SubmitButton onClick={handleSave} disabled={!isValid}>
               {trip ? 'Save Changes' : 'Add Trip'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+            </SubmitButton>
+          </FooterButtons>
+        </Footer>
+      </Modal>
+    </Overlay>
   );
 }

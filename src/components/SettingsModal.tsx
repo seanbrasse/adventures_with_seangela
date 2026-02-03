@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { X, MapPin, User, RotateCcw, Plus, Calendar, Home, Search, Loader2 } from 'lucide-react';
+import styled, { keyframes } from 'styled-components';
 import type { HomeBase } from '../types/photo';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -25,6 +26,576 @@ interface GeocodingResult {
   center: [number, number]; // [lng, lat]
   text: string;
 }
+
+// Animations
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+// Styled Components
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+`;
+
+const Modal = styled.div`
+  background: linear-gradient(180deg, #16162a 0%, #111120 100%);
+  border-radius: 1.75rem;
+  max-width: 40rem;
+  width: 100%;
+  max-height: 88vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem 2.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+`;
+
+const HeaderContent = styled.div`
+  flex: 1;
+`;
+
+const Title = styled.h2`
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+`;
+
+const Subtitle = styled.p`
+  font-size: 1.0625rem;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const CloseButton = styled.button`
+  padding: 0.875rem;
+  border-radius: 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: rgba(255, 255, 255, 0.6);
+  }
+`;
+
+const Content = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 2.5rem;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const SectionIcon = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: #f472b6;
+  }
+`;
+
+const ResetButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+`;
+
+const SectionDescription = styled.p`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.6;
+  margin-bottom: 2rem;
+`;
+
+const PersonSection = styled.div`
+  margin-bottom: 2.5rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const PersonHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+`;
+
+const PersonAvatar = styled.div<{ $color: string }>`
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  background: ${({ $color }) => $color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px ${({ $color }) => $color}40;
+
+  svg {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #ffffff;
+  }
+`;
+
+const PersonName = styled.span`
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: #ffffff;
+`;
+
+const HomeBasesList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin-left: 1rem;
+`;
+
+const HomeBaseCard = styled.div`
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+const HomeBaseDisplay = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+`;
+
+const HomeBaseInfo = styled.div`
+  flex: 1;
+`;
+
+const HomeBaseCity = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+const CityName = styled.span`
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: #ffffff;
+`;
+
+const Badge = styled.span<{ $variant: 'permanent' | 'temporary' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: ${({ $variant }) =>
+    $variant === 'permanent' ? 'rgba(236, 72, 153, 0.15)' : 'rgba(251, 191, 36, 0.15)'};
+  color: ${({ $variant }) =>
+    $variant === 'permanent' ? '#f472b6' : '#fbbf24'};
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+`;
+
+const HomeBaseDates = styled.p`
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.4);
+`;
+
+const EditBadge = styled.span`
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
+
+const AddHomeBaseCard = styled.button`
+  width: 100%;
+  padding: 1.5rem;
+  border: 2px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 1.25rem;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.02);
+    color: #ffffff;
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+`;
+
+const AddHomeBaseForm = styled.div`
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  border: 2px dashed rgba(255, 255, 255, 0.12);
+`;
+
+const FormTitle = styled.h4`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 1.5rem;
+`;
+
+const FormGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+`;
+
+const FormGroup = styled.div``;
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.625rem;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.875rem 1.125rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.875rem;
+  color: #ffffff;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(236, 72, 153, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 0.875rem 1.125rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.875rem;
+  color: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(236, 72, 153, 0.5);
+  }
+
+  option {
+    background: #1a1a28;
+    color: #ffffff;
+  }
+`;
+
+const DateRow = styled.div`
+  display: flex;
+  gap: 1rem;
+`;
+
+const FormActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+`;
+
+const CancelButton = styled.button`
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+`;
+
+const SubmitButton = styled.button`
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.25);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const DeleteButton = styled.button`
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.875rem;
+  background: transparent;
+  border: none;
+  color: #f87171;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(248, 113, 113, 0.1);
+  }
+`;
+
+const Footer = styled.div`
+  padding: 1.75rem 2.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+`;
+
+const DoneButton = styled.button`
+  width: 100%;
+  padding: 1.125rem 2rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+    transform: translateY(-1px);
+  }
+`;
+
+const SearchWrapper = styled.div`
+  position: relative;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 0.875rem 1.125rem 0.875rem 3rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.875rem;
+  color: #ffffff;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(236, 72, 153, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: rgba(255, 255, 255, 0.4);
+  }
+`;
+
+const LoadingIcon = styled.div`
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: rgba(255, 255, 255, 0.4);
+    animation: ${spin} 1s linear infinite;
+  }
+`;
+
+const ResultsList = styled.div`
+  position: absolute;
+  z-index: 10;
+  width: 100%;
+  margin-top: 0.5rem;
+  background: #1a1a28;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.875rem;
+  overflow: hidden;
+  max-height: 14rem;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+`;
+
+const ResultItem = styled.button`
+  width: 100%;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: rgba(236, 72, 153, 0.1);
+  }
+`;
+
+const SelectedCity = styled.p`
+  margin-top: 0.625rem;
+  font-size: 0.875rem;
+  color: #34d399;
+`;
+
+const CurrentCity = styled.p`
+  margin-top: 0.625rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.4);
+`;
 
 function formatDateForInput(date?: Date): string {
   if (!date) return '';
@@ -52,7 +623,6 @@ function CityAutocomplete({
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const searchCity = useCallback(
     async (query: string) => {
@@ -63,7 +633,6 @@ function CityAutocomplete({
 
       setIsLoading(true);
       try {
-        // Include neighborhood and district for specific locations like "Bushwick"
         const response = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
             query
@@ -96,36 +665,34 @@ function CityAutocomplete({
   }, [value, searchCity]);
 
   return (
-    <div className="relative">
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setShowResults(true);
-          }}
-          onFocus={() => setShowResults(true)}
-          onBlur={() => {
-            // Delay hiding to allow click on result
-            setTimeout(() => setShowResults(false), 200);
-          }}
-          placeholder="Search for a neighborhood or city..."
-          className="w-full px-4 py-3 pl-11 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base placeholder-white/40 focus:outline-none focus:border-pink-500/50 focus:bg-white/[0.08] transition-all"
-        />
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-        {isLoading && (
-          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 animate-spin" />
-        )}
-      </div>
+    <SearchWrapper>
+      <SearchInput
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setShowResults(true);
+        }}
+        onFocus={() => setShowResults(true)}
+        onBlur={() => {
+          setTimeout(() => setShowResults(false), 200);
+        }}
+        placeholder="Search for a neighborhood or city..."
+      />
+      <SearchIcon>
+        <Search />
+      </SearchIcon>
+      {isLoading && (
+        <LoadingIcon>
+          <Loader2 />
+        </LoadingIcon>
+      )}
 
       {showResults && results.length > 0 && (
-        <div className="absolute z-10 w-full mt-2 bg-[#1a1a28] border border-white/10 rounded-xl shadow-2xl max-h-56 overflow-y-auto">
+        <ResultsList>
           {results.map((result) => (
-            <button
+            <ResultItem
               key={result.id}
-              className="w-full px-4 py-3.5 text-left text-white text-base hover:bg-white/[0.06] transition-colors first:rounded-t-xl last:rounded-b-xl"
               onMouseDown={(e) => {
                 e.preventDefault();
                 onSelect(result);
@@ -133,11 +700,11 @@ function CityAutocomplete({
               }}
             >
               {result.place_name}
-            </button>
+            </ResultItem>
           ))}
-        </div>
+        </ResultsList>
       )}
-    </div>
+    </SearchWrapper>
   );
 }
 
@@ -235,227 +802,196 @@ export default function SettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6">
-      <div className="bg-[#12121c] rounded-3xl max-w-xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white/10 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/8">
-          <h2 className="text-2xl font-semibold text-white">Settings</h2>
-          <button
-            onClick={onClose}
-            className="p-3 rounded-xl hover:bg-white/10 transition-colors"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
-        </div>
+    <Overlay>
+      <Modal>
+        <Header>
+          <HeaderContent>
+            <Title>Settings</Title>
+            <Subtitle>Manage your home locations and preferences</Subtitle>
+          </HeaderContent>
+          <CloseButton onClick={onClose}>
+            <X />
+          </CloseButton>
+        </Header>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-medium text-white flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-pink-400" />
-                </div>
-                Home Bases
-              </h3>
-              <button
-                onClick={onResetToDefaults}
-                className="flex items-center gap-2 px-4 py-2 text-base text-white/60 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Reset
-              </button>
-            </div>
-            <p className="text-white/60 text-base mb-6 leading-relaxed">
-              Manage home locations for each person. Temporary homes override permanent ones during their active dates.
-            </p>
+        <Content>
+          <SectionHeader>
+            <SectionTitle>
+              <SectionIcon>
+                <MapPin />
+              </SectionIcon>
+              Home Bases
+            </SectionTitle>
+            <ResetButton onClick={onResetToDefaults}>
+              <RotateCcw />
+              Reset
+            </ResetButton>
+          </SectionHeader>
 
-            {/* People sections */}
-            {PEOPLE.map((person) => (
-              <div key={person.id} className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
-                    style={{ backgroundColor: person.color }}
-                  >
-                    <User className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-white font-semibold text-xl">{person.name}</span>
-                </div>
+          <SectionDescription>
+            Manage home locations for each person. Temporary homes override permanent ones during their active dates.
+          </SectionDescription>
 
-                <div className="space-y-3 ml-15">
-                  {groupedHomeBases[person.id]?.map((homeBase) => (
-                    <div
-                      key={homeBase.id}
-                      className="bg-white/[0.04] rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all"
-                    >
-                      {editingId === homeBase.id ? (
-                        <EditHomeBaseForm
-                          homeBase={homeBase}
-                          mapboxToken={mapboxToken}
-                          onUpdate={(updates) => onUpdateHomeBase(homeBase.id, updates)}
-                          onCitySelect={(result) => handleEditCitySelect(homeBase.id, result)}
-                          onDelete={() => {
-                            onRemoveHomeBase(homeBase.id);
-                            setEditingId(null);
-                          }}
-                          onDone={() => setEditingId(null)}
-                          canDelete={!homeBase.isPermanent || groupedHomeBases[person.id].length > 1}
-                        />
-                      ) : (
-                        <div
-                          className="flex items-center gap-4 cursor-pointer"
-                          onClick={() => setEditingId(homeBase.id)}
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <span className="text-white text-base font-medium">{homeBase.city}</span>
-                              {homeBase.isPermanent ? (
-                                <span className="text-sm px-3 py-1 bg-pink-500/20 text-pink-300 rounded-full flex items-center gap-1.5">
-                                  <Home className="w-3.5 h-3.5" />
-                                  Permanent
-                                </span>
-                              ) : (
-                                <span className="text-sm px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full flex items-center gap-1.5">
-                                  <Calendar className="w-3.5 h-3.5" />
-                                  Temporary
-                                </span>
-                              )}
-                            </div>
-                            {!homeBase.isPermanent && homeBase.startDate && homeBase.endDate && (
-                              <p className="text-white/50 text-sm mt-2">
-                                {homeBase.startDate.toLocaleDateString()} - {homeBase.endDate.toLocaleDateString()}
-                              </p>
+          {PEOPLE.map((person) => (
+            <PersonSection key={person.id}>
+              <PersonHeader>
+                <PersonAvatar $color={person.color}>
+                  <User />
+                </PersonAvatar>
+                <PersonName>{person.name}</PersonName>
+              </PersonHeader>
+
+              <HomeBasesList>
+                {groupedHomeBases[person.id]?.map((homeBase) => (
+                  <HomeBaseCard key={homeBase.id}>
+                    {editingId === homeBase.id ? (
+                      <EditHomeBaseForm
+                        homeBase={homeBase}
+                        mapboxToken={mapboxToken}
+                        onUpdate={(updates) => onUpdateHomeBase(homeBase.id, updates)}
+                        onCitySelect={(result) => handleEditCitySelect(homeBase.id, result)}
+                        onDelete={() => {
+                          onRemoveHomeBase(homeBase.id);
+                          setEditingId(null);
+                        }}
+                        onDone={() => setEditingId(null)}
+                        canDelete={!homeBase.isPermanent || groupedHomeBases[person.id].length > 1}
+                      />
+                    ) : (
+                      <HomeBaseDisplay onClick={() => setEditingId(homeBase.id)}>
+                        <HomeBaseInfo>
+                          <HomeBaseCity>
+                            <CityName>{homeBase.city}</CityName>
+                            {homeBase.isPermanent ? (
+                              <Badge $variant="permanent">
+                                <Home />
+                                Permanent
+                              </Badge>
+                            ) : (
+                              <Badge $variant="temporary">
+                                <Calendar />
+                                Temporary
+                              </Badge>
                             )}
-                          </div>
-                          <span className="text-white/40 text-sm px-3 py-1.5 bg-white/5 rounded-lg">Edit</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {/* Add home base form for this person */}
-                  {addingForPerson === person.id ? (
-                    <div className="bg-white/[0.04] rounded-2xl p-6 border-2 border-dashed border-white/15">
-                      <h4 className="text-white text-lg font-medium mb-5">Add Home Base</h4>
-                      <div className="space-y-5">
-                        <div>
-                          <label className="text-white/60 text-sm mb-2 block font-medium">City</label>
-                          <CityAutocomplete
-                            value={newCitySearch}
-                            onChange={setNewCitySearch}
-                            onSelect={handleCitySelect}
-                            mapboxToken={mapboxToken}
-                          />
-                          {newHomeBase.city && (
-                            <p className="text-green-400 text-sm mt-2">
-                              Selected: {newHomeBase.city} ({newHomeBase.lat.toFixed(4)}, {newHomeBase.lng.toFixed(4)})
-                            </p>
+                          </HomeBaseCity>
+                          {!homeBase.isPermanent && homeBase.startDate && homeBase.endDate && (
+                            <HomeBaseDates>
+                              {homeBase.startDate.toLocaleDateString()} - {homeBase.endDate.toLocaleDateString()}
+                            </HomeBaseDates>
                           )}
-                        </div>
+                        </HomeBaseInfo>
+                        <EditBadge>Edit</EditBadge>
+                      </HomeBaseDisplay>
+                    )}
+                  </HomeBaseCard>
+                ))}
 
-                        <div>
-                          <label className="text-white/60 text-sm mb-2 block font-medium">Type</label>
-                          <select
-                            value={newHomeBase.isPermanent ? 'permanent' : 'temporary'}
-                            onChange={(e) =>
-                              setNewHomeBase((prev) => ({
-                                ...prev,
-                                isPermanent: e.target.value === 'permanent',
-                              }))
-                            }
-                            className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
-                          >
-                            <option value="temporary">Temporary</option>
-                            <option value="permanent">Permanent</option>
-                          </select>
-                        </div>
-
-                        {!newHomeBase.isPermanent && (
-                          <div className="flex gap-4">
-                            <div className="flex-1">
-                              <label className="text-white/60 text-sm mb-2 block font-medium">Start Date</label>
-                              <input
-                                type="date"
-                                value={formatDateForInput(newHomeBase.startDate)}
-                                onChange={(e) =>
-                                  setNewHomeBase((prev) => ({
-                                    ...prev,
-                                    startDate: parseDateInput(e.target.value),
-                                  }))
-                                }
-                                className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <label className="text-white/60 text-sm mb-2 block font-medium">End Date</label>
-                              <input
-                                type="date"
-                                value={formatDateForInput(newHomeBase.endDate)}
-                                onChange={(e) =>
-                                  setNewHomeBase((prev) => ({
-                                    ...prev,
-                                    endDate: parseDateInput(e.target.value),
-                                  }))
-                                }
-                                className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
-                              />
-                            </div>
-                          </div>
+                {addingForPerson === person.id ? (
+                  <AddHomeBaseForm>
+                    <FormTitle>Add Home Base</FormTitle>
+                    <FormGrid>
+                      <FormGroup>
+                        <Label>City</Label>
+                        <CityAutocomplete
+                          value={newCitySearch}
+                          onChange={setNewCitySearch}
+                          onSelect={handleCitySelect}
+                          mapboxToken={mapboxToken}
+                        />
+                        {newHomeBase.city && (
+                          <SelectedCity>
+                            Selected: {newHomeBase.city} ({newHomeBase.lat.toFixed(4)}, {newHomeBase.lng.toFixed(4)})
+                          </SelectedCity>
                         )}
+                      </FormGroup>
 
-                        <div className="flex justify-end gap-3 pt-2">
-                          <button
-                            onClick={() => {
-                              setAddingForPerson(null);
-                              setNewCitySearch('');
-                              setNewHomeBase({
-                                city: '',
-                                lat: 0,
-                                lng: 0,
-                                isPermanent: false,
-                              });
-                            }}
-                            className="px-5 py-2.5 text-white/60 hover:text-white hover:bg-white/10 text-base rounded-xl transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleAddHomeBase(person.id)}
-                            disabled={!newHomeBase.city}
-                            className="px-5 py-2.5 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-xl text-base font-medium hover:from-pink-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-pink-500/25"
-                          >
-                            Add Home Base
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setAddingForPerson(person.id)}
-                      className="w-full p-4 border-2 border-dashed border-white/15 rounded-2xl text-white/60 hover:text-white hover:border-white/30 hover:bg-white/[0.02] transition-all flex items-center justify-center gap-3 text-base"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Add Home Base for {person.name}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                      <FormGroup>
+                        <Label>Type</Label>
+                        <Select
+                          value={newHomeBase.isPermanent ? 'permanent' : 'temporary'}
+                          onChange={(e) =>
+                            setNewHomeBase((prev) => ({
+                              ...prev,
+                              isPermanent: e.target.value === 'permanent',
+                            }))
+                          }
+                        >
+                          <option value="temporary">Temporary</option>
+                          <option value="permanent">Permanent</option>
+                        </Select>
+                      </FormGroup>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-white/8">
-          <button
-            onClick={onClose}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-600 text-white text-lg font-medium hover:from-pink-600 hover:to-pink-700 transition-all shadow-lg shadow-pink-500/25"
-          >
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
+                      {!newHomeBase.isPermanent && (
+                        <DateRow>
+                          <FormGroup style={{ flex: 1 }}>
+                            <Label>Start Date</Label>
+                            <Input
+                              type="date"
+                              value={formatDateForInput(newHomeBase.startDate)}
+                              onChange={(e) =>
+                                setNewHomeBase((prev) => ({
+                                  ...prev,
+                                  startDate: parseDateInput(e.target.value),
+                                }))
+                              }
+                            />
+                          </FormGroup>
+                          <FormGroup style={{ flex: 1 }}>
+                            <Label>End Date</Label>
+                            <Input
+                              type="date"
+                              value={formatDateForInput(newHomeBase.endDate)}
+                              onChange={(e) =>
+                                setNewHomeBase((prev) => ({
+                                  ...prev,
+                                  endDate: parseDateInput(e.target.value),
+                                }))
+                              }
+                            />
+                          </FormGroup>
+                        </DateRow>
+                      )}
+
+                      <FormActions>
+                        <CancelButton
+                          onClick={() => {
+                            setAddingForPerson(null);
+                            setNewCitySearch('');
+                            setNewHomeBase({
+                              city: '',
+                              lat: 0,
+                              lng: 0,
+                              isPermanent: false,
+                            });
+                          }}
+                        >
+                          Cancel
+                        </CancelButton>
+                        <SubmitButton
+                          onClick={() => handleAddHomeBase(person.id)}
+                          disabled={!newHomeBase.city}
+                        >
+                          Add Home Base
+                        </SubmitButton>
+                      </FormActions>
+                    </FormGrid>
+                  </AddHomeBaseForm>
+                ) : (
+                  <AddHomeBaseCard onClick={() => setAddingForPerson(person.id)}>
+                    <Plus />
+                    Add Home Base for {person.name}
+                  </AddHomeBaseCard>
+                )}
+              </HomeBasesList>
+            </PersonSection>
+          ))}
+        </Content>
+
+        <Footer>
+          <DoneButton onClick={onClose}>Done</DoneButton>
+        </Footer>
+      </Modal>
+    </Overlay>
   );
 }
 
@@ -480,9 +1016,9 @@ function EditHomeBaseForm({
   const [citySearch, setCitySearch] = useState(homeBase.city);
 
   return (
-    <div className="space-y-5">
-      <div>
-        <label className="text-white/60 text-sm mb-2 block font-medium">City</label>
+    <FormGrid>
+      <FormGroup>
+        <Label>City</Label>
         <CityAutocomplete
           value={citySearch}
           onChange={setCitySearch}
@@ -492,14 +1028,14 @@ function EditHomeBaseForm({
           }}
           mapboxToken={mapboxToken}
         />
-        <p className="text-white/50 text-sm mt-2">
+        <CurrentCity>
           Current: {homeBase.city} ({homeBase.lat.toFixed(4)}, {homeBase.lng.toFixed(4)})
-        </p>
-      </div>
+        </CurrentCity>
+      </FormGroup>
 
-      <div>
-        <label className="text-white/60 text-sm mb-2 block font-medium">Type</label>
-        <select
+      <FormGroup>
+        <Label>Type</Label>
+        <Select
           value={homeBase.isPermanent ? 'permanent' : 'temporary'}
           onChange={(e) =>
             onUpdate({
@@ -508,70 +1044,54 @@ function EditHomeBaseForm({
               endDate: e.target.value === 'permanent' ? undefined : homeBase.endDate,
             })
           }
-          className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
         >
           <option value="temporary">Temporary</option>
           <option value="permanent">Permanent</option>
-        </select>
-      </div>
+        </Select>
+      </FormGroup>
 
       {!homeBase.isPermanent && (
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="text-white/60 text-sm mb-2 block font-medium">Start Date</label>
-            <input
+        <DateRow>
+          <FormGroup style={{ flex: 1 }}>
+            <Label>Start Date</Label>
+            <Input
               type="date"
               value={formatDateForInput(homeBase.startDate)}
               onChange={(e) =>
                 onUpdate({ startDate: parseDateInput(e.target.value) })
               }
-              className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
             />
-          </div>
-          <div className="flex-1">
-            <label className="text-white/60 text-sm mb-2 block font-medium">End Date</label>
-            <input
+          </FormGroup>
+          <FormGroup style={{ flex: 1 }}>
+            <Label>End Date</Label>
+            <Input
               type="date"
               value={formatDateForInput(homeBase.endDate)}
               onChange={(e) =>
                 onUpdate({ endDate: parseDateInput(e.target.value) })
               }
-              className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
             />
-          </div>
-        </div>
+          </FormGroup>
+        </DateRow>
       )}
 
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <label className="text-white/60 text-sm mb-2 block font-medium">Radius (km)</label>
-          <input
-            type="number"
-            value={homeBase.radius}
-            onChange={(e) => onUpdate({ radius: parseInt(e.target.value) || 40 })}
-            className="w-full px-4 py-3 bg-white/[0.06] border border-white/10 rounded-xl text-white text-base focus:outline-none focus:border-pink-500/50"
-          />
-        </div>
-      </div>
+      <FormGroup>
+        <Label>Radius (km)</Label>
+        <Input
+          type="number"
+          value={homeBase.radius}
+          onChange={(e) => onUpdate({ radius: parseInt(e.target.value) || 40 })}
+        />
+      </FormGroup>
 
-      <div className="flex justify-between pt-3">
+      <FormActions style={{ justifyContent: 'space-between' }}>
         {canDelete ? (
-          <button
-            onClick={onDelete}
-            className="px-5 py-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 text-base rounded-xl transition-colors"
-          >
-            Delete
-          </button>
+          <DeleteButton onClick={onDelete}>Delete</DeleteButton>
         ) : (
           <div />
         )}
-        <button
-          onClick={onDone}
-          className="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-xl text-base font-medium hover:from-pink-600 hover:to-pink-700 transition-all shadow-lg shadow-pink-500/25"
-        >
-          Done
-        </button>
-      </div>
-    </div>
+        <SubmitButton onClick={onDone}>Done</SubmitButton>
+      </FormActions>
+    </FormGrid>
   );
 }
