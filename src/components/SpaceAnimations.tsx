@@ -5,7 +5,8 @@ import { loadEmittersPlugin } from '@tsparticles/plugin-emitters';
 import styled from 'styled-components';
 import type { ISourceOptions } from '@tsparticles/engine';
 
-const Container = styled.div`
+// Container for comets in front of the globe
+const FrontContainer = styled.div`
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -13,7 +14,16 @@ const Container = styled.div`
   z-index: 5;
 `;
 
-const particlesConfig: ISourceOptions = {
+// Container for comets behind the globe
+const BackContainer = styled.div`
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+`;
+
+const createParticlesConfig = (yRange: { min: number; max: number }, delayRange: { min: number; max: number }): ISourceOptions => ({
   fullScreen: false,
   fpsLimit: 60,
   background: {
@@ -30,7 +40,13 @@ const particlesConfig: ISourceOptions = {
       type: 'circle',
     },
     opacity: {
-      value: { min: 0.7, max: 1 },
+      value: 1,
+      animation: {
+        enable: true,
+        speed: 0.3,
+        startValue: 'max',
+        destroy: 'min',
+      },
     },
     size: {
       value: { min: 1, max: 2 },
@@ -38,11 +54,11 @@ const particlesConfig: ISourceOptions = {
     shadow: {
       enable: true,
       color: '#aaccff',
-      blur: 12,
+      blur: 15,
     },
     move: {
       enable: true,
-      speed: 8,
+      speed: 10,
       direction: 'left',
       straight: true,
       outModes: {
@@ -51,7 +67,7 @@ const particlesConfig: ISourceOptions = {
     },
     life: {
       duration: {
-        value: 12,
+        value: 10,
       },
       count: 1,
     },
@@ -61,20 +77,43 @@ const particlesConfig: ISourceOptions = {
       direction: 'left',
       position: {
         x: 100,
-        y: { min: 5, max: 95 },
+        y: yRange,
       },
       rate: {
-        quantity: 1,
-        delay: { min: 20, max: 35 },
+        quantity: 8, // Emit multiple particles to create trail
+        delay: delayRange,
       },
       size: {
         width: 0,
         height: 0,
       },
+      particles: {
+        size: {
+          value: { min: 0.5, max: 2 },
+        },
+        opacity: {
+          value: { min: 0.3, max: 1 },
+        },
+        move: {
+          speed: { min: 8, max: 12 },
+        },
+      },
     },
   ],
   detectRetina: true,
-};
+});
+
+// Config for front comets
+const frontConfig = createParticlesConfig(
+  { min: 5, max: 45 },
+  { min: 25, max: 40 }
+);
+
+// Config for back comets (different height range)
+const backConfig = createParticlesConfig(
+  { min: 55, max: 95 },
+  { min: 30, max: 50 }
+);
 
 export default function SpaceAnimations() {
   const [init, setInit] = useState(false);
@@ -91,16 +130,29 @@ export default function SpaceAnimations() {
   if (!init) return null;
 
   return (
-    <Container>
-      <Particles
-        id="space-particles"
-        options={particlesConfig}
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-        }}
-      />
-    </Container>
+    <>
+      <BackContainer>
+        <Particles
+          id="space-particles-back"
+          options={backConfig}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+          }}
+        />
+      </BackContainer>
+      <FrontContainer>
+        <Particles
+          id="space-particles-front"
+          options={frontConfig}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+          }}
+        />
+      </FrontContainer>
+    </>
   );
 }
