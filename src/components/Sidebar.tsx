@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { MapPin, Heart, Image, Sparkles, Plane, Plus, Lightbulb, Search, BookmarkCheck } from 'lucide-react';
+import { MapPin, Heart, Image, Sparkles, Plane, Plus, Lightbulb, Search, BookmarkCheck, Map } from 'lucide-react';
 import { differenceInMonths } from 'date-fns';
 import styled from 'styled-components';
 import type { Photo, Trip, PlannedTrip } from '../types/photo';
@@ -390,6 +390,97 @@ const StatusBadge = styled.span<{ $status: 'idea' | 'researching' | 'booked' }>`
     '#f59e0b'};
 `;
 
+const ToggleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0.625rem;
+  margin-bottom: 1rem;
+`;
+
+const ToggleButton = styled.button<{ $active: boolean }>`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: ${({ $active }) => $active ? 'rgba(255, 255, 255, 0.1)' : 'transparent'};
+  color: ${({ $active }) => $active ? '#ffffff' : 'rgba(255, 255, 255, 0.4)'};
+
+  &:hover {
+    background: ${({ $active }) => $active ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.06)'};
+    color: ${({ $active }) => $active ? '#ffffff' : 'rgba(255, 255, 255, 0.6)'};
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const SectionHeaderWithAdd = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+`;
+
+const PlannedTripsEmpty = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+`;
+
+const PlannedTripsEmptyIcon = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.875rem;
+`;
+
+const PlannedTripsEmptyText = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 1rem;
+`;
+
+const AddPlannedTripButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+`;
+
 export default function Sidebar({
   photos,
   trips = [],
@@ -419,6 +510,8 @@ export default function Sidebar({
 
     return locs.sort((a, b) => b.latestDate.getTime() - a.latestDate.getTime());
   }, [photos]);
+
+  const [viewMode, setViewMode] = useState<'trips' | 'planned'>('trips');
 
   const stats = useMemo(() => {
     const totalPhotos = photos.length;
@@ -506,97 +599,124 @@ export default function Sidebar({
 
       <LocationsSection>
         <LocationsInner>
-          <SectionTitle>Your Trips</SectionTitle>
-          <LocationsList>
-            {locations.map((loc) => {
-              const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
-              return (
-                <LocationCard
-                  key={loc.key}
-                  onClick={() => onLocationSelect(loc.photos)}
-                >
-                  <Thumbnail>
-                    <img
-                      src={loc.photos[0].thumbnail}
-                      alt=""
-                    />
-                  </Thumbnail>
+          <ToggleContainer>
+            <ToggleButton
+              $active={viewMode === 'trips'}
+              onClick={() => setViewMode('trips')}
+            >
+              <Image size={14} />
+              Your Trips
+            </ToggleButton>
+            <ToggleButton
+              $active={viewMode === 'planned'}
+              onClick={() => setViewMode('planned')}
+            >
+              <Map size={14} />
+              Planned
+            </ToggleButton>
+          </ToggleContainer>
 
-                  <LocationInfo>
-                    <LocationName>
-                      {locationName}
-                    </LocationName>
-                    <LocationMeta>
-                      <span>
-                        {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
-                      </span>
-                      <MetaDot>•</MetaDot>
-                      <span>
-                        {format(loc.latestDate, 'MMM d, yyyy')}
-                      </span>
-                    </LocationMeta>
-                  </LocationInfo>
-                </LocationCard>
-              );
-            })}
-          </LocationsList>
-
-          {/* Planned Trips Section */}
-          <div style={{ marginTop: '1.5rem' }}>
-            <SectionHeader>
-              <SectionTitle style={{ marginBottom: 0 }}>Planned Adventures</SectionTitle>
-              {onAddPlannedTrip && (
-                <AddButton onClick={onAddPlannedTrip} title="Plan a new trip">
-                  <Plus size={14} />
-                </AddButton>
-              )}
-            </SectionHeader>
+          {viewMode === 'trips' ? (
             <LocationsList>
-              {plannedTrips.map((trip) => {
-                const StatusIcon = trip.bookingStatus === 'booked' ? BookmarkCheck :
-                                   trip.bookingStatus === 'researching' ? Search :
-                                   Lightbulb;
+              {locations.map((loc) => {
+                const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
                 return (
-                  <PlannedTripCard
-                    key={trip.id}
-                    onClick={() => onPlannedTripClick?.(trip)}
+                  <LocationCard
+                    key={loc.key}
+                    onClick={() => onLocationSelect(loc.photos)}
                   >
-                    <PlannedTripIcon $status={trip.bookingStatus}>
-                      <StatusIcon />
-                    </PlannedTripIcon>
-                    <PlannedTripInfo>
-                      <PlannedTripName>
-                        {trip.destinationName}
-                      </PlannedTripName>
-                      <PlannedTripMeta>
-                        <StatusBadge $status={trip.bookingStatus}>
-                          {trip.bookingStatus === 'booked' ? 'Booked' :
-                           trip.bookingStatus === 'researching' ? 'Researching' :
-                           'Just an idea'}
-                        </StatusBadge>
-                        {trip.potentialStartDate && (
-                          <>
-                            <MetaDot>•</MetaDot>
-                            <span>{format(trip.potentialStartDate, 'MMM yyyy')}</span>
-                          </>
-                        )}
-                      </PlannedTripMeta>
-                    </PlannedTripInfo>
-                  </PlannedTripCard>
+                    <Thumbnail>
+                      <img
+                        src={loc.photos[0].thumbnail}
+                        alt=""
+                      />
+                    </Thumbnail>
+
+                    <LocationInfo>
+                      <LocationName>
+                        {locationName}
+                      </LocationName>
+                      <LocationMeta>
+                        <span>
+                          {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
+                        </span>
+                        <MetaDot>•</MetaDot>
+                        <span>
+                          {format(loc.latestDate, 'MMM d, yyyy')}
+                        </span>
+                      </LocationMeta>
+                    </LocationInfo>
+                  </LocationCard>
                 );
               })}
-              {plannedTrips.length === 0 && (
-                <PlannedTripCard
-                  onClick={onAddPlannedTrip}
-                  style={{ justifyContent: 'center', padding: '1.25rem' }}
-                >
-                  <span style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '0.875rem' }}>
-                    + Plan your next adventure
-                  </span>
-                </PlannedTripCard>
-              )}
             </LocationsList>
-          </div>
+          ) : (
+            <>
+              {plannedTrips.length > 0 && (
+                <SectionHeaderWithAdd>
+                  <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.4)' }}>
+                    {plannedTrips.length} planned trip{plannedTrips.length !== 1 ? 's' : ''}
+                  </span>
+                  {onAddPlannedTrip && (
+                    <AddButton onClick={onAddPlannedTrip} title="Plan a new trip">
+                      <Plus size={14} />
+                    </AddButton>
+                  )}
+                </SectionHeaderWithAdd>
+              )}
+              <LocationsList>
+                {plannedTrips.map((trip) => {
+                  const StatusIcon = trip.bookingStatus === 'booked' ? BookmarkCheck :
+                                     trip.bookingStatus === 'researching' ? Search :
+                                     Lightbulb;
+                  return (
+                    <PlannedTripCard
+                      key={trip.id}
+                      onClick={() => onPlannedTripClick?.(trip)}
+                    >
+                      <PlannedTripIcon $status={trip.bookingStatus}>
+                        <StatusIcon />
+                      </PlannedTripIcon>
+                      <PlannedTripInfo>
+                        <PlannedTripName>
+                          {trip.destinationName}
+                        </PlannedTripName>
+                        <PlannedTripMeta>
+                          <StatusBadge $status={trip.bookingStatus}>
+                            {trip.bookingStatus === 'booked' ? 'Booked' :
+                             trip.bookingStatus === 'researching' ? 'Researching' :
+                             'Just an idea'}
+                          </StatusBadge>
+                          {trip.potentialStartDate && (
+                            <>
+                              <MetaDot>•</MetaDot>
+                              <span>{format(trip.potentialStartDate, 'MMM yyyy')}</span>
+                            </>
+                          )}
+                        </PlannedTripMeta>
+                      </PlannedTripInfo>
+                    </PlannedTripCard>
+                  );
+                })}
+              </LocationsList>
+              {plannedTrips.length === 0 && (
+                <PlannedTripsEmpty>
+                  <PlannedTripsEmptyIcon>
+                    <Map size={20} color="rgba(255, 255, 255, 0.4)" />
+                  </PlannedTripsEmptyIcon>
+                  <PlannedTripsEmptyText>
+                    No planned trips yet
+                  </PlannedTripsEmptyText>
+                  {onAddPlannedTrip && (
+                    <AddPlannedTripButton onClick={onAddPlannedTrip}>
+                      <Plus size={14} />
+                      Plan a trip
+                    </AddPlannedTripButton>
+                  )}
+                </PlannedTripsEmpty>
+              )}
+            </>
+          )}
         </LocationsInner>
       </LocationsSection>
     </Container>

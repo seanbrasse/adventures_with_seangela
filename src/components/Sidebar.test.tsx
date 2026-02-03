@@ -208,11 +208,11 @@ describe('Sidebar component', () => {
     render(<Sidebar photos={photos} onLocationSelect={mockOnLocationSelect} />);
 
     const locationCards = screen.getAllByRole('button');
-    // First button is "Locations" stat card, then location cards
+    // Button order: Locations stat card, "Your Trips" toggle, "Planned" toggle, then location cards
     // Dubai should be first (most recent), then London, then New York
-    expect(locationCards[1]).toHaveTextContent('Dubai');
-    expect(locationCards[2]).toHaveTextContent('London');
-    expect(locationCards[3]).toHaveTextContent('New York');
+    expect(locationCards[3]).toHaveTextContent('Dubai');
+    expect(locationCards[4]).toHaveTextContent('London');
+    expect(locationCards[5]).toHaveTextContent('New York');
   });
 
   it('should handle photos at 0,0 coordinates', () => {
