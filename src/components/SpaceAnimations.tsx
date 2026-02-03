@@ -95,12 +95,11 @@ const createParticlesConfig = (yRange: { min: number; max: number }, delayRange:
         height: 0,
       },
       life: {
-        duration: 0.8, // Emitter only active briefly
-        count: 1,
-        delay: delayRange.min,
+        duration: 0.6, // Emitter active briefly to create one comet
+        count: 0, // Infinite repeats
+        delay: delayRange.min, // Wait between comets
         wait: true,
       },
-      startCount: 0,
     },
   ],
   detectRetina: true,
