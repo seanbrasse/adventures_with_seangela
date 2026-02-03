@@ -782,18 +782,6 @@ export default function Sidebar({
 
           {viewMode === 'trips' ? (
             <>
-              {locations.length > 0 && (
-                <SectionHeaderWithAdd>
-                  <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.4)' }}>
-                    {locations.length} trip{locations.length !== 1 ? 's' : ''}
-                  </span>
-                  {onAddPhotos && (
-                    <AddButton onClick={onAddPhotos} title="Add photos">
-                      <Plus size={14} />
-                    </AddButton>
-                  )}
-                </SectionHeaderWithAdd>
-              )}
               {locations.length > 0 ? (
                 <LocationsList>
                   {locations.map((loc) => {
@@ -850,18 +838,6 @@ export default function Sidebar({
             </>
           ) : (
             <>
-              {plannedTrips.length > 0 && (
-                <SectionHeaderWithAdd>
-                  <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.4)' }}>
-                    {plannedTrips.length} planned trip{plannedTrips.length !== 1 ? 's' : ''}
-                  </span>
-                  {onAddPlannedTrip && (
-                    <AddButton onClick={onAddPlannedTrip} title="Plan a new trip">
-                      <Plus size={14} />
-                    </AddButton>
-                  )}
-                </SectionHeaderWithAdd>
-              )}
               <LocationsList>
                 {plannedTrips.map((trip) => {
                   const StatusIcon = trip.bookingStatus === 'booked' ? BookmarkCheck :
