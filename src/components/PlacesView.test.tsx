@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import PlacesView from './PlacesView';
-import type { Photo, Trip } from '../types/photo';
+import type { Photo, Trip, PlannedTrip } from '../types/photo';
 
 describe('PlacesView', () => {
   const mockOnClose = vi.fn();
@@ -234,5 +234,184 @@ describe('PlacesView', () => {
 
     expect(screen.getByText('2 photos from this trip')).toBeInTheDocument();
     expect(screen.getByText('1 photo from this trip')).toBeInTheDocument();
+  });
+
+  // Toggle and Planned Trips tests
+  describe('toggle functionality', () => {
+    it('should render Past and Planned toggle buttons', () => {
+      render(<PlacesView {...defaultProps} />);
+
+      expect(screen.getByText('Past')).toBeInTheDocument();
+      expect(screen.getByText('Planned')).toBeInTheDocument();
+    });
+
+    it('should show past trips by default', () => {
+      render(<PlacesView {...defaultProps} />);
+
+      // Past toggle should be active and show past trips content
+      expect(screen.getByText('Paris')).toBeInTheDocument();
+      expect(screen.getByText('Tokyo')).toBeInTheDocument();
+    });
+
+    it('should switch to planned trips view when clicking Planned toggle', () => {
+      render(<PlacesView {...defaultProps} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+
+      // Should show empty state for planned trips (no planned trips provided)
+      expect(screen.getByText('No planned trips yet')).toBeInTheDocument();
+    });
+
+    it('should switch back to past trips when clicking Past toggle', () => {
+      render(<PlacesView {...defaultProps} />);
+
+      // Switch to planned
+      fireEvent.click(screen.getByText('Planned'));
+      expect(screen.getByText('No planned trips yet')).toBeInTheDocument();
+
+      // Switch back to past
+      fireEvent.click(screen.getByText('Past'));
+      expect(screen.getByText('Paris')).toBeInTheDocument();
+    });
+  });
+
+  describe('planned trips view', () => {
+    const mockPlannedTrips: PlannedTrip[] = [
+      {
+        id: 'planned-1',
+        destinationName: 'Barcelona',
+        lat: 41.3851,
+        lng: 2.1734,
+        description: 'Beach vacation',
+        thingsToDo: ['La Sagrada Familia', 'Beach'],
+        bookingStatus: 'booked',
+        createdAt: new Date('2025-01-01'),
+        updatedAt: new Date('2025-01-01'),
+        potentialStartDate: new Date('2026-07-15'),
+      },
+      {
+        id: 'planned-2',
+        destinationName: 'Iceland',
+        lat: 64.9631,
+        lng: -19.0208,
+        description: 'Northern lights trip',
+        thingsToDo: ['Northern lights', 'Blue Lagoon'],
+        bookingStatus: 'researching',
+        createdAt: new Date('2025-01-01'),
+        updatedAt: new Date('2025-01-01'),
+      },
+      {
+        id: 'planned-3',
+        destinationName: 'New Zealand',
+        lat: -41.2865,
+        lng: 174.7762,
+        thingsToDo: [],
+        bookingStatus: 'idea',
+        createdAt: new Date('2025-01-01'),
+        updatedAt: new Date('2025-01-01'),
+      },
+    ];
+
+    const mockOnPlannedTripClick = vi.fn();
+    const mockOnAddPlannedTrip = vi.fn();
+
+    const propsWithPlannedTrips = {
+      ...defaultProps,
+      plannedTrips: mockPlannedTrips,
+      onPlannedTripClick: mockOnPlannedTripClick,
+      onAddPlannedTrip: mockOnAddPlannedTrip,
+    };
+
+    beforeEach(() => {
+      mockOnPlannedTripClick.mockClear();
+      mockOnAddPlannedTrip.mockClear();
+    });
+
+    it('should display planned trips when in planned view', () => {
+      render(<PlacesView {...propsWithPlannedTrips} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+
+      expect(screen.getByText('Barcelona')).toBeInTheDocument();
+      expect(screen.getByText('Iceland')).toBeInTheDocument();
+      expect(screen.getByText('New Zealand')).toBeInTheDocument();
+    });
+
+    it('should show booking status badges', () => {
+      render(<PlacesView {...propsWithPlannedTrips} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+
+      expect(screen.getByText('Booked')).toBeInTheDocument();
+      expect(screen.getByText('Researching')).toBeInTheDocument();
+      expect(screen.getByText('Just an idea')).toBeInTheDocument();
+    });
+
+    it('should show trip description when available', () => {
+      render(<PlacesView {...propsWithPlannedTrips} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+
+      expect(screen.getByText('Beach vacation')).toBeInTheDocument();
+      expect(screen.getByText('Northern lights trip')).toBeInTheDocument();
+    });
+
+    it('should call onPlannedTripClick when clicking a planned trip', () => {
+      render(<PlacesView {...propsWithPlannedTrips} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+
+      const barcelonaCard = screen.getByText('Barcelona').closest('button');
+      if (barcelonaCard) {
+        fireEvent.click(barcelonaCard);
+      }
+
+      expect(mockOnPlannedTripClick).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'planned-1', destinationName: 'Barcelona' })
+      );
+    });
+
+    it('should show Add button in header when there are planned trips', () => {
+      render(<PlacesView {...propsWithPlannedTrips} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+
+      expect(screen.getByText('Add')).toBeInTheDocument();
+    });
+
+    it('should call onAddPlannedTrip when clicking Add button', () => {
+      render(<PlacesView {...propsWithPlannedTrips} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+      fireEvent.click(screen.getByText('Add'));
+
+      expect(mockOnAddPlannedTrip).toHaveBeenCalled();
+    });
+
+    it('should show Plan a Trip button in empty state', () => {
+      render(<PlacesView {...defaultProps} onAddPlannedTrip={mockOnAddPlannedTrip} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+
+      expect(screen.getByText('Plan a Trip')).toBeInTheDocument();
+    });
+
+    it('should call onAddPlannedTrip when clicking Plan a Trip in empty state', () => {
+      render(<PlacesView {...defaultProps} onAddPlannedTrip={mockOnAddPlannedTrip} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+      fireEvent.click(screen.getByText('Plan a Trip'));
+
+      expect(mockOnAddPlannedTrip).toHaveBeenCalled();
+    });
+
+    it('should show potential start date when available', () => {
+      render(<PlacesView {...propsWithPlannedTrips} />);
+
+      fireEvent.click(screen.getByText('Planned'));
+
+      // Barcelona has potentialStartDate of July 2026
+      expect(screen.getByText(/Jul 2026/)).toBeInTheDocument();
+    });
   });
 });

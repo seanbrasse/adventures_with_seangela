@@ -846,11 +846,8 @@ function App() {
             <Sidebar
               photos={photos}
               trips={trips}
-              plannedTrips={plannedTrips}
               onLocationSelect={handleLocationClick}
               onPlacesClick={handlePlacesClick}
-              onPlannedTripClick={handlePlannedTripClick}
-              onAddPlannedTrip={handleAddPlannedTrip}
             />
           </SidebarContent>
         </MobileSidebarContainer>
@@ -869,11 +866,8 @@ function App() {
               <Sidebar
                 photos={photos}
                 trips={trips}
-                plannedTrips={plannedTrips}
                 onLocationSelect={handleLocationClick}
                 onPlacesClick={handlePlacesClick}
-                onPlannedTripClick={handlePlannedTripClick}
-                onAddPlannedTrip={handleAddPlannedTrip}
               />
             </SidebarContent>
 
@@ -1017,8 +1011,11 @@ function App() {
           <PlacesView
             photos={photos}
             trips={trips}
+            plannedTrips={plannedTrips}
             onClose={() => setShowPlacesView(false)}
             onLocationSelect={handleLocationClick}
+            onPlannedTripClick={handlePlannedTripClick}
+            onAddPlannedTrip={handleAddPlannedTrip}
           />
         )}
 

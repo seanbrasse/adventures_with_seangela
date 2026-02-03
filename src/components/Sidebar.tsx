@@ -1,19 +1,16 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { MapPin, Heart, Image, Sparkles, Plane, Plus, Lightbulb, Search, BookmarkCheck } from 'lucide-react';
+import { MapPin, Heart, Image, Sparkles, Plane } from 'lucide-react';
 import { differenceInMonths } from 'date-fns';
 import styled from 'styled-components';
-import type { Photo, Trip, PlannedTrip } from '../types/photo';
+import type { Photo, Trip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
 
 interface SidebarProps {
   photos: Photo[];
   trips?: Trip[];
-  plannedTrips?: PlannedTrip[];
   onLocationSelect: (photos: Photo[]) => void;
   onPlacesClick?: () => void;
-  onPlannedTripClick?: (trip: PlannedTrip) => void;
-  onAddPlannedTrip?: () => void;
 }
 
 // Styled Components
@@ -281,123 +278,11 @@ const MetaDot = styled.span`
   color: rgba(255, 255, 255, 0.2);
 `;
 
-const SectionHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-`;
-
-const AddButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.9);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-`;
-
-const PlannedTripCard = styled.button`
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.875rem;
-  padding: 0.875rem;
-  background: transparent;
-  border: none;
-  border-radius: 0.875rem;
-  transition: all 0.15s ease;
-  text-align: left;
-  cursor: pointer;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  &:active {
-    background: rgba(255, 255, 255, 0.08);
-    transform: scale(0.99);
-  }
-`;
-
-const PlannedTripIcon = styled.div<{ $status: 'idea' | 'researching' | 'booked' }>`
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
-  background: ${({ $status }) =>
-    $status === 'booked' ? 'rgba(34, 197, 94, 0.15)' :
-    $status === 'researching' ? 'rgba(59, 130, 246, 0.15)' :
-    'rgba(245, 158, 11, 0.15)'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-
-  svg {
-    width: 1.125rem;
-    height: 1.125rem;
-    color: ${({ $status }) =>
-      $status === 'booked' ? '#22c55e' :
-      $status === 'researching' ? '#3b82f6' :
-      '#f59e0b'};
-  }
-`;
-
-const PlannedTripInfo = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const PlannedTripName = styled.p`
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: #ffffff;
-  margin-bottom: 0.25rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const PlannedTripMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.8125rem;
-`;
-
-const StatusBadge = styled.span<{ $status: 'idea' | 'researching' | 'booked' }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  color: ${({ $status }) =>
-    $status === 'booked' ? '#22c55e' :
-    $status === 'researching' ? '#3b82f6' :
-    '#f59e0b'};
-`;
-
 export default function Sidebar({
   photos,
   trips = [],
-  plannedTrips = [],
   onLocationSelect,
   onPlacesClick,
-  onPlannedTripClick,
-  onAddPlannedTrip,
 }: SidebarProps) {
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
@@ -540,63 +425,6 @@ export default function Sidebar({
               );
             })}
           </LocationsList>
-
-          {/* Planned Trips Section */}
-          <div style={{ marginTop: '1.5rem' }}>
-            <SectionHeader>
-              <SectionTitle style={{ marginBottom: 0 }}>Planned Adventures</SectionTitle>
-              {onAddPlannedTrip && (
-                <AddButton onClick={onAddPlannedTrip} title="Plan a new trip">
-                  <Plus size={14} />
-                </AddButton>
-              )}
-            </SectionHeader>
-            <LocationsList>
-              {plannedTrips.map((trip) => {
-                const StatusIcon = trip.bookingStatus === 'booked' ? BookmarkCheck :
-                                   trip.bookingStatus === 'researching' ? Search :
-                                   Lightbulb;
-                return (
-                  <PlannedTripCard
-                    key={trip.id}
-                    onClick={() => onPlannedTripClick?.(trip)}
-                  >
-                    <PlannedTripIcon $status={trip.bookingStatus}>
-                      <StatusIcon />
-                    </PlannedTripIcon>
-                    <PlannedTripInfo>
-                      <PlannedTripName>
-                        {trip.destinationName}
-                      </PlannedTripName>
-                      <PlannedTripMeta>
-                        <StatusBadge $status={trip.bookingStatus}>
-                          {trip.bookingStatus === 'booked' ? 'Booked' :
-                           trip.bookingStatus === 'researching' ? 'Researching' :
-                           'Just an idea'}
-                        </StatusBadge>
-                        {trip.potentialStartDate && (
-                          <>
-                            <MetaDot>•</MetaDot>
-                            <span>{format(trip.potentialStartDate, 'MMM yyyy')}</span>
-                          </>
-                        )}
-                      </PlannedTripMeta>
-                    </PlannedTripInfo>
-                  </PlannedTripCard>
-                );
-              })}
-              {plannedTrips.length === 0 && (
-                <PlannedTripCard
-                  onClick={onAddPlannedTrip}
-                  style={{ justifyContent: 'center', padding: '1.25rem' }}
-                >
-                  <span style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '0.875rem' }}>
-                    + Plan your next adventure
-                  </span>
-                </PlannedTripCard>
-              )}
-            </LocationsList>
-          </div>
         </LocationsInner>
       </LocationsSection>
     </Container>
