@@ -23,8 +23,7 @@ const BackContainer = styled.div`
   z-index: 0;
 `;
 
-// Simple config that should definitely work
-const particlesConfig: ISourceOptions = {
+const createCometConfig = (delay: number): ISourceOptions => ({
   fullScreen: false,
   fpsLimit: 60,
   background: {
@@ -42,42 +41,72 @@ const particlesConfig: ISourceOptions = {
     },
     opacity: {
       value: 1,
+      animation: {
+        enable: true,
+        speed: 0.8,
+        startValue: 'max',
+        destroy: 'min',
+      },
     },
     size: {
-      value: 3,
+      value: { min: 1, max: 3 },
+      animation: {
+        enable: true,
+        speed: 1.5,
+        startValue: 'max',
+        destroy: 'min',
+      },
     },
     shadow: {
       enable: true,
-      color: '#ffffff',
+      color: '#aaddff',
       blur: 10,
     },
     move: {
       enable: true,
-      speed: 20,
-      direction: 'left',
+      speed: 12,
+      direction: 'right',
       straight: true,
       outModes: {
         default: 'destroy',
       },
     },
+    life: {
+      duration: {
+        value: 2,
+      },
+      count: 1,
+    },
   },
   emitters: {
-    direction: 'left',
+    direction: 'right',
     position: {
-      x: 100,
-      y: 50,
+      x: 0,
+      y: { min: 10, max: 90 },
     },
     rate: {
       quantity: 1,
-      delay: 2,
+      delay: 0.02,
     },
     size: {
       width: 0,
-      height: 50,
+      height: 0,
+    },
+    life: {
+      duration: 0.5,
+      count: 0,
+      delay: delay,
+      wait: true,
     },
   },
   detectRetina: true,
-};
+});
+
+// Front comets - appear every 20-30 seconds
+const frontConfig = createCometConfig(25);
+
+// Back comets - appear every 30-40 seconds
+const backConfig = createCometConfig(35);
 
 export default function SpaceAnimations() {
   const [init, setInit] = useState(false);
@@ -88,25 +117,35 @@ export default function SpaceAnimations() {
       await loadEmittersPlugin(engine);
     }).then(() => {
       setInit(true);
-      console.log('Particles engine initialized');
     });
   }, []);
-
-  console.log('SpaceAnimations render, init:', init);
 
   if (!init) return null;
 
   return (
-    <FrontContainer>
-      <Particles
-        id="space-particles"
-        options={particlesConfig}
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-        }}
-      />
-    </FrontContainer>
+    <>
+      <BackContainer>
+        <Particles
+          id="space-particles-back"
+          options={backConfig}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+          }}
+        />
+      </BackContainer>
+      <FrontContainer>
+        <Particles
+          id="space-particles-front"
+          options={frontConfig}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+          }}
+        />
+      </FrontContainer>
+    </>
   );
 }
