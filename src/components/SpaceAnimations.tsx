@@ -23,7 +23,8 @@ const BackContainer = styled.div`
   z-index: 0;
 `;
 
-const createParticlesConfig = (yRange: { min: number; max: number }, delayRange: { min: number; max: number }): ISourceOptions => ({
+// Simple config that should definitely work
+const particlesConfig: ISourceOptions = {
   fullScreen: false,
   fpsLimit: 60,
   background: {
@@ -41,81 +42,42 @@ const createParticlesConfig = (yRange: { min: number; max: number }, delayRange:
     },
     opacity: {
       value: 1,
-      animation: {
-        enable: true,
-        speed: 1,
-        startValue: 'max',
-        destroy: 'min',
-      },
     },
     size: {
-      value: 2,
-      animation: {
-        enable: true,
-        speed: 2,
-        startValue: 'max',
-        destroy: 'min',
-        minimumValue: 0.1,
-      },
+      value: 3,
     },
     shadow: {
       enable: true,
-      color: '#aaddff',
-      blur: 8,
+      color: '#ffffff',
+      blur: 10,
     },
     move: {
       enable: true,
-      speed: 15,
+      speed: 20,
       direction: 'left',
       straight: true,
       outModes: {
         default: 'destroy',
       },
     },
-    life: {
-      duration: {
-        value: 1.5,
-      },
-      count: 1,
+  },
+  emitters: {
+    direction: 'left',
+    position: {
+      x: 100,
+      y: 50,
+    },
+    rate: {
+      quantity: 1,
+      delay: 2,
+    },
+    size: {
+      width: 0,
+      height: 50,
     },
   },
-  emitters: [
-    {
-      direction: 'left',
-      position: {
-        x: 100,
-        y: yRange,
-      },
-      rate: {
-        quantity: 1,
-        delay: 0.015, // Very rapid emission for continuous tail
-      },
-      size: {
-        width: 0,
-        height: 0,
-      },
-      life: {
-        duration: 0.6, // Emitter active briefly to create one comet
-        count: 0, // Infinite repeats
-        delay: delayRange.min, // Wait between comets
-        wait: true,
-      },
-    },
-  ],
   detectRetina: true,
-});
-
-// Config for front comets
-const frontConfig = createParticlesConfig(
-  { min: 5, max: 45 },
-  { min: 25, max: 40 }
-);
-
-// Config for back comets (different height range)
-const backConfig = createParticlesConfig(
-  { min: 55, max: 95 },
-  { min: 30, max: 50 }
-);
+};
 
 export default function SpaceAnimations() {
   const [init, setInit] = useState(false);
@@ -126,35 +88,25 @@ export default function SpaceAnimations() {
       await loadEmittersPlugin(engine);
     }).then(() => {
       setInit(true);
+      console.log('Particles engine initialized');
     });
   }, []);
+
+  console.log('SpaceAnimations render, init:', init);
 
   if (!init) return null;
 
   return (
-    <>
-      <BackContainer>
-        <Particles
-          id="space-particles-back"
-          options={backConfig}
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-          }}
-        />
-      </BackContainer>
-      <FrontContainer>
-        <Particles
-          id="space-particles-front"
-          options={frontConfig}
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-          }}
-        />
-      </FrontContainer>
-    </>
+    <FrontContainer>
+      <Particles
+        id="space-particles"
+        options={particlesConfig}
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+        }}
+      />
+    </FrontContainer>
   );
 }
