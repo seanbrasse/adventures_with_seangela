@@ -16,8 +16,8 @@ interface SettingsModalProps {
 
 // Fixed people - cannot add or remove
 const PEOPLE = [
-  { id: 'sean', name: 'Sean', color: '#3B82F6' },
   { id: 'angela', name: 'Angela', color: '#EC4899' },
+  { id: 'sean', name: 'Sean', color: '#3B82F6' },
 ];
 
 interface GeocodingResult {
