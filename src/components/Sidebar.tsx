@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { MapPin, Heart, Image, Sparkles, Plane, Plus, Lightbulb, Search, BookmarkCheck, Map } from 'lucide-react';
+import { MapPin, Heart, Image, Sparkles, Plane, Plus, Lightbulb, Search, BookmarkCheck, Map, Calendar, FileText, ListTodo } from 'lucide-react';
 import { differenceInMonths } from 'date-fns';
 import styled from 'styled-components';
 import type { Photo, Trip, PlannedTrip } from '../types/photo';
@@ -313,21 +313,27 @@ const PlannedTripCard = styled.button`
   display: flex;
   align-items: flex-start;
   gap: 0.875rem;
-  padding: 0.875rem;
-  background: transparent;
-  border: none;
-  border-radius: 0.875rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
   transition: all 0.15s ease;
   text-align: left;
   cursor: pointer;
+  margin-bottom: 0.625rem;
 
   &:hover {
     background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   &:active {
     background: rgba(255, 255, 255, 0.08);
     transform: scale(0.99);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
   }
 `;
 
@@ -388,6 +394,86 @@ const StatusBadge = styled.span<{ $status: 'idea' | 'researching' | 'booked' }>`
     $status === 'booked' ? '#22c55e' :
     $status === 'researching' ? '#3b82f6' :
     '#f59e0b'};
+`;
+
+const PlannedTripDescription = styled.p`
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.4;
+  margin-top: 0.625rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const PlannedTripDetails = styled.div`
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+`;
+
+const PlannedTripDetailRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+    color: rgba(255, 255, 255, 0.35);
+  }
+`;
+
+const PlannedTripTodoList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const PlannedTripTodoItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+
+  &::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+  }
+`;
+
+const PlannedTripNotes = styled.p`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const EditHint = styled.span`
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 0.5rem;
+  display: block;
+  text-align: right;
 `;
 
 const ToggleContainer = styled.div`
@@ -669,6 +755,7 @@ export default function Sidebar({
                   const StatusIcon = trip.bookingStatus === 'booked' ? BookmarkCheck :
                                      trip.bookingStatus === 'researching' ? Search :
                                      Lightbulb;
+                  const hasDetails = trip.description || trip.thingsToDo.length > 0 || trip.notes;
                   return (
                     <PlannedTripCard
                       key={trip.id}
@@ -694,6 +781,50 @@ export default function Sidebar({
                             </>
                           )}
                         </PlannedTripMeta>
+
+                        {trip.description && (
+                          <PlannedTripDescription>
+                            {trip.description}
+                          </PlannedTripDescription>
+                        )}
+
+                        {hasDetails && (
+                          <PlannedTripDetails>
+                            {trip.potentialStartDate && trip.potentialEndDate && (
+                              <PlannedTripDetailRow>
+                                <Calendar />
+                                <span>
+                                  {format(trip.potentialStartDate, 'MMM d')} - {format(trip.potentialEndDate, 'MMM d, yyyy')}
+                                </span>
+                              </PlannedTripDetailRow>
+                            )}
+
+                            {trip.thingsToDo.length > 0 && (
+                              <PlannedTripDetailRow>
+                                <ListTodo />
+                                <PlannedTripTodoList>
+                                  {trip.thingsToDo.slice(0, 3).map((todo, i) => (
+                                    <PlannedTripTodoItem key={i}>{todo}</PlannedTripTodoItem>
+                                  ))}
+                                  {trip.thingsToDo.length > 3 && (
+                                    <span style={{ fontSize: '0.6875rem', color: 'rgba(255, 255, 255, 0.35)' }}>
+                                      +{trip.thingsToDo.length - 3} more
+                                    </span>
+                                  )}
+                                </PlannedTripTodoList>
+                              </PlannedTripDetailRow>
+                            )}
+
+                            {trip.notes && (
+                              <PlannedTripDetailRow>
+                                <FileText />
+                                <PlannedTripNotes>{trip.notes}</PlannedTripNotes>
+                              </PlannedTripDetailRow>
+                            )}
+                          </PlannedTripDetails>
+                        )}
+
+                        <EditHint>Click to edit</EditHint>
                       </PlannedTripInfo>
                     </PlannedTripCard>
                   );
