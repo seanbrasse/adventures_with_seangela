@@ -807,6 +807,11 @@ function App() {
     setShowTripModal(true);
   }, []);
 
+  const handleEditTrip = useCallback((trip: Trip) => {
+    setEditingTrip(trip);
+    setShowTripModal(true);
+  }, []);
+
   const handleSaveTrip = useCallback((tripData: Omit<Trip, 'id'>) => {
     if (editingTrip) {
       updateTrip(editingTrip.id, tripData);
@@ -1062,6 +1067,8 @@ function App() {
             onPlannedTripClick={handlePlannedTripClick}
             onAddPlannedTrip={handleAddPlannedTrip}
             onAddTrip={handleAddTrip}
+            onTripClick={handleEditTrip}
+            onAddPhotos={() => setShowUpload(true)}
           />
         )}
 

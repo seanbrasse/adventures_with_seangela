@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { X, MapPin, Calendar, Plane, Image, ChevronRight, Plus, Lightbulb, Search, BookmarkCheck } from 'lucide-react';
+import { X, MapPin, Calendar, Plane, Image, ChevronRight, Plus, Lightbulb, Search, BookmarkCheck, ImagePlus } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo, Trip, PlannedTrip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
@@ -14,6 +14,8 @@ interface PlacesViewProps {
   onPlannedTripClick?: (trip: PlannedTrip) => void;
   onAddPlannedTrip?: () => void;
   onAddTrip?: () => void;
+  onTripClick?: (trip: Trip) => void;
+  onAddPhotos?: () => void;
 }
 
 const Overlay = styled.div`
@@ -279,6 +281,104 @@ const TripPhotos = styled.div`
   margin-top: 0.375rem;
 `;
 
+const NoPhotosTripCard = styled.div`
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.25rem;
+  overflow: hidden;
+`;
+
+const NoPhotosTripHeader = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+`;
+
+const NoPhotosTripIcon = styled.div`
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #ec4899;
+  }
+`;
+
+const NoPhotosEmpty = styled.div`
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const NoPhotosEmptyIcon = styled.div`
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: rgba(255, 255, 255, 0.35);
+  }
+`;
+
+const NoPhotosEmptyText = styled.div`
+  flex: 1;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.4);
+`;
+
+const NoPhotosAddButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(236, 72, 153, 0.15);
+  border: none;
+  color: #ec4899;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(236, 72, 153, 0.25);
+  }
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+`;
+
 const TripArrow = styled.div`
   padding-top: 0.125rem;
 
@@ -541,8 +641,16 @@ export default function PlacesView({
   onPlannedTripClick,
   onAddPlannedTrip,
   onAddTrip,
+  onTripClick,
+  onAddPhotos,
 }: PlacesViewProps) {
   const [viewMode, setViewMode] = useState<'past' | 'planned'>('past');
+
+  // Find trips that have no photos
+  const tripsWithoutPhotos = useMemo(() => {
+    return trips.filter((trip) => trip.photoIds.length === 0)
+      .sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+  }, [trips]);
 
   const locationsWithTrips = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
@@ -628,14 +736,53 @@ export default function PlacesView({
   };
 
   const renderPastTrips = () => {
-    if (locationsWithTrips.length === 0) {
+    if (locationsWithTrips.length === 0 && tripsWithoutPhotos.length === 0) {
       return (
-        <EmptyState>No places yet. Add some photos to get started!</EmptyState>
+        <EmptyState>No trips yet. Add a trip to get started!</EmptyState>
       );
     }
 
     return (
       <PlacesList>
+        {/* Show trips without photos first */}
+        {tripsWithoutPhotos.map((trip) => (
+          <NoPhotosTripCard key={trip.id}>
+            <NoPhotosTripHeader onClick={() => onTripClick?.(trip)}>
+              <NoPhotosTripIcon>
+                <Plane />
+              </NoPhotosTripIcon>
+              <PlaceInfo>
+                <PlaceName>{trip.name || trip.locationName}</PlaceName>
+                <PlaceMeta>
+                  <MetaItem>
+                    <Calendar />
+                    {formatTripDates(trip)}
+                  </MetaItem>
+                </PlaceMeta>
+                {trip.description && (
+                  <TripDescription style={{ marginTop: '0.5rem' }}>{trip.description}</TripDescription>
+                )}
+              </PlaceInfo>
+              <PlaceArrow>
+                <ChevronRight />
+              </PlaceArrow>
+            </NoPhotosTripHeader>
+            <NoPhotosEmpty>
+              <NoPhotosEmptyIcon>
+                <Image />
+              </NoPhotosEmptyIcon>
+              <NoPhotosEmptyText>No photos added yet</NoPhotosEmptyText>
+              {onAddPhotos && (
+                <NoPhotosAddButton onClick={(e) => { e.stopPropagation(); onAddPhotos(); }}>
+                  <ImagePlus />
+                  Add Photos
+                </NoPhotosAddButton>
+              )}
+            </NoPhotosEmpty>
+          </NoPhotosTripCard>
+        ))}
+
+        {/* Show locations with photos */}
         {locationsWithTrips.map((location) => (
           <PlaceCard key={location.key}>
             <PlaceHeader onClick={() => handlePlaceClick(location)}>
