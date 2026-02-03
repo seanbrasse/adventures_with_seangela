@@ -11,6 +11,10 @@ interface StoredTrip extends Omit<Trip, 'startDate' | 'endDate'> {
   endDate: string;
 }
 
+// Minimum distance (in km) for a trip to be considered a "real" trip
+// Trips shorter than this are local movement within the same city/metro
+const MIN_TRIP_DISTANCE_KM = 40;
+
 // Normalize city names for route consolidation
 // Extracts the primary city name and normalizes variations
 function normalizeCityName(name: string): string {
@@ -33,11 +37,51 @@ function normalizeCityName(name: string): string {
     'hong kong',
   ];
 
+  // NYC neighborhoods that should normalize to "new york"
+  const nycNeighborhoods = [
+    'manhattan',
+    'brooklyn',
+    'queens',
+    'bronx',
+    'staten island',
+    'harlem',
+    'williamsburg',
+    'bushwick',
+    'greenpoint',
+    'astoria',
+    'flushing',
+    'soho',
+    'tribeca',
+    'chelsea',
+    'midtown',
+    'lower east side',
+    'upper east side',
+    'upper west side',
+    'east village',
+    'west village',
+    'financial district',
+    'dumbo',
+    'park slope',
+    'cobble hill',
+    'carroll gardens',
+    'prospect heights',
+    'crown heights',
+    'bed-stuy',
+    'bedford-stuyvesant',
+    'fort greene',
+    'clinton hill',
+    'long island city',
+  ];
+
   for (const part of parts) {
     const lowerPart = part.toLowerCase().trim();
     if (knownCities.includes(lowerPart)) {
       city = part;
       break;
+    }
+    // Check for NYC neighborhoods
+    if (nycNeighborhoods.includes(lowerPart)) {
+      return 'new york';
     }
   }
 
@@ -53,6 +97,32 @@ function normalizeCityName(name: string): string {
     .replace(/nyc/i, 'new york')
     .replace(/jakarta special capital region/i, 'jakarta')
     .replace(/dki jakarta/i, 'jakarta');
+}
+
+// Check if two locations are in the same city/metro area
+// Returns true if they should NOT be considered a trip between them
+function isSameCityOrTooClose(
+  fromLat: number,
+  fromLng: number,
+  fromName: string,
+  toLat: number,
+  toLng: number,
+  toName: string
+): boolean {
+  // Check distance first - if very close, it's the same area
+  const distance = getDistanceKm(fromLat, fromLng, toLat, toLng);
+  if (distance < MIN_TRIP_DISTANCE_KM) {
+    return true;
+  }
+
+  // Check if normalized city names match
+  const normalizedFrom = normalizeCityName(fromName);
+  const normalizedTo = normalizeCityName(toName);
+  if (normalizedFrom === normalizedTo) {
+    return true;
+  }
+
+  return false;
 }
 
 // Calculate distance between two points in km (Haversine formula)
@@ -495,6 +565,12 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
         const from = customStart
           ? { lat: customStart.lat, lng: customStart.lng, name: customStart.name }
           : { lat: activeHome.lat, lng: activeHome.lng, name: activeHome.city };
+
+        // Skip if this is local movement within the same city/metro area
+        // (e.g., Manhattan to Brooklyn should not show as a "trip")
+        if (isSameCityOrTooClose(from.lat, from.lng, from.name, destLat, destLng, trip.locationName)) {
+          continue;
+        }
 
         rawLines.push({
           tripId: trip.id,
