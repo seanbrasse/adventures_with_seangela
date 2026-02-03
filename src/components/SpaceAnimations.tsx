@@ -43,22 +43,29 @@ const createParticlesConfig = (yRange: { min: number; max: number }, delayRange:
       value: 1,
       animation: {
         enable: true,
-        speed: 0.3,
+        speed: 1,
         startValue: 'max',
         destroy: 'min',
       },
     },
     size: {
-      value: { min: 1, max: 2 },
+      value: 2,
+      animation: {
+        enable: true,
+        speed: 2,
+        startValue: 'max',
+        destroy: 'min',
+        minimumValue: 0.1,
+      },
     },
     shadow: {
       enable: true,
-      color: '#aaccff',
-      blur: 15,
+      color: '#aaddff',
+      blur: 8,
     },
     move: {
       enable: true,
-      speed: 10,
+      speed: 15,
       direction: 'left',
       straight: true,
       outModes: {
@@ -67,7 +74,7 @@ const createParticlesConfig = (yRange: { min: number; max: number }, delayRange:
     },
     life: {
       duration: {
-        value: 10,
+        value: 1.5,
       },
       count: 1,
     },
@@ -80,24 +87,20 @@ const createParticlesConfig = (yRange: { min: number; max: number }, delayRange:
         y: yRange,
       },
       rate: {
-        quantity: 8, // Emit multiple particles to create trail
-        delay: delayRange,
+        quantity: 1,
+        delay: 0.015, // Very rapid emission for continuous tail
       },
       size: {
         width: 0,
         height: 0,
       },
-      particles: {
-        size: {
-          value: { min: 0.5, max: 2 },
-        },
-        opacity: {
-          value: { min: 0.3, max: 1 },
-        },
-        move: {
-          speed: { min: 8, max: 12 },
-        },
+      life: {
+        duration: 0.8, // Emitter only active briefly
+        count: 1,
+        delay: delayRange.min,
+        wait: true,
       },
+      startCount: 0,
     },
   ],
   detectRetina: true,
