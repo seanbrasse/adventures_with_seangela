@@ -928,6 +928,12 @@ export default function Sidebar({
                   );
                 })}
               </LocationsList>
+              {plannedTrips.length > 0 && onAddPlannedTrip && (
+                <AddPlannedTripButton onClick={onAddPlannedTrip} style={{ marginTop: '1rem', width: '100%' }}>
+                  <Plus size={16} />
+                  Plan a Trip
+                </AddPlannedTripButton>
+              )}
               {plannedTrips.length === 0 && (
                 <PlannedTripsEmpty>
                   <PlannedTripsEmptyIcon>
