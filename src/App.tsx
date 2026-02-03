@@ -7,6 +7,7 @@ import PhotoUpload from './components/PhotoUpload';
 import Sidebar from './components/Sidebar';
 import SettingsModal from './components/SettingsModal';
 import PlacesView from './components/PlacesView';
+import AllPhotosView from './components/AllPhotosView';
 import PlannedTripModal from './components/PlannedTripModal';
 import TripModal from './components/TripModal';
 import { usePhotoStorage } from './hooks/usePhotoStorage';
@@ -639,6 +640,7 @@ function App() {
   const [showGallery, setShowGallery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPlacesView, setShowPlacesView] = useState(false);
+  const [showAllPhotosView, setShowAllPhotosView] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -670,6 +672,17 @@ function App() {
 
   const handlePlacesClick = useCallback(() => {
     setShowPlacesView(true);
+  }, []);
+
+  const handlePhotosClick = useCallback(() => {
+    setShowAllPhotosView(true);
+  }, []);
+
+  const handlePhotoClickFromAllPhotos = useCallback((photo: Photo) => {
+    setSelectedPhotos([photo]);
+    setShowGallery(true);
+    setSelectedLocation(photo.location);
+    setShowAllPhotosView(false);
   }, []);
 
   const handleCloseGallery = useCallback(() => {
@@ -890,6 +903,7 @@ function App() {
               plannedTrips={plannedTrips}
               onLocationSelect={handleLocationClick}
               onPlacesClick={handlePlacesClick}
+              onPhotosClick={handlePhotosClick}
               onPlannedTripClick={handlePlannedTripClick}
               onAddPlannedTrip={handleAddPlannedTrip}
               onAddPhotos={() => setShowUpload(true)}
@@ -915,6 +929,7 @@ function App() {
                 plannedTrips={plannedTrips}
                 onLocationSelect={handleLocationClick}
                 onPlacesClick={handlePlacesClick}
+                onPhotosClick={handlePhotosClick}
                 onPlannedTripClick={handlePlannedTripClick}
                 onAddPlannedTrip={handleAddPlannedTrip}
                 onAddPhotos={() => setShowUpload(true)}
@@ -1070,6 +1085,16 @@ function App() {
             onAddTrip={handleAddTrip}
             onTripClick={handleEditTrip}
             onAddPhotos={() => setShowUpload(true)}
+          />
+        )}
+
+        {/* All photos view modal */}
+        {showAllPhotosView && (
+          <AllPhotosView
+            photos={photos}
+            trips={trips}
+            onClose={() => setShowAllPhotosView(false)}
+            onPhotoClick={handlePhotoClickFromAllPhotos}
           />
         )}
 

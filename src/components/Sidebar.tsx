@@ -12,6 +12,7 @@ interface SidebarProps {
   plannedTrips?: PlannedTrip[];
   onLocationSelect: (photos: Photo[]) => void;
   onPlacesClick?: () => void;
+  onPhotosClick?: () => void;
   onPlannedTripClick?: (trip: PlannedTrip) => void;
   onAddPlannedTrip?: () => void;
   onAddPhotos?: () => void;
@@ -651,6 +652,7 @@ export default function Sidebar({
   plannedTrips = [],
   onLocationSelect,
   onPlacesClick,
+  onPhotosClick,
   onPlannedTripClick,
   onAddPlannedTrip,
   onAddPhotos,
@@ -720,7 +722,7 @@ export default function Sidebar({
     <Container>
       <StatsSection>
         <StatsGrid>
-          <StatCard>
+          <ClickableStatCard onClick={onPhotosClick}>
             <StatHeader>
               <StatIcon>
                 <Image size={16} />
@@ -728,7 +730,7 @@ export default function Sidebar({
               <StatLabel>Photos</StatLabel>
             </StatHeader>
             <StatValue>{stats.totalPhotos}</StatValue>
-          </StatCard>
+          </ClickableStatCard>
 
           <ClickableStatCard onClick={onPlacesClick}>
             <StatHeader>
