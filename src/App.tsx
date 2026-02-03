@@ -817,7 +817,7 @@ function App() {
     setEditingTrip(undefined);
   }, [editingTrip, createTrip, updateTrip]);
 
-  const handleDeleteTrip = useCallback(() => {
+  const handleTripModalDelete = useCallback(() => {
     if (editingTrip) {
       deleteTrip(editingTrip.id);
       setShowTripModal(false);
@@ -1096,7 +1096,7 @@ function App() {
           <TripModal
             trip={editingTrip}
             onSave={handleSaveTrip}
-            onDelete={editingTrip ? handleDeleteTrip : undefined}
+            onDelete={editingTrip ? handleTripModalDelete : undefined}
             onClose={() => {
               setShowTripModal(false);
               setEditingTrip(undefined);
