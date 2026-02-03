@@ -15,6 +15,7 @@ interface SidebarProps {
   onPlannedTripClick?: (trip: PlannedTrip) => void;
   onAddPlannedTrip?: () => void;
   onAddPhotos?: () => void;
+  onAddTrip?: () => void;
 }
 
 // Styled Components
@@ -653,6 +654,7 @@ export default function Sidebar({
   onPlannedTripClick,
   onAddPlannedTrip,
   onAddPhotos,
+  onAddTrip,
 }: SidebarProps) {
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
@@ -783,39 +785,47 @@ export default function Sidebar({
           {viewMode === 'trips' ? (
             <>
               {locations.length > 0 ? (
-                <LocationsList>
-                  {locations.map((loc) => {
-                    const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
-                    return (
-                      <LocationCard
-                        key={loc.key}
-                        onClick={() => onLocationSelect(loc.photos)}
-                      >
-                        <Thumbnail>
-                          <img
-                            src={loc.photos[0].thumbnail}
-                            alt=""
-                          />
-                        </Thumbnail>
+                <>
+                  <LocationsList>
+                    {locations.map((loc) => {
+                      const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
+                      return (
+                        <LocationCard
+                          key={loc.key}
+                          onClick={() => onLocationSelect(loc.photos)}
+                        >
+                          <Thumbnail>
+                            <img
+                              src={loc.photos[0].thumbnail}
+                              alt=""
+                            />
+                          </Thumbnail>
 
-                        <LocationInfo>
-                          <LocationName>
-                            {locationName}
-                          </LocationName>
-                          <LocationMeta>
-                            <span>
-                              {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
-                            </span>
-                            <MetaDot>•</MetaDot>
-                            <span>
-                              {format(loc.latestDate, 'MMM d, yyyy')}
-                            </span>
-                          </LocationMeta>
-                        </LocationInfo>
-                      </LocationCard>
-                    );
-                  })}
-                </LocationsList>
+                          <LocationInfo>
+                            <LocationName>
+                              {locationName}
+                            </LocationName>
+                            <LocationMeta>
+                              <span>
+                                {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
+                              </span>
+                              <MetaDot>•</MetaDot>
+                              <span>
+                                {format(loc.latestDate, 'MMM d, yyyy')}
+                              </span>
+                            </LocationMeta>
+                          </LocationInfo>
+                        </LocationCard>
+                      );
+                    })}
+                  </LocationsList>
+                  {onAddTrip && (
+                    <AddTripsButton onClick={onAddTrip} style={{ marginTop: '1rem', width: '100%' }}>
+                      <Plus size={16} />
+                      Add Trip
+                    </AddTripsButton>
+                  )}
+                </>
               ) : (
                 <TripsEmpty>
                   <TripsEmptyIcon>
@@ -825,12 +835,12 @@ export default function Sidebar({
                     Start your journey
                   </TripsEmptyTitle>
                   <TripsEmptyText>
-                    Add photos from your trips to create memories on your map
+                    Add a trip manually or upload photos to create memories on your map
                   </TripsEmptyText>
-                  {onAddPhotos && (
-                    <AddTripsButton onClick={onAddPhotos}>
+                  {onAddTrip && (
+                    <AddTripsButton onClick={onAddTrip}>
                       <Plus size={16} />
-                      Add Photos
+                      Add Trip
                     </AddTripsButton>
                   )}
                 </TripsEmpty>

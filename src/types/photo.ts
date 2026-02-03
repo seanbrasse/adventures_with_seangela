@@ -37,7 +37,10 @@ export interface Trip {
   id: string;
   name: string; // Custom name or auto-generated
   description?: string; // User-provided trip description
+  notes?: string; // Additional notes about the trip
   locationName: string; // Destination city/place
+  lat?: number; // Destination latitude (for manually created trips)
+  lng?: number; // Destination longitude (for manually created trips)
   startDate: Date;
   endDate: Date;
   photoIds: string[];
@@ -48,6 +51,7 @@ export interface Trip {
     lng: number;
     name: string;
   }[];
+  convertedFromPlannedTripId?: string; // If converted from a planned trip
 }
 
 export interface PlannedTrip {
