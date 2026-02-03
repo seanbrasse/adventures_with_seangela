@@ -23,7 +23,7 @@ const BackContainer = styled.div`
   z-index: 0;
 `;
 
-const createCometConfig = (delay: number): ISourceOptions => ({
+const createCometConfig = (yMin: number, yMax: number): ISourceOptions => ({
   fullScreen: false,
   fpsLimit: 60,
   background: {
@@ -43,7 +43,7 @@ const createCometConfig = (delay: number): ISourceOptions => ({
       value: 1,
       animation: {
         enable: true,
-        speed: 0.8,
+        speed: 0.5,
         startValue: 'max',
         destroy: 'min',
       },
@@ -52,7 +52,7 @@ const createCometConfig = (delay: number): ISourceOptions => ({
       value: { min: 1, max: 3 },
       animation: {
         enable: true,
-        speed: 1.5,
+        speed: 1,
         startValue: 'max',
         destroy: 'min',
       },
@@ -64,7 +64,7 @@ const createCometConfig = (delay: number): ISourceOptions => ({
     },
     move: {
       enable: true,
-      speed: 12,
+      speed: 15,
       direction: 'right',
       straight: true,
       outModes: {
@@ -73,7 +73,7 @@ const createCometConfig = (delay: number): ISourceOptions => ({
     },
     life: {
       duration: {
-        value: 2,
+        value: 2.5,
       },
       count: 1,
     },
@@ -82,31 +82,25 @@ const createCometConfig = (delay: number): ISourceOptions => ({
     direction: 'right',
     position: {
       x: 0,
-      y: { min: 10, max: 90 },
+      y: { min: yMin, max: yMax },
     },
     rate: {
-      quantity: 1,
-      delay: 0.02,
+      quantity: 5,
+      delay: 8,
     },
     size: {
       width: 0,
       height: 0,
     },
-    life: {
-      duration: 0.5,
-      count: 0,
-      delay: delay,
-      wait: true,
-    },
   },
   detectRetina: true,
 });
 
-// Front comets - appear every 8 seconds
-const frontConfig = createCometConfig(8);
+// Front comets - upper portion
+const frontConfig = createCometConfig(10, 50);
 
-// Back comets - appear every 12 seconds
-const backConfig = createCometConfig(12);
+// Back comets - lower portion
+const backConfig = createCometConfig(50, 90);
 
 export default function SpaceAnimations() {
   const [init, setInit] = useState(false);
