@@ -30,35 +30,28 @@ const particlesConfig: ISourceOptions = {
       type: 'circle',
     },
     opacity: {
-      value: 0.9,
+      value: { min: 0.7, max: 1 },
     },
     size: {
       value: { min: 1, max: 2 },
     },
     shadow: {
       enable: true,
-      color: '#ffffff',
-      blur: 8,
+      color: '#aaccff',
+      blur: 12,
     },
     move: {
       enable: true,
-      speed: 12,
+      speed: 8,
       direction: 'left',
       straight: true,
       outModes: {
         default: 'destroy',
       },
-      trail: {
-        enable: true,
-        length: 20,
-        fill: {
-          color: '#0a0a14',
-        },
-      },
     },
     life: {
       duration: {
-        value: 8,
+        value: 12,
       },
       count: 1,
     },
@@ -68,11 +61,11 @@ const particlesConfig: ISourceOptions = {
       direction: 'left',
       position: {
         x: 100,
-        y: { min: 10, max: 90 },
+        y: { min: 5, max: 95 },
       },
       rate: {
         quantity: 1,
-        delay: { min: 10, max: 20 },
+        delay: { min: 20, max: 35 },
       },
       size: {
         width: 0,
