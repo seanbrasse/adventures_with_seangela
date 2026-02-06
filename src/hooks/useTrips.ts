@@ -277,6 +277,75 @@ function calculateCentroid(photos: Photo[]): { lat: number; lng: number } {
   return { lat: sum.lat / photos.length, lng: sum.lng / photos.length };
 }
 
+// Find the dominant photo cluster location for a set of photos
+// This matches how groupPhotosByLocation works in MapboxGlobe
+// Returns the coordinates of the first photo in the largest cluster
+function findDominantClusterLocation(photos: Photo[]): { lat: number; lng: number } {
+  if (photos.length === 0) return { lat: 0, lng: 0 };
+  if (photos.length === 1) return { lat: photos[0].location.lat, lng: photos[0].location.lng };
+
+  const DISTANCE_THRESHOLD = 50; // km, same as groupPhotosByLocation default
+  const groups: { key: { lat: number; lng: number }; photos: Photo[] }[] = [];
+
+  for (const photo of photos) {
+    let foundGroup = false;
+    const photoName = photo.location.name;
+
+    // First, try to match by city name if available
+    if (photoName) {
+      const normalizedName = normalizeCityName(photoName);
+      for (const group of groups) {
+        const firstPhoto = group.photos[0];
+        if (firstPhoto.location.name) {
+          const groupNormalizedName = normalizeCityName(firstPhoto.location.name);
+          if (groupNormalizedName === normalizedName) {
+            group.photos.push(photo);
+            foundGroup = true;
+            break;
+          }
+        }
+      }
+    }
+
+    // If no name match found, fall back to distance-based grouping
+    if (!foundGroup) {
+      for (const group of groups) {
+        const distance = getDistanceKm(
+          photo.location.lat,
+          photo.location.lng,
+          group.key.lat,
+          group.key.lng
+        );
+        if (distance < DISTANCE_THRESHOLD) {
+          group.photos.push(photo);
+          foundGroup = true;
+          break;
+        }
+      }
+    }
+
+    if (!foundGroup) {
+      // Start a new group with this photo's location as the key
+      groups.push({
+        key: { lat: photo.location.lat, lng: photo.location.lng },
+        photos: [photo],
+      });
+    }
+  }
+
+  // Find the largest group
+  let largestGroup = groups[0];
+  for (const group of groups) {
+    if (group.photos.length > largestGroup.photos.length) {
+      largestGroup = group;
+    }
+  }
+
+  // Return the key coordinates (first photo's location in this group)
+  // This matches what MapboxGlobe uses for marker positions
+  return largestGroup.key;
+}
+
 // Auto-generate trips from photos based on date proximity and location
 // Preserves existing trip customizations (name, description) when regenerating
 // Uses distance-based grouping to merge nearby locations (e.g., Dubai + Abu Dhabi = one trip)
@@ -603,10 +672,13 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       const tripPhotos = photos.filter((p) => trip.photoIds.includes(p.id));
       if (tripPhotos.length === 0) continue;
 
-      // Use the trip's centroid for flight line destination
-      // This ensures one flight line per trip, even if photos are in multiple locations
-      const destLat = trip.centroid?.lat ?? tripPhotos[0].location.lat;
-      const destLng = trip.centroid?.lng ?? tripPhotos[0].location.lng;
+      // Use the dominant cluster location for flight line destination
+      // This matches where the photo markers are actually placed on the map
+      // (groupPhotosByLocation groups photos by city name or proximity,
+      // and uses the first photo's coordinates as the marker position)
+      const clusterLocation = findDominantClusterLocation(tripPhotos);
+      const destLat = clusterLocation.lat;
+      const destLng = clusterLocation.lng;
 
       // Create lines for each traveler (now using personId)
       for (const personId of trip.travelers) {
