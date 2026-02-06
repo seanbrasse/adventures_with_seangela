@@ -579,9 +579,9 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       }
     }
 
-    // Consolidate ALL lines that go to the same general area into ONE flight line
+    // Consolidate lines per traveler that go to the same general area into ONE flight line
     // Uses distance-based grouping (within MAX_TRIP_RADIUS_KM)
-    // This means Dubai + Abu Dhabi = one line, regardless of who traveled
+    // This means Dubai + Abu Dhabi = one line PER TRAVELER who went there
     const consolidatedMap = new Map<
       string,
       {
@@ -594,9 +594,10 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       }
     >();
 
-    // Helper to find an existing route that's close enough to consolidate with (any traveler)
-    const findNearbyRoute = (destLat: number, destLng: number) => {
+    // Helper to find an existing route for this traveler that's close enough to consolidate with
+    const findNearbyRouteForTraveler = (travelerId: string, destLat: number, destLng: number) => {
       for (const [key, route] of consolidatedMap) {
+        if (route.travelerId !== travelerId) continue;
         const distance = getDistanceKm(route.to.lat, route.to.lng, destLat, destLng);
         if (distance <= MAX_TRIP_RADIUS_KM) {
           return key;
@@ -606,9 +607,9 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
     };
 
     for (const line of rawLines) {
-      // Try to find an existing route going to the same area (regardless of traveler)
-      const existingRouteKey = findNearbyRoute(line.to.lat, line.to.lng);
-      const routeKey = existingRouteKey || `route-${line.to.lat.toFixed(1)}-${line.to.lng.toFixed(1)}`;
+      // Try to find an existing route for this traveler going to the same area
+      const existingRouteKey = findNearbyRouteForTraveler(line.travelerId, line.to.lat, line.to.lng);
+      const routeKey = existingRouteKey || `route-${line.to.lat.toFixed(1)}-${line.to.lng.toFixed(1)}::${line.travelerId}`;
 
       if (consolidatedMap.has(routeKey)) {
         // Add this visit to existing route
