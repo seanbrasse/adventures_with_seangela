@@ -643,10 +643,22 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
     }
 
     // STEP 2: Create a mapping from photo ID to its group's marker position
+    // IMPORTANT: Apply the same home base privacy adjustment as MapboxGlobe
+    // If a group's location is within a home base, use the home base coordinates instead
     const photoToMarkerPosition = new Map<string, { lat: number; lng: number }>();
     for (const group of allGroups) {
+      // Check if this group's location falls within a home base
+      let markerPosition = group.key;
+      for (const homeBase of homeBases) {
+        if (isAtHomeBase(group.key.lat, group.key.lng, homeBase)) {
+          // Use home base coordinates for privacy (same as MapboxGlobe)
+          markerPosition = { lat: homeBase.lat, lng: homeBase.lng };
+          break;
+        }
+      }
+
       for (const photoId of group.photoIds) {
-        photoToMarkerPosition.set(photoId, group.key);
+        photoToMarkerPosition.set(photoId, markerPosition);
       }
     }
 
