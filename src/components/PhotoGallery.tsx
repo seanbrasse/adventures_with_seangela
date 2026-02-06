@@ -179,6 +179,7 @@ const MobileActionsBar = styled.div`
   gap: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.3);
+  justify-content: flex-end;
 
   @media (max-width: 640px) {
     display: flex;
@@ -1059,14 +1060,6 @@ export default function PhotoGallery({
       {/* Mobile action buttons - shown below header on mobile */}
       {(isAuthenticated && (trip || (onAddPhoto && photos.length > 0))) && (
         <MobileActionsBar>
-          {isAuthenticated && trip && onUpdateTrip && onDeleteTrip && (
-            <SettingsButton
-              onClick={() => setShowTripSettings(true)}
-              title="Trip settings"
-            >
-              <Settings />
-            </SettingsButton>
-          )}
           {isAuthenticated && onAddPhoto && photos.length > 0 && (
             <AddPhotoButton
               onClick={() => {
@@ -1081,6 +1074,14 @@ export default function PhotoGallery({
               <Plus />
               Add Photo
             </AddPhotoButton>
+          )}
+          {isAuthenticated && trip && onUpdateTrip && onDeleteTrip && (
+            <SettingsButton
+              onClick={() => setShowTripSettings(true)}
+              title="Trip settings"
+            >
+              <Settings />
+            </SettingsButton>
           )}
         </MobileActionsBar>
       )}
