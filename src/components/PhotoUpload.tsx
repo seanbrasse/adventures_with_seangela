@@ -25,6 +25,7 @@ interface PendingPhoto extends ExtractedPhotoData {
     distance: number;
     photoLocation: string;
   };
+  needsLocationConfirmation?: boolean; // For photos without GPS when converting planned trip
 }
 
 interface GeocodingResult {
@@ -911,14 +912,26 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
       if (photoData) {
         const pendingPhoto: PendingPhoto = { ...photoData };
 
-        // If uploading to a specific location and photo has no GPS, use target location
+        // If uploading to a specific location and photo has no GPS
         if (photoData.needsLocation && targetLocation) {
-          pendingPhoto.location = {
-            lat: targetLocation.lat,
-            lng: targetLocation.lng,
-            name: targetLocation.name,
-          };
-          pendingPhoto.needsLocation = false;
+          // When converting a planned trip, require confirmation before using target location
+          if (convertingFromPlannedTrip) {
+            pendingPhoto.location = {
+              lat: targetLocation.lat,
+              lng: targetLocation.lng,
+              name: targetLocation.name,
+            };
+            pendingPhoto.needsLocation = false;
+            pendingPhoto.needsLocationConfirmation = true;
+          } else {
+            // Regular upload to location - auto-apply target location
+            pendingPhoto.location = {
+              lat: targetLocation.lat,
+              lng: targetLocation.lng,
+              name: targetLocation.name,
+            };
+            pendingPhoto.needsLocation = false;
+          }
         }
         // If photo has GPS, check if it matches target location
         else if (!photoData.needsLocation && targetLocation) {
@@ -1095,7 +1108,7 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
     setManualDate('');
   };
 
-  // Handle location mismatch: use target location instead of photo GPS
+  // Handle location mismatch or confirmation: use target location
   const handleUseTargetLocation = (id: string) => {
     if (!targetLocation) return;
     setPendingPhotos((prev) =>
@@ -1109,6 +1122,7 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
                 name: targetLocation.name,
               },
               locationMismatch: undefined,
+              needsLocationConfirmation: undefined,
             }
           : p
       )
@@ -1166,10 +1180,11 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
   const validCount = pendingPhotos.filter((p) => !p.needsLocation).length;
   const needsLocationCount = pendingPhotos.filter((p) => p.needsLocation).length;
   const unresolvedMismatchCount = pendingPhotos.filter((p) => p.locationMismatch).length;
+  const needsConfirmationCount = pendingPhotos.filter((p) => p.needsLocationConfirmation).length;
 
-  // When converting a planned trip, all location mismatches must be resolved
-  const hasUnresolvedMismatches = convertingFromPlannedTrip && unresolvedMismatchCount > 0;
-  const canSubmit = validCount > 0 && !hasUnresolvedMismatches;
+  // When converting a planned trip, all location issues must be resolved
+  const hasUnresolvedIssues = convertingFromPlannedTrip && (unresolvedMismatchCount > 0 || needsConfirmationCount > 0);
+  const canSubmit = validCount > 0 && !hasUnresolvedIssues;
 
   return (
     <Overlay>
@@ -1322,6 +1337,26 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
                               </WarningActions>
                             </LocationMismatchWarning>
                           )}
+
+                          {photo.needsLocationConfirmation && targetLocation && (
+                            <LocationMismatchWarning>
+                              <WarningHeader>
+                                <AlertCircle size={16} />
+                                <span>No location data</span>
+                              </WarningHeader>
+                              <WarningText>
+                                This photo has no GPS location. Use {targetLocation.name} or discard this photo.
+                              </WarningText>
+                              <WarningActions>
+                                <WarningButton $variant="primary" onClick={() => handleUseTargetLocation(photo.id)}>
+                                  Use {targetLocation.name}
+                                </WarningButton>
+                                <WarningButton onClick={() => handleRemove(photo.id)}>
+                                  Discard photo
+                                </WarningButton>
+                              </WarningActions>
+                            </LocationMismatchWarning>
+                          )}
                         </>
                       )}
 
@@ -1365,15 +1400,15 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
 
         <Footer>
           <FooterStatus>
-            {validCount > 0 && !hasUnresolvedMismatches && (
+            {validCount > 0 && !hasUnresolvedIssues && (
               <ReadyCount>{validCount} ready to add</ReadyCount>
             )}
             {needsLocationCount > 0 && (
               <NeedsLocationCount>{needsLocationCount} need location</NeedsLocationCount>
             )}
-            {hasUnresolvedMismatches && (
+            {hasUnresolvedIssues && (
               <NeedsLocationCount>
-                {unresolvedMismatchCount} photo{unresolvedMismatchCount !== 1 ? 's' : ''} need location resolved
+                {unresolvedMismatchCount + needsConfirmationCount} photo{(unresolvedMismatchCount + needsConfirmationCount) !== 1 ? 's' : ''} need location resolved
               </NeedsLocationCount>
             )}
           </FooterStatus>
