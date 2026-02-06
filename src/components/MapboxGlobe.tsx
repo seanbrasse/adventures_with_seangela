@@ -1162,7 +1162,14 @@ export default function MapboxGlobe({
             closeOnClick={false}
             offset={20}
           >
-            <PlannedTripPopup>
+            <PlannedTripPopup
+              onClick={() => onPlannedTripClick?.(hoveredPlannedTrip)}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                onPlannedTripClick?.(hoveredPlannedTrip);
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               <PlannedTripPopupTitle>
                 {hoveredPlannedTrip.destinationName}
               </PlannedTripPopupTitle>
