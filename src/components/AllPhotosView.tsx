@@ -86,19 +86,15 @@ const CloseButton = styled.button`
 const FiltersBar = styled.div`
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 1.5rem;
-  background: rgba(10, 10, 15, 0.95);
+  background: rgba(10, 10, 15, 0.98);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  overflow-x: auto;
-
-  &::-webkit-scrollbar {
-    height: 0;
-  }
+  flex-wrap: wrap;
 `;
 
 const FilterLabel = styled.div`
@@ -153,7 +149,7 @@ const Dropdown = styled.div<{ $visible: boolean }>`
   position: absolute;
   top: calc(100% + 0.5rem);
   left: 0;
-  z-index: 100;
+  z-index: 1000;
   min-width: 200px;
   max-height: 300px;
   overflow-y: auto;
@@ -262,6 +258,8 @@ const ScrollArea = styled.div`
 
 const PhotosContent = styled.div`
   padding: 1.5rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const PhotoGrid = styled.div`
