@@ -16,7 +16,6 @@ interface PlacesViewProps {
   onTripClick?: (trip: Trip) => void;
   onAddPhotos?: () => void;
   isAuthenticated?: boolean;
-  initialViewMode?: 'past' | 'planned';
 }
 
 const Overlay = styled.div`
@@ -644,9 +643,8 @@ export default function PlacesView({
   onTripClick,
   onAddPhotos,
   isAuthenticated = false,
-  initialViewMode = 'past',
 }: PlacesViewProps) {
-  const [viewMode, setViewMode] = useState<'past' | 'planned'>(initialViewMode);
+  const [viewMode, setViewMode] = useState<'past' | 'planned'>('past');
 
   // Find trips that have no photos
   const tripsWithoutPhotos = useMemo(() => {
