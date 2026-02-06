@@ -433,7 +433,7 @@ const LockedPrimaryButton = styled.button`
   border-radius: 0.75rem;
   background: rgba(255, 255, 255, 0.06);
   border: none;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.9375rem;
   font-weight: 500;
   cursor: pointer;
@@ -444,8 +444,14 @@ const LockedPrimaryButton = styled.button`
   }
 
   svg {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  svg:last-child {
+    width: 0.875rem;
+    height: 0.875rem;
+    opacity: 0.6;
   }
 `;
 
@@ -1057,8 +1063,9 @@ function AppContent() {
               ) : (
                 <>
                   <LockedPrimaryButton onClick={() => setShowLoginModal(true)}>
+                    <Plus />
+                    Add Photos
                     <Lock />
-                    Sign in to Add Photos
                   </LockedPrimaryButton>
                   <AuthButton onClick={() => setShowLoginModal(true)}>
                     <Lock />
