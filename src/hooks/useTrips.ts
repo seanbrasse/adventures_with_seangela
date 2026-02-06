@@ -629,6 +629,14 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
           continue;
         }
 
+        // Skip if the destination is within the home region radius
+        // (e.g., if you live in Dubai and go to Abu Dhabi ~130km away, that's within the 200km trip radius)
+        // This means day trips within your home region don't show as flight lines
+        const distanceFromHome = getDistanceKm(from.lat, from.lng, destLat, destLng);
+        if (distanceFromHome <= MAX_TRIP_RADIUS_KM) {
+          continue;
+        }
+
         rawLines.push({
           tripId: trip.id,
           tripName: trip.name,
