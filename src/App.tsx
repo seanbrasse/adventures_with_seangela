@@ -11,6 +11,7 @@ import AllPhotosView from './components/AllPhotosView';
 import PlannedTripModal from './components/PlannedTripModal';
 import TripModal from './components/TripModal';
 import LoginModal from './components/LoginModal';
+import WelcomeLetterModal from './components/WelcomeLetterModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { usePhotoStorage } from './hooks/usePhotoStorage';
 import { useSettings } from './hooks/useSettings';
@@ -649,6 +650,17 @@ function AppContent() {
   const [apiKey, setApiKey] = useState(MAPBOX_TOKEN || '');
   const [showApiKeyInput, setShowApiKeyInput] = useState(!MAPBOX_TOKEN);
   const [uploadTargetLocation, setUploadTargetLocation] = useState<LocationContext | null>(null);
+  const [showWelcomeLetter, setShowWelcomeLetter] = useState(false);
+  const [wasAuthenticated, setWasAuthenticated] = useState(isAuthenticated);
+
+  // Show welcome letter when user logs in
+  useEffect(() => {
+    if (isAuthenticated && !wasAuthenticated) {
+      // User just logged in
+      setShowWelcomeLetter(true);
+    }
+    setWasAuthenticated(isAuthenticated);
+  }, [isAuthenticated, wasAuthenticated]);
 
   // Prevent browser zoom from trackpad pinch (Ctrl+wheel)
   // This allows only the map to handle zoom gestures
@@ -1170,6 +1182,14 @@ function AppContent() {
 
         {/* Login modal */}
         {showLoginModal && <LoginModal />}
+
+        {/* Welcome letter modal - shown after login */}
+        <WelcomeLetterModal
+          isOpen={showWelcomeLetter}
+          onClose={() => setShowWelcomeLetter(false)}
+          recipientName="Sean & Angela"
+          message="Welcome back to your adventure map! Every photo is a memory, every pin a story. Here's to the journeys you've taken and the ones yet to come."
+        />
       </AppContainer>
     </>
   );
