@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight, Lock, Mail } from 'lucide-react';
 import styled, { createGlobalStyle } from 'styled-components';
 import MapboxGlobe from './components/MapboxGlobe';
 import PhotoGallery, { type LocationContext } from './components/PhotoGallery';
@@ -106,6 +106,32 @@ const MobileTitle = styled.h1`
   svg {
     color: #f472b6;
     fill: #f472b6;
+  }
+`;
+
+const LetterButton = styled.button`
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #f472b6;
+  }
+
+  &:hover {
+    background: rgba(244, 114, 182, 0.15);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 `;
 
@@ -651,6 +677,7 @@ function AppContent() {
   const [showApiKeyInput, setShowApiKeyInput] = useState(!MAPBOX_TOKEN);
   const [uploadTargetLocation, setUploadTargetLocation] = useState<LocationContext | null>(null);
   const [showWelcomeLetter, setShowWelcomeLetter] = useState(false);
+  const [hasSeenWelcomeLetter, setHasSeenWelcomeLetter] = useState(false);
   const [wasAuthenticated, setWasAuthenticated] = useState(isAuthenticated);
 
   // Show welcome letter when user logs in
@@ -661,6 +688,15 @@ function AppContent() {
     }
     setWasAuthenticated(isAuthenticated);
   }, [isAuthenticated, wasAuthenticated]);
+
+  const handleCloseWelcomeLetter = useCallback(() => {
+    setShowWelcomeLetter(false);
+    setHasSeenWelcomeLetter(true);
+  }, []);
+
+  const handleOpenWelcomeLetter = useCallback(() => {
+    setShowWelcomeLetter(true);
+  }, []);
 
   // Prevent browser zoom from trackpad pinch (Ctrl+wheel)
   // This allows only the map to handle zoom gestures
@@ -880,7 +916,13 @@ function AppContent() {
             <Heart size={20} />
             Adventures with Seangela
           </MobileTitle>
-          <div style={{ width: '2.5rem' }} /> {/* Spacer for centering */}
+          {hasSeenWelcomeLetter && isAuthenticated ? (
+            <LetterButton onClick={handleOpenWelcomeLetter} title="Open love letter">
+              <Mail />
+            </LetterButton>
+          ) : (
+            <div style={{ width: '2.5rem' }} />
+          )}
         </MobileHeader>
 
         {/* Mobile sidebar overlay */}
@@ -892,6 +934,11 @@ function AppContent() {
             <Logo>
               <Heart />
               Adventures with Seangela
+              {hasSeenWelcomeLetter && isAuthenticated && (
+                <LetterButton onClick={() => { handleOpenWelcomeLetter(); setSidebarOpen(false); }} title="Open love letter">
+                  <Mail />
+                </LetterButton>
+              )}
             </Logo>
             <CloseButton onClick={() => setSidebarOpen(false)}>
               <X />
@@ -942,6 +989,11 @@ function AppContent() {
               <Logo>
                 <Heart />
                 Adventures with Seangela
+                {hasSeenWelcomeLetter && isAuthenticated && (
+                  <LetterButton onClick={handleOpenWelcomeLetter} title="Open love letter">
+                    <Mail />
+                  </LetterButton>
+                )}
               </Logo>
             </SidebarHeader>
 
@@ -1186,7 +1238,7 @@ function AppContent() {
         {/* Welcome letter modal - shown after login */}
         <WelcomeLetterModal
           isOpen={showWelcomeLetter}
-          onClose={() => setShowWelcomeLetter(false)}
+          onClose={handleCloseWelcomeLetter}
           recipientName="Sean & Angela"
           message="Welcome back to your adventure map! Every photo is a memory, every pin a story. Here's to the journeys you've taken and the ones yet to come."
         />
