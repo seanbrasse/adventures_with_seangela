@@ -1236,6 +1236,10 @@ function AppContent() {
             onResetToDefaults={resetToDefaults}
             onClose={() => setShowSettings(false)}
             mapboxToken={apiKey}
+            onLogout={() => {
+              logout();
+              setShowSettings(false);
+            }}
           />
         )}
 

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { X, MapPin, User, RotateCcw, Plus, Calendar, Home, Search, Loader2 } from 'lucide-react';
+import { X, MapPin, User, RotateCcw, Plus, Calendar, Home, Search, Loader2, LogOut } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
 import type { HomeBase } from '../types/photo';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +12,7 @@ interface SettingsModalProps {
   onResetToDefaults: () => void;
   onClose: () => void;
   mapboxToken?: string;
+  onLogout?: () => void;
 }
 
 // Fixed people - cannot add or remove
@@ -477,6 +478,9 @@ const Footer = styled.div`
   padding: 1.75rem 2.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 `;
 
 const DoneButton = styled.button`
@@ -495,6 +499,34 @@ const DoneButton = styled.button`
   &:hover {
     background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
     transform: translateY(-1px);
+  }
+`;
+
+const SignOutButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.875rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
   }
 `;
 
@@ -723,6 +755,7 @@ export default function SettingsModal({
   onResetToDefaults,
   onClose,
   mapboxToken,
+  onLogout,
 }: SettingsModalProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [addingForPerson, setAddingForPerson] = useState<string | null>(null);
@@ -996,6 +1029,12 @@ export default function SettingsModal({
 
         <Footer>
           <DoneButton onClick={onClose}>Done</DoneButton>
+          {onLogout && (
+            <SignOutButton onClick={onLogout}>
+              <LogOut />
+              Sign Out
+            </SignOutButton>
+          )}
         </Footer>
       </Modal>
     </Overlay>
