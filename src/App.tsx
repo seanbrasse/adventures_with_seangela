@@ -300,15 +300,11 @@ const SidebarContent = styled.div`
 `;
 
 const SidebarFooter = styled.div`
-  display: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: 1rem 1.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-
-  @media (min-width: 768px) {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
 `;
 
 const CollapseToggle = styled.button`
