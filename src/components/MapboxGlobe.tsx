@@ -278,8 +278,21 @@ const PopupPhotoCount = styled.p`
 `;
 
 const PopupHint = styled.p`
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: #9ca3af;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border-radius: 0.375rem;
+  text-align: center;
+  font-weight: 500;
+
+  @media (max-width: 640px) {
+    font-size: 1rem;
+    padding: 0.75rem;
+    background: #ec4899;
+    color: white;
+  }
 `;
 
 const PopupTripCount = styled.p`
@@ -1073,7 +1086,14 @@ export default function MapboxGlobe({
             closeOnClick={false}
             offset={20}
           >
-            <LocationPopup onClick={() => handleMarkerClick(hoveredPoint)}>
+            <LocationPopup
+              onClick={() => handleMarkerClick(hoveredPoint)}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleMarkerClick(hoveredPoint);
+              }}
+            >
               <PopupImageGrid>
                 {hoveredPoint.photos.slice(0, 3).map((photo, i) => (
                   <PopupThumbnail
