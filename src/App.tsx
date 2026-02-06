@@ -1239,8 +1239,8 @@ function AppContent() {
         <WelcomeLetterModal
           isOpen={showWelcomeLetter}
           onClose={handleCloseWelcomeLetter}
-          recipientName="Sean & Angela"
-          message="Welcome back to your adventure map! Every photo is a memory, every pin a story. Here's to the journeys you've taken and the ones yet to come."
+          recipientName=""
+          message="Hi sweet girl! I love doing life with you. You're all I could ever ask for in a partner and I love you so much. Excited for all the adventures to come :)"
         />
       </AppContainer>
     </>

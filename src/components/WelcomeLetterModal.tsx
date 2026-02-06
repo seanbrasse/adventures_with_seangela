@@ -268,9 +268,9 @@ export default function WelcomeLetterModal({
               <Heart fill="#ec4899" />
             </CardHeartDecor>
             <CardGreeting>Happy Valentine's Day!</CardGreeting>
-            <CardRecipient>{recipientName}</CardRecipient>
+            {recipientName && <CardRecipient>{recipientName}</CardRecipient>}
             <CardMessage>{message}</CardMessage>
-            <CardSignature>With love, always</CardSignature>
+            <CardSignature>Love, Sean</CardSignature>
           </Card>
         </Envelope>
 
