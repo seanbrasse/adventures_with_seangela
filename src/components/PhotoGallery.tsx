@@ -320,7 +320,7 @@ const NavButton = styled.button<{ $position: 'left' | 'right' }>`
   }
 
   @media (max-width: 640px) {
-    top: calc(25vh + 1rem); /* Center in the photo area (photo is ~50vh max, so center at 25vh plus header offset) */
+    top: 50%;
     ${({ $position }) => ($position === 'left' ? 'left: 0.5rem;' : 'right: 0.5rem;')}
     padding: 0.75rem;
     border-radius: 0.75rem;
@@ -339,9 +339,10 @@ const ImageContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 
   @media (max-width: 640px) {
-    padding: 1rem;
+    padding: 0.5rem;
   }
 `;
 
@@ -364,6 +365,11 @@ const PhotoDetailsPanel = styled.div`
   gap: 1.25rem;
   padding: 1.5rem;
   flex: 1;
+
+  @media (max-width: 640px) {
+    padding: 1rem 1.25rem;
+    gap: 0.875rem;
+  }
 `;
 
 const DetailsPanelTitle = styled.h3`
@@ -373,6 +379,10 @@ const DetailsPanelTitle = styled.h3`
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 
 const DetailRow = styled.div`
@@ -387,6 +397,11 @@ const DetailRow = styled.div`
     height: 1.125rem;
     color: rgba(255, 255, 255, 0.5);
     flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    font-size: 0.875rem;
+    gap: 0.5rem;
   }
 `;
 
@@ -1089,28 +1104,28 @@ export default function PhotoGallery({
       {selectedIndex !== null ? (
         <FullscreenView>
           <ImageSection>
-            <NavButton
-              $position="left"
-              onClick={handlePrev}
-              disabled={selectedIndex === 0}
-            >
-              <ChevronLeft />
-            </NavButton>
-
             <ImageContainer>
+              <NavButton
+                $position="left"
+                onClick={handlePrev}
+                disabled={selectedIndex === 0}
+              >
+                <ChevronLeft />
+              </NavButton>
+
               <MainImage
                 src={allPhotos[selectedIndex].url}
                 alt={allPhotos[selectedIndex].description || 'Photo'}
               />
-            </ImageContainer>
 
-            <NavButton
-              $position="right"
-              onClick={handleNext}
-              disabled={selectedIndex === allPhotos.length - 1}
-            >
-              <ChevronRight />
-            </NavButton>
+              <NavButton
+                $position="right"
+                onClick={handleNext}
+                disabled={selectedIndex === allPhotos.length - 1}
+              >
+                <ChevronRight />
+              </NavButton>
+            </ImageContainer>
           </ImageSection>
 
           <DetailsSection>
