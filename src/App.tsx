@@ -1053,10 +1053,6 @@ function AppContent() {
                     <Settings />
                     Settings
                   </SecondaryButton>
-                  <AuthButton $authenticated onClick={logout}>
-                    <LogOut />
-                    Sign Out
-                  </AuthButton>
                 </>
               ) : (
                 <>

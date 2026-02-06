@@ -502,6 +502,12 @@ const DoneButton = styled.button`
   }
 `;
 
+const SignOutSection = styled.div`
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
 const SignOutButton = styled.button`
   width: 100%;
   display: flex;
@@ -1025,16 +1031,19 @@ export default function SettingsModal({
               </HomeBasesList>
             </PersonSection>
           ))}
+
+          {onLogout && (
+            <SignOutSection>
+              <SignOutButton onClick={onLogout}>
+                <LogOut />
+                Sign Out
+              </SignOutButton>
+            </SignOutSection>
+          )}
         </Content>
 
         <Footer>
           <DoneButton onClick={onClose}>Done</DoneButton>
-          {onLogout && (
-            <SignOutButton onClick={onLogout}>
-              <LogOut />
-              Sign Out
-            </SignOutButton>
-          )}
         </Footer>
       </Modal>
     </Overlay>
