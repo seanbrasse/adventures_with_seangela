@@ -1289,13 +1289,19 @@ export default function PhotoGallery({
                     </DateSaveButton>
                   </DateEditWrapper>
                 </DetailRow>
-              ) : (
+              ) : isAuthenticated ? (
                 <EditableDateRow onClick={handleStartEditDate}>
                   <Calendar />
                   <DetailLabel>Date</DetailLabel>
                   <DetailValue>{format(allPhotos[selectedIndex].date, 'EEEE, MMMM d, yyyy')}</DetailValue>
                   <EditHint>click to edit</EditHint>
                 </EditableDateRow>
+              ) : (
+                <DetailRow>
+                  <Calendar />
+                  <DetailLabel>Date</DetailLabel>
+                  <DetailValue>{format(allPhotos[selectedIndex].date, 'EEEE, MMMM d, yyyy')}</DetailValue>
+                </DetailRow>
               )}
               {!isEditingDate && (
                 <DetailRow>
@@ -1316,7 +1322,7 @@ export default function PhotoGallery({
                   <MessageSquare />
                   Caption
                 </CaptionHeader>
-                {isEditingCaption ? (
+                {isEditingCaption && isAuthenticated ? (
                   <CaptionInputWrapper>
                     <CaptionInputContainer>
                       <CaptionTextarea
@@ -1335,7 +1341,7 @@ export default function PhotoGallery({
                       <Check />
                     </CaptionSaveButton>
                   </CaptionInputWrapper>
-                ) : (
+                ) : isAuthenticated ? (
                   <CaptionDisplay onClick={handleStartEditCaption}>
                     {allPhotos[selectedIndex].description ? (
                       <CaptionText>{allPhotos[selectedIndex].description}</CaptionText>
@@ -1345,6 +1351,14 @@ export default function PhotoGallery({
                     <CaptionEditButton title="Edit caption">
                       <Pencil />
                     </CaptionEditButton>
+                  </CaptionDisplay>
+                ) : (
+                  <CaptionDisplay as="div" style={{ cursor: 'default' }}>
+                    {allPhotos[selectedIndex].description ? (
+                      <CaptionText>{allPhotos[selectedIndex].description}</CaptionText>
+                    ) : (
+                      <CaptionPlaceholder>No caption</CaptionPlaceholder>
+                    )}
                   </CaptionDisplay>
                 )}
               </CaptionRow>

@@ -18,6 +18,7 @@ interface SidebarProps {
   onAddPhotos?: () => void;
   isAuthenticated?: boolean;
   onLoginClick?: () => void;
+  onViewPlannedTrips?: () => void;
 }
 
 // Styled Components
@@ -585,6 +586,25 @@ const AddPlannedTripButton = styled.button`
   }
 `;
 
+const ViewPlannedTripsButton = styled.button`
+  margin-top: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.625rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.8);
+  }
+`;
+
 // Your Trips empty state styled components
 const TripsEmpty = styled.div`
   display: flex;
@@ -659,6 +679,7 @@ export default function Sidebar({
   onAddPhotos,
   isAuthenticated = false,
   onLoginClick,
+  onViewPlannedTrips,
 }: SidebarProps) {
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
@@ -930,16 +951,24 @@ export default function Sidebar({
                     <Map size={24} color="#fbbf24" />
                   </PlannedTripsEmptyIcon>
                   <PlannedTripsEmptyTitle>
-                    Plan your next adventure
+                    No adventures planned yet
                   </PlannedTripsEmptyTitle>
                   <PlannedTripsEmptyText>
-                    Dream up your next trip together and keep track of all the details
+                    {isAuthenticated
+                      ? "Dream up your next trip together and keep track of all the details"
+                      : "Sign in to start planning your next adventure together"
+                    }
                   </PlannedTripsEmptyText>
                   {isAuthenticated && onAddPlannedTrip && (
                     <AddPlannedTripButton onClick={onAddPlannedTrip}>
                       <Plus size={16} />
                       Start Planning
                     </AddPlannedTripButton>
+                  )}
+                  {onViewPlannedTrips && (
+                    <ViewPlannedTripsButton onClick={onViewPlannedTrips}>
+                      View All Planned Trips
+                    </ViewPlannedTripsButton>
                   )}
                 </PlannedTripsEmpty>
               )}

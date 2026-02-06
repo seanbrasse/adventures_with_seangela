@@ -735,6 +735,7 @@ function AppContent() {
   const [showGallery, setShowGallery] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPlacesView, setShowPlacesView] = useState(false);
+  const [placesViewMode, setPlacesViewMode] = useState<'past' | 'planned'>('past');
   const [showAllPhotosView, setShowAllPhotosView] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -1012,6 +1013,11 @@ function AppContent() {
               onAddPhotos={() => setShowUpload(true)}
               isAuthenticated={isAuthenticated}
               onLoginClick={() => setShowLoginModal(true)}
+              onViewPlannedTrips={() => {
+                setPlacesViewMode('planned');
+                setShowPlacesView(true);
+                setSidebarOpen(false);
+              }}
             />
           </SidebarContent>
         </MobileSidebarContainer>
@@ -1039,6 +1045,10 @@ function AppContent() {
                 onAddPhotos={() => setShowUpload(true)}
                 isAuthenticated={isAuthenticated}
                 onLoginClick={() => setShowLoginModal(true)}
+                onViewPlannedTrips={() => {
+                  setPlacesViewMode('planned');
+                  setShowPlacesView(true);
+                }}
               />
             </SidebarContent>
 
@@ -1206,13 +1216,17 @@ function AppContent() {
             photos={photos}
             trips={trips}
             plannedTrips={plannedTrips}
-            onClose={() => setShowPlacesView(false)}
+            onClose={() => {
+              setShowPlacesView(false);
+              setPlacesViewMode('past');
+            }}
             onLocationSelect={handleLocationClick}
             onPlannedTripClick={handlePlannedTripClick}
             onAddPlannedTrip={handleAddPlannedTrip}
             onTripClick={handleEditTrip}
             onAddPhotos={() => setShowUpload(true)}
             isAuthenticated={isAuthenticated}
+            initialViewMode={placesViewMode}
           />
         )}
 
