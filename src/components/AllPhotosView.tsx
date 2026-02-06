@@ -171,10 +171,11 @@ const FilterButton = styled.button<{ $active?: boolean }>`
   }
 `;
 
-const Dropdown = styled.div<{ $visible: boolean }>`
+const Dropdown = styled.div<{ $visible: boolean; $alignRight?: boolean }>`
   position: absolute;
   top: calc(100% + 0.5rem);
-  left: 0;
+  left: ${({ $alignRight }) => $alignRight ? 'auto' : '0'};
+  right: ${({ $alignRight }) => $alignRight ? '0' : 'auto'};
   z-index: 1000;
   min-width: 200px;
   max-height: 300px;
@@ -184,6 +185,10 @@ const Dropdown = styled.div<{ $visible: boolean }>`
   border-radius: 0.75rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   display: ${({ $visible }) => $visible ? 'block' : 'none'};
+
+  @media (max-width: 640px) {
+    min-width: 160px;
+  }
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -652,7 +657,7 @@ export default function AllPhotosView({
                 {yearFilter || 'All Years'}
                 <ChevronDown />
               </FilterButton>
-              <Dropdown $visible={yearDropdownOpen}>
+              <Dropdown $visible={yearDropdownOpen} $alignRight>
                 <DropdownItem
                   $selected={!yearFilter}
                   onClick={() => { setYearFilter(null); setYearDropdownOpen(false); }}

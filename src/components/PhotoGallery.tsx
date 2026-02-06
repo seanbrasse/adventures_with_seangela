@@ -164,6 +164,25 @@ const HeaderActions = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    /* Hide settings and add photo buttons in header on mobile */
+    & > button:not(:last-child) {
+      display: none;
+    }
+  }
+`;
+
+const MobileActionsBar = styled.div`
+  display: none;
+  padding: 0.75rem 1rem;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+
+  @media (max-width: 640px) {
+    display: flex;
+  }
 `;
 
 const AddPhotoButton = styled.button`
@@ -1036,6 +1055,35 @@ export default function PhotoGallery({
           </CloseButton>
         </HeaderActions>
       </Header>
+
+      {/* Mobile action buttons - shown below header on mobile */}
+      {(isAuthenticated && (trip || (onAddPhoto && photos.length > 0))) && (
+        <MobileActionsBar>
+          {isAuthenticated && trip && onUpdateTrip && onDeleteTrip && (
+            <SettingsButton
+              onClick={() => setShowTripSettings(true)}
+              title="Trip settings"
+            >
+              <Settings />
+            </SettingsButton>
+          )}
+          {isAuthenticated && onAddPhoto && photos.length > 0 && (
+            <AddPhotoButton
+              onClick={() => {
+                const firstPhoto = photos[0];
+                onAddPhoto({
+                  lat: firstPhoto.location.lat,
+                  lng: firstPhoto.location.lng,
+                  name: locationName || firstPhoto.location.name || 'Unknown location',
+                });
+              }}
+            >
+              <Plus />
+              Add Photo
+            </AddPhotoButton>
+          )}
+        </MobileActionsBar>
+      )}
 
       {selectedIndex !== null ? (
         <FullscreenView>
