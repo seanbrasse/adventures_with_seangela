@@ -929,33 +929,14 @@ function AppContent() {
       <AppContainer>
         {/* Mobile header */}
         <MobileHeader>
-          <MobileHeaderButtons>
-            <IconButton onClick={() => setSidebarOpen(true)}>
-              <Menu />
-            </IconButton>
-            {isAuthenticated ? (
-              <IconButton onClick={() => setShowSettings(true)}>
-                <Settings />
-              </IconButton>
-            ) : (
-              <LoginButton onClick={() => setShowLoginModal(true)} title="Sign in">
-                <Lock />
-              </LoginButton>
-            )}
-          </MobileHeaderButtons>
+          <IconButton onClick={() => setSidebarOpen(true)}>
+            <Menu />
+          </IconButton>
           <MobileTitle>
             <Heart size={20} />
             Adventures with Seangela
           </MobileTitle>
-          {isAuthenticated ? (
-            <AddButton onClick={() => setShowUpload(true)}>
-              <Plus />
-            </AddButton>
-          ) : (
-            <LockedAddButton onClick={() => setShowLoginModal(true)} title="Sign in to add photos">
-              <Lock />
-            </LockedAddButton>
-          )}
+          <div style={{ width: '2.5rem' }} /> {/* Spacer for centering */}
         </MobileHeader>
 
         {/* Mobile sidebar overlay */}
@@ -988,6 +969,26 @@ function AppContent() {
               onLoginClick={() => setShowLoginModal(true)}
             />
           </SidebarContent>
+
+          <SidebarFooter>
+            {isAuthenticated ? (
+              <>
+                <PrimaryButton onClick={() => { setShowUpload(true); setSidebarOpen(false); }}>
+                  <Plus />
+                  Add Photos
+                </PrimaryButton>
+                <SecondaryButton onClick={() => { setShowSettings(true); setSidebarOpen(false); }}>
+                  <Settings />
+                  Settings
+                </SecondaryButton>
+              </>
+            ) : (
+              <AuthButton onClick={() => { setShowLoginModal(true); setSidebarOpen(false); }}>
+                <Lock />
+                Sign In
+              </AuthButton>
+            )}
+          </SidebarFooter>
         </MobileSidebarContainer>
 
         {/* Desktop Sidebar with collapse toggle */}

@@ -376,6 +376,11 @@ const ImageSection = styled.div`
   justify-content: center;
   position: relative;
   min-width: 0;
+
+  @media (max-width: 640px) {
+    align-items: flex-start;
+    padding-bottom: 40vh; /* Leave room for details panel */
+  }
 `;
 
 const DetailsSection = styled.div`
@@ -402,7 +407,7 @@ const DetailsSection = styled.div`
     top: auto;
     bottom: 0;
     width: 100%;
-    max-height: 50vh;
+    height: 40vh;
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 1.5rem 1.5rem 0 0;
@@ -472,7 +477,7 @@ const MainImage = styled.img`
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
 
   @media (max-width: 640px) {
-    max-height: 45vh;
+    max-height: 50vh;
     border-radius: 0.75rem;
   }
 `;
@@ -668,6 +673,14 @@ const CaptionText = styled.p`
   word-wrap: break-word;
   overflow-wrap: break-word;
   min-width: 0;
+
+  @media (max-width: 640px) {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 const CaptionPlaceholder = styled.p`
