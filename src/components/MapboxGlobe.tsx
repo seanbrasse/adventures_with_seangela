@@ -857,6 +857,22 @@ export default function MapboxGlobe({
         interactiveLayerIds={interactiveLayerIds}
         onClick={handleMapClick}
         cursor={interactiveLayerIds.length > 0 ? 'pointer' : 'grab'}
+        onLoad={(e) => {
+          // Remove any debug or collision visualization layers that might exist
+          const map = e.target;
+          const style = map.getStyle();
+          if (style?.layers) {
+            style.layers.forEach((layer: { id: string }) => {
+              if (layer.id.includes('debug') || layer.id.includes('collision') || layer.id.includes('symbol-placeholder')) {
+                try {
+                  map.removeLayer(layer.id);
+                } catch {
+                  // Layer might not exist
+                }
+              }
+            });
+          }
+        }}
         fog={
           isMinimalStyle
             ? {
