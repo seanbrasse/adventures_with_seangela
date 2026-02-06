@@ -678,7 +678,6 @@ function AppContent() {
   const [showApiKeyInput, setShowApiKeyInput] = useState(!MAPBOX_TOKEN);
   const [uploadTargetLocation, setUploadTargetLocation] = useState<LocationContext | null>(null);
   const [showWelcomeLetter, setShowWelcomeLetter] = useState(false);
-  const [hasSeenWelcomeLetter, setHasSeenWelcomeLetter] = useState(false);
   const [wasAuthenticated, setWasAuthenticated] = useState(isAuthenticated);
 
   // Show welcome letter when user logs in
@@ -692,7 +691,6 @@ function AppContent() {
 
   const handleCloseWelcomeLetter = useCallback(() => {
     setShowWelcomeLetter(false);
-    setHasSeenWelcomeLetter(true);
   }, []);
 
   const handleOpenWelcomeLetter = useCallback(() => {
@@ -917,7 +915,7 @@ function AppContent() {
             <Heart size={20} />
             Adventures with Seangela
           </MobileTitle>
-          {hasSeenWelcomeLetter && isAuthenticated ? (
+          {isAuthenticated ? (
             <LetterButton onClick={handleOpenWelcomeLetter} title="Open love letter">
               <Mail />
             </LetterButton>
@@ -936,7 +934,7 @@ function AppContent() {
               <Heart />
               Adventures with Seangela
             </Logo>
-            {hasSeenWelcomeLetter && isAuthenticated && (
+            {isAuthenticated && (
               <LetterButton onClick={() => { handleOpenWelcomeLetter(); setSidebarOpen(false); }} title="Open love letter">
                 <Mail />
               </LetterButton>
@@ -991,7 +989,7 @@ function AppContent() {
                 <Heart />
                 Adventures with Seangela
               </Logo>
-              {hasSeenWelcomeLetter && isAuthenticated && (
+              {isAuthenticated && (
                 <LetterButton onClick={handleOpenWelcomeLetter} title="Open love letter">
                   <Mail />
                 </LetterButton>
