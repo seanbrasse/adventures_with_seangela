@@ -935,11 +935,6 @@ function AppContent() {
               <Heart />
               Adventures with Seangela
             </Logo>
-            {isAuthenticated && (
-              <LetterButton onClick={() => { handleOpenWelcomeLetter(); setSidebarOpen(false); }} title="Open love letter">
-                <Mail />
-              </LetterButton>
-            )}
             <CloseButton onClick={() => setSidebarOpen(false)}>
               <X />
             </CloseButton>
