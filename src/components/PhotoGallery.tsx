@@ -750,15 +750,18 @@ const DateHeader = styled.h3`
   color: rgba(255, 255, 255, 0.9);
   margin-bottom: 1.25rem;
   padding: 0.875rem 0;
-  position: sticky;
-  top: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.85) 100%);
-  backdrop-filter: blur(8px);
-  z-index: 10;
-  margin-left: -2.5rem;
-  margin-right: -2.5rem;
-  padding-left: 2.5rem;
-  padding-right: 2.5rem;
+
+  @media (min-width: 768px) {
+    position: sticky;
+    top: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.85) 100%);
+    backdrop-filter: blur(8px);
+    z-index: 10;
+    margin-left: -2.5rem;
+    margin-right: -2.5rem;
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
 `;
 
 const PhotoGrid = styled.div`
