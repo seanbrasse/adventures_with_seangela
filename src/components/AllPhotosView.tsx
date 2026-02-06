@@ -741,7 +741,7 @@ export default function AllPhotosView({
                     onPhotoClick(photo);
                   }}
                 >
-                  <PhotoImage src={photo.thumbnail} alt="" loading="lazy" />
+                  <PhotoImage src={photo.url} alt="" loading="lazy" />
                   <PhotoOverlay>
                     <PhotoDate>
                       <Calendar />

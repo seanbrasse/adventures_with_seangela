@@ -1261,7 +1261,7 @@ export default function PhotoGallery({
                       onClick={() => setSelectedIndex(photoIndex)}
                     >
                       <PhotoThumbnail
-                        src={photo.thumbnail}
+                        src={photo.url}
                         alt={photo.description || 'Photo'}
                       />
                       <PhotoOverlay />
