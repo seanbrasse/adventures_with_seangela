@@ -1187,18 +1187,24 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
     );
   };
 
+  const needsLocationCount = pendingPhotos.filter((p) => p.needsLocation).length;
+
+  // All photos must have locations before upload is allowed
+  const canSubmit = pendingPhotos.length > 0 && needsLocationCount === 0 && !isUploading;
+
   const handleSubmit = async () => {
-    const validPhotos = pendingPhotos.filter((p) => !p.needsLocation);
-    if (validPhotos.length === 0) return;
+    // All photos must have locations - no partial uploads allowed
+    if (needsLocationCount > 0) return;
+    if (pendingPhotos.length === 0) return;
 
     setIsUploading(true);
     setUploadProgress(0);
 
     const uploadedPhotos: Photo[] = [];
 
-    for (let i = 0; i < validPhotos.length; i++) {
-      const photo = validPhotos[i];
-      setUploadProgress(Math.round(((i + 0.5) / validPhotos.length) * 100));
+    for (let i = 0; i < pendingPhotos.length; i++) {
+      const photo = pendingPhotos[i];
+      setUploadProgress(Math.round(((i + 0.5) / pendingPhotos.length) * 100));
 
       const uploadResult = await uploadPhotoToStorage(photo.id, photo.file, photo.thumbnail);
 
@@ -1213,7 +1219,7 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
         });
       }
 
-      setUploadProgress(Math.round(((i + 1) / validPhotos.length) * 100));
+      setUploadProgress(Math.round(((i + 1) / pendingPhotos.length) * 100));
     }
 
     setIsUploading(false);
@@ -1223,15 +1229,6 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
       onClose();
     }
   };
-
-  const validCount = pendingPhotos.filter((p) => !p.needsLocation).length;
-  const needsLocationCount = pendingPhotos.filter((p) => p.needsLocation).length;
-  const unresolvedMismatchCount = pendingPhotos.filter((p) => p.locationMismatch).length;
-  const needsConfirmationCount = pendingPhotos.filter((p) => p.needsLocationConfirmation).length;
-
-  // When converting a planned trip, all location issues must be resolved
-  const hasUnresolvedIssues = convertingFromPlannedTrip && (unresolvedMismatchCount > 0 || needsConfirmationCount > 0);
-  const canSubmit = validCount > 0 && !hasUnresolvedIssues;
 
   return (
     <Overlay>
@@ -1447,16 +1444,11 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
 
         <Footer>
           <FooterStatus>
-            {validCount > 0 && !hasUnresolvedIssues && (
-              <ReadyCount>{validCount} ready to add</ReadyCount>
+            {canSubmit && (
+              <ReadyCount>{pendingPhotos.length} ready to add</ReadyCount>
             )}
             {needsLocationCount > 0 && (
-              <NeedsLocationCount>{needsLocationCount} need location</NeedsLocationCount>
-            )}
-            {hasUnresolvedIssues && (
-              <NeedsLocationCount>
-                {unresolvedMismatchCount + needsConfirmationCount} photo{(unresolvedMismatchCount + needsConfirmationCount) !== 1 ? 's' : ''} need location resolved
-              </NeedsLocationCount>
+              <NeedsLocationCount>{needsLocationCount} photo{needsLocationCount !== 1 ? 's' : ''} need location</NeedsLocationCount>
             )}
           </FooterStatus>
           <FooterButtons>
@@ -1465,7 +1457,7 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
             </CancelButton>
             <SubmitButton
               onClick={handleSubmit}
-              disabled={!canSubmit || isUploading}
+              disabled={!canSubmit}
             >
               {isUploading ? (
                 <>
@@ -1473,7 +1465,7 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
                   Uploading...
                 </>
               ) : (
-                <>Add {validCount} Photo{validCount !== 1 ? 's' : ''}</>
+                <>Add {pendingPhotos.length} Photo{pendingPhotos.length !== 1 ? 's' : ''}</>
               )}
             </SubmitButton>
           </FooterButtons>
