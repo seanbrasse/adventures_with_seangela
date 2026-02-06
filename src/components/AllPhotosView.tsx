@@ -438,13 +438,9 @@ export default function AllPhotosView({
 
     // Filter by trip
     if (tripFilter) {
-      if (tripFilter === 'no-trip') {
-        result = result.filter((p) => !photoToTrip.has(p.id));
-      } else {
-        const trip = trips.find((t) => t.id === tripFilter);
-        if (trip) {
-          result = result.filter((p) => trip.photoIds.includes(p.id));
-        }
+      const trip = trips.find((t) => t.id === tripFilter);
+      if (trip) {
+        result = result.filter((p) => trip.photoIds.includes(p.id));
       }
     }
 
@@ -474,7 +470,7 @@ export default function AllPhotosView({
     }
 
     return result;
-  }, [photos, trips, tripFilter, locationFilter, yearFilter, sortBy, photoToTrip]);
+  }, [photos, trips, tripFilter, locationFilter, yearFilter, sortBy]);
 
   const hasActiveFilters = tripFilter || locationFilter || yearFilter;
 
@@ -493,7 +489,6 @@ export default function AllPhotosView({
 
   const getSelectedTripName = () => {
     if (!tripFilter) return 'All Trips';
-    if (tripFilter === 'no-trip') return 'No Trip';
     const trip = trips.find((t) => t.id === tripFilter);
     return trip?.name || trip?.locationName || 'Unknown';
   };
@@ -570,13 +565,6 @@ export default function AllPhotosView({
                 >
                   <DropdownIcon><Plane /></DropdownIcon>
                   All Trips
-                </DropdownItem>
-                <DropdownItem
-                  $selected={tripFilter === 'no-trip'}
-                  onClick={() => { setTripFilter('no-trip'); setTripDropdownOpen(false); }}
-                >
-                  <DropdownIcon><Image /></DropdownIcon>
-                  No Trip Assigned
                 </DropdownItem>
                 {trips.map((trip) => (
                   <DropdownItem
