@@ -65,7 +65,7 @@ const Modal = styled.div`
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
 
   @media (max-width: 640px) {
-    max-height: 95vh;
+    max-height: 85vh;
     border-radius: 1.5rem 1.5rem 0 0;
   }
 `;
