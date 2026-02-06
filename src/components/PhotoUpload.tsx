@@ -1165,6 +1165,11 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
 
   const validCount = pendingPhotos.filter((p) => !p.needsLocation).length;
   const needsLocationCount = pendingPhotos.filter((p) => p.needsLocation).length;
+  const unresolvedMismatchCount = pendingPhotos.filter((p) => p.locationMismatch).length;
+
+  // When converting a planned trip, all location mismatches must be resolved
+  const hasUnresolvedMismatches = convertingFromPlannedTrip && unresolvedMismatchCount > 0;
+  const canSubmit = validCount > 0 && !hasUnresolvedMismatches;
 
   return (
     <Overlay>
@@ -1360,9 +1365,16 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
 
         <Footer>
           <FooterStatus>
-            {validCount > 0 && <ReadyCount>{validCount} ready to add</ReadyCount>}
+            {validCount > 0 && !hasUnresolvedMismatches && (
+              <ReadyCount>{validCount} ready to add</ReadyCount>
+            )}
             {needsLocationCount > 0 && (
               <NeedsLocationCount>{needsLocationCount} need location</NeedsLocationCount>
+            )}
+            {hasUnresolvedMismatches && (
+              <NeedsLocationCount>
+                {unresolvedMismatchCount} photo{unresolvedMismatchCount !== 1 ? 's' : ''} need location resolved
+              </NeedsLocationCount>
             )}
           </FooterStatus>
           <FooterButtons>
@@ -1371,7 +1383,7 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
             </CancelButton>
             <SubmitButton
               onClick={handleSubmit}
-              disabled={validCount === 0 || isUploading}
+              disabled={!canSubmit || isUploading}
             >
               {isUploading ? (
                 <>
