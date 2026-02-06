@@ -647,6 +647,28 @@ export default function Sidebar({
     return locs.sort((a, b) => b.latestDate.getTime() - a.latestDate.getTime());
   }, [photos]);
 
+  // Create trip display items from actual trips (not raw photo locations)
+  const tripDisplayItems = useMemo(() => {
+    if (!trips || trips.length === 0) return [];
+
+    return trips
+      .map((trip) => {
+        const tripPhotos = photos.filter((p) => trip.photoIds.includes(p.id));
+        if (tripPhotos.length === 0) return null;
+
+        const sortedPhotos = [...tripPhotos].sort((a, b) => b.date.getTime() - a.date.getTime());
+        return {
+          id: trip.id,
+          name: trip.name, // Use the trip name (e.g., "Dubai") not raw location
+          photos: sortedPhotos,
+          latestDate: sortedPhotos[0].date,
+          startDate: trip.startDate,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .sort((a, b) => b.latestDate.getTime() - a.latestDate.getTime());
+  }, [trips, photos]);
+
   const [viewMode, setViewMode] = useState<'trips' | 'planned'>('trips');
 
   const stats = useMemo(() => {
@@ -756,33 +778,32 @@ export default function Sidebar({
         <ScrollableContent>
           {viewMode === 'trips' ? (
             <>
-              {locations.length > 0 ? (
+              {tripDisplayItems.length > 0 ? (
                 <LocationsList>
-                  {locations.map((loc) => {
-                    const locationName = loc.photos[0].location.name || `${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}`;
+                  {tripDisplayItems.map((trip) => {
                     return (
                       <LocationCard
-                        key={loc.key}
-                        onClick={() => onLocationSelect(loc.photos)}
+                        key={trip.id}
+                        onClick={() => onLocationSelect(trip.photos)}
                       >
                         <Thumbnail>
                           <img
-                            src={loc.photos[0].thumbnail}
+                            src={trip.photos[0].thumbnail}
                             alt=""
                           />
                         </Thumbnail>
 
                         <LocationInfo>
                           <LocationName>
-                            {locationName}
+                            {trip.name}
                           </LocationName>
                           <LocationMeta>
                             <span>
-                              {loc.photos.length} photo{loc.photos.length !== 1 ? 's' : ''}
+                              {trip.photos.length} photo{trip.photos.length !== 1 ? 's' : ''}
                             </span>
                             <MetaDot>•</MetaDot>
                             <span>
-                              {format(loc.latestDate, 'MMM d, yyyy')}
+                              {format(trip.latestDate, 'MMM d, yyyy')}
                             </span>
                           </LocationMeta>
                         </LocationInfo>
