@@ -254,6 +254,10 @@ const TripDescription = styled.p`
   line-height: 1.5;
   margin-top: 0.75rem;
   max-width: 500px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 `;
 
 const SettingsButton = styled.button`
@@ -666,6 +670,19 @@ const CaptionTextarea = styled.textarea`
   }
 `;
 
+const CaptionInputContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  flex: 1;
+`;
+
+const CharacterCount = styled.span<{ $nearLimit?: boolean }>`
+  font-size: 0.75rem;
+  color: ${({ $nearLimit }) => ($nearLimit ? '#fbbf24' : 'rgba(255, 255, 255, 0.4)')};
+  text-align: right;
+`;
+
 const CaptionSaveButton = styled.button`
   padding: 0.5rem;
   border-radius: 0.5rem;
@@ -889,6 +906,9 @@ const DeleteTooltip = styled.div`
   white-space: nowrap;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 `;
+
+// Character limits
+const CAPTION_MAX_LENGTH = 200;
 
 export default function PhotoGallery({
   photos,
@@ -1296,13 +1316,19 @@ export default function PhotoGallery({
                 </CaptionHeader>
                 {isEditingCaption ? (
                   <CaptionInputWrapper>
-                    <CaptionTextarea
-                      ref={captionInputRef}
-                      value={editedCaption}
-                      onChange={(e) => setEditedCaption(e.target.value)}
-                      onKeyDown={handleCaptionKeyDown}
-                      placeholder="Add a caption..."
-                    />
+                    <CaptionInputContainer>
+                      <CaptionTextarea
+                        ref={captionInputRef}
+                        value={editedCaption}
+                        onChange={(e) => setEditedCaption(e.target.value.slice(0, CAPTION_MAX_LENGTH))}
+                        onKeyDown={handleCaptionKeyDown}
+                        placeholder="Add a caption..."
+                        maxLength={CAPTION_MAX_LENGTH}
+                      />
+                      <CharacterCount $nearLimit={editedCaption.length > CAPTION_MAX_LENGTH * 0.8}>
+                        {editedCaption.length}/{CAPTION_MAX_LENGTH}
+                      </CharacterCount>
+                    </CaptionInputContainer>
                     <CaptionSaveButton onClick={handleSaveCaption} title="Save caption">
                       <Check />
                     </CaptionSaveButton>

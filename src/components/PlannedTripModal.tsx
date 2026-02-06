@@ -275,6 +275,13 @@ const TextArea = styled.textarea`
   }
 `;
 
+const CharacterCount = styled.span<{ $nearLimit?: boolean }>`
+  font-size: 0.75rem;
+  color: ${({ $nearLimit }) => ($nearLimit ? '#fbbf24' : 'rgba(255, 255, 255, 0.4)')};
+  text-align: right;
+  margin-top: 0.375rem;
+`;
+
 const DateRow = styled.div`
   display: flex;
   align-items: center;
@@ -644,6 +651,11 @@ const BOOKING_STATUSES = [
   { value: 'booked', label: 'Booked', icon: BookmarkCheck, color: '#22c55e' },
 ] as const;
 
+// Character limits
+const DESCRIPTION_MAX_LENGTH = 300;
+const NOTES_MAX_LENGTH = 500;
+const TODO_MAX_LENGTH = 100;
+
 export default function PlannedTripModal({
   trip,
   onSave,
@@ -743,10 +755,14 @@ export default function PlannedTripModal({
               </Label>
               <TextArea
                 value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))}
                 placeholder="What's this trip about?"
                 rows={2}
+                maxLength={DESCRIPTION_MAX_LENGTH}
               />
+              <CharacterCount $nearLimit={formData.description.length > DESCRIPTION_MAX_LENGTH * 0.8}>
+                {formData.description.length}/{DESCRIPTION_MAX_LENGTH}
+              </CharacterCount>
             </FormGroup>
 
             <FormGroup>
@@ -818,24 +834,34 @@ export default function PlannedTripModal({
                 <AddTodoInput
                   type="text"
                   value={newTodo}
-                  onChange={(e) => setNewTodo(e.target.value)}
+                  onChange={(e) => setNewTodo(e.target.value.slice(0, TODO_MAX_LENGTH))}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
                   placeholder="Add something to do..."
+                  maxLength={TODO_MAX_LENGTH}
                 />
                 <AddTodoButton onClick={handleAddTodo} disabled={!newTodo.trim()}>
                   <Plus />
                 </AddTodoButton>
               </AddTodoRow>
+              {newTodo.length > 0 && (
+                <CharacterCount $nearLimit={newTodo.length > TODO_MAX_LENGTH * 0.8}>
+                  {newTodo.length}/{TODO_MAX_LENGTH}
+                </CharacterCount>
+              )}
             </FormGroup>
 
             <FormGroup>
               <Label>Notes</Label>
               <TextArea
                 value={formData.notes}
-                onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value.slice(0, NOTES_MAX_LENGTH) }))}
                 placeholder="Any additional notes..."
                 rows={3}
+                maxLength={NOTES_MAX_LENGTH}
               />
+              <CharacterCount $nearLimit={formData.notes.length > NOTES_MAX_LENGTH * 0.8}>
+                {formData.notes.length}/{NOTES_MAX_LENGTH}
+              </CharacterCount>
             </FormGroup>
           </FormGrid>
         </Content>

@@ -164,6 +164,13 @@ const Textarea = styled.textarea`
   }
 `;
 
+const CharacterCount = styled.span<{ $nearLimit?: boolean }>`
+  font-size: 0.75rem;
+  color: ${({ $nearLimit }) => ($nearLimit ? '#fbbf24' : 'rgba(255, 255, 255, 0.4)')};
+  text-align: right;
+  margin-top: 0.375rem;
+`;
+
 const DateRow = styled.div`
   display: flex;
   gap: 1rem;
@@ -351,6 +358,9 @@ const SaveButton = styled.button`
   }
 `;
 
+// Character limits
+const DESCRIPTION_MAX_LENGTH = 500;
+
 // Helper to format date for input (using local time, not UTC)
 const formatDateForInput = (date: Date): string => {
   const year = date.getFullYear();
@@ -460,9 +470,13 @@ export default function TripSettingsModal({
             </Label>
             <Textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value.slice(0, DESCRIPTION_MAX_LENGTH))}
               placeholder="Add notes about this trip..."
+              maxLength={DESCRIPTION_MAX_LENGTH}
             />
+            <CharacterCount $nearLimit={description.length > DESCRIPTION_MAX_LENGTH * 0.8}>
+              {description.length}/{DESCRIPTION_MAX_LENGTH}
+            </CharacterCount>
           </FormGroup>
 
           <Divider />
