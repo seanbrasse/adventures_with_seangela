@@ -137,7 +137,9 @@ const Card = styled.div<{ $isVisible: boolean }>`
   z-index: 1;
 
   @media (max-width: 640px) {
-    padding: 1.5rem 1rem;
+    padding: 1.25rem 1rem 1.5rem;
+    top: 3%;
+    bottom: 3%;
   }
 `;
 
@@ -148,6 +150,15 @@ const CardHeartDecor = styled.div`
     width: 2.5rem;
     height: 2.5rem;
     color: #ec4899;
+  }
+
+  @media (max-width: 640px) {
+    margin-bottom: 0.5rem;
+
+    svg {
+      width: 2rem;
+      height: 2rem;
+    }
   }
 `;
 
@@ -176,7 +187,7 @@ const CardRecipient = styled.p`
 
   @media (max-width: 640px) {
     font-size: 1rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 `;
 
@@ -199,7 +210,7 @@ const CardSignature = styled.p`
   font-style: italic;
 
   @media (max-width: 640px) {
-    margin-top: 1rem;
+    margin-top: 0.75rem;
   }
 `;
 

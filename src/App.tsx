@@ -102,6 +102,7 @@ const MobileTitle = styled.h1`
   display: flex;
   align-items: center;
   gap: 0.625rem;
+  margin-left: 0.5rem;
 
   svg {
     color: #f472b6;
