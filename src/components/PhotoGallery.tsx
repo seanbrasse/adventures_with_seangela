@@ -1,9 +1,8 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import { X, ChevronLeft, ChevronRight, Trash2, MapPin, Pencil, Check, Clock, Calendar, MessageSquare, Plus, Settings } from 'lucide-react';
 import styled from 'styled-components';
 import type { Photo, Trip } from '../types/photo';
-import { searchPlaces, type GeocodingResult } from '../utils/geocoding';
 import TripSettingsModal from './TripSettingsModal';
 
 export interface LocationContext {
@@ -90,26 +89,6 @@ const HeaderIcon = styled.div`
 
 const HeaderText = styled.div``;
 
-const Title = styled.h2`
-  font-size: 1.625rem;
-  font-weight: 600;
-  color: #ffffff;
-  letter-spacing: -0.01em;
-  margin-bottom: 0.375rem;
-
-  @media (max-width: 640px) {
-    font-size: 1.125rem;
-    margin-bottom: 0.25rem;
-  }
-`;
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.375rem;
-`;
-
 const TitleText = styled.h2`
   font-size: 1.625rem;
   font-weight: 600;
@@ -119,132 +98,6 @@ const TitleText = styled.h2`
   @media (max-width: 640px) {
     font-size: 1.125rem;
   }
-`;
-
-const EditButton = styled.button`
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  svg {
-    width: 1rem;
-    height: 1rem;
-    color: rgba(255, 255, 255, 0.6);
-  }
-`;
-
-const TitleInput = styled.input`
-  font-size: 1.625rem;
-  font-weight: 600;
-  color: #ffffff;
-  letter-spacing: -0.01em;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  outline: none;
-  width: 100%;
-  max-width: 400px;
-
-  &:focus {
-    border-color: #ec4899;
-    background: rgba(255, 255, 255, 0.15);
-  }
-`;
-
-const SaveButton = styled.button`
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  background: #ec4899;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: #db2777;
-  }
-
-  svg {
-    width: 1rem;
-    height: 1rem;
-    color: #ffffff;
-  }
-`;
-
-const InputWrapper = styled.div`
-  position: relative;
-  width: 100%;
-  max-width: 400px;
-`;
-
-const AutocompleteDropdown = styled.div`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 0.5rem;
-  background: #1a1a2e;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.75rem;
-  overflow: hidden;
-  z-index: 100;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-`;
-
-const AutocompleteItem = styled.button<{ $isSelected?: boolean }>`
-  width: 100%;
-  padding: 0.875rem 1rem;
-  background: ${({ $isSelected }) => ($isSelected ? 'rgba(236, 72, 153, 0.2)' : 'transparent')};
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  &:not(:last-child) {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  }
-
-  svg {
-    width: 1rem;
-    height: 1rem;
-    color: rgba(255, 255, 255, 0.4);
-    flex-shrink: 0;
-  }
-`;
-
-const AutocompleteText = styled.span`
-  font-size: 0.9375rem;
-  color: #ffffff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const AutocompleteLoading = styled.div`
-  padding: 1rem;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.875rem;
 `;
 
 const PhotoCount = styled.span`
@@ -483,23 +336,6 @@ const MainImage = styled.img`
     max-height: 50vh;
     border-radius: 0.75rem;
   }
-`;
-
-const ImageInfo = styled.div`
-  margin-top: 1.75rem;
-  text-align: center;
-`;
-
-const ImageDate = styled.p`
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 0.5rem;
-`;
-
-const ImageDescription = styled.p`
-  font-size: 1.125rem;
-  color: rgba(255, 255, 255, 0.6);
 `;
 
 const PhotoDetailsPanel = styled.div`
@@ -991,138 +827,26 @@ export default function PhotoGallery({
   trip,
   onClose,
   onDeletePhoto,
-  onRenameLocation,
+  onRenameLocation: _onRenameLocation,
   onUpdatePhoto,
   onUpdateTrip,
   onDeleteTrip,
   onAddPhoto,
   locationName,
-  mapboxToken,
+  mapboxToken: _mapboxToken,
   isAuthenticated = false,
 }: PhotoGalleryProps) {
+  void _onRenameLocation;
+  void _mapboxToken;
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState(locationName || '');
-  const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
   const [showTripSettings, setShowTripSettings] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [editedCaption, setEditedCaption] = useState('');
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [editedDate, setEditedDate] = useState('');
   const [editedTime, setEditedTime] = useState('');
   const captionInputRef = useRef<HTMLTextAreaElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (isEditingName && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditingName]);
-
-  // Debounced search
-  const handleSearch = useCallback(
-    async (query: string) => {
-      if (!mapboxToken || query.length < 2) {
-        setSearchResults([]);
-        setShowDropdown(false);
-        return;
-      }
-
-      setIsSearching(true);
-      try {
-        const results = await searchPlaces(query, mapboxToken);
-        setSearchResults(results);
-        setShowDropdown(results.length > 0);
-        setSelectedResultIndex(-1);
-      } catch (error) {
-        console.error('Search error:', error);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    [mapboxToken]
-  );
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEditedName(value);
-
-    // Clear previous timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    // Debounce search
-    searchTimeoutRef.current = setTimeout(() => {
-      handleSearch(value);
-    }, 300);
-  };
-
-  const handleSelectResult = (result: GeocodingResult) => {
-    setEditedName(result.place_name);
-    setShowDropdown(false);
-    setSearchResults([]);
-    // Auto-save after selection
-    if (onRenameLocation) {
-      const photoIds = photos.map(p => p.id);
-      onRenameLocation(photoIds, result.place_name);
-    }
-    setIsEditingName(false);
-  };
-
-  const handleSaveName = () => {
-    if (editedName.trim() && onRenameLocation) {
-      const photoIds = photos.map(p => p.id);
-      onRenameLocation(photoIds, editedName.trim());
-    }
-    setIsEditingName(false);
-    setShowDropdown(false);
-    setSearchResults([]);
-  };
-
-  const handleKeyDownName = (e: React.KeyboardEvent) => {
-    if (showDropdown && searchResults.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedResultIndex((prev) =>
-          prev < searchResults.length - 1 ? prev + 1 : prev
-        );
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedResultIndex((prev) => (prev > 0 ? prev - 1 : -1));
-      } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
-        e.preventDefault();
-        handleSelectResult(searchResults[selectedResultIndex]);
-        return;
-      }
-    }
-
-    if (e.key === 'Enter') {
-      handleSaveName();
-    } else if (e.key === 'Escape') {
-      setEditedName(locationName || '');
-      setIsEditingName(false);
-      setShowDropdown(false);
-      setSearchResults([]);
-    }
-    e.stopPropagation();
-  };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Focus caption input when editing starts
   useEffect(() => {

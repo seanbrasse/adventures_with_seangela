@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight, Lock, LogOut } from 'lucide-react';
+import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import styled, { createGlobalStyle } from 'styled-components';
 import MapboxGlobe from './components/MapboxGlobe';
 import PhotoGallery, { type LocationContext } from './components/PhotoGallery';
@@ -75,12 +75,6 @@ const MobileHeader = styled.header`
   }
 `;
 
-const MobileHeaderButtons = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-`;
-
 const IconButton = styled.button`
   padding: 0.625rem;
   border-radius: 0.75rem;
@@ -97,64 +91,6 @@ const IconButton = styled.button`
     width: 1.25rem;
     height: 1.25rem;
     color: #ffffff;
-  }
-`;
-
-const AddButton = styled.button`
-  padding: 0.625rem;
-  border-radius: 0.75rem;
-  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-
-  &:hover {
-    background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
-  }
-
-  svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    color: #ffffff;
-  }
-`;
-
-const LoginButton = styled.button`
-  padding: 0.625rem;
-  border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    color: #ffffff;
-  }
-`;
-
-const LockedAddButton = styled.button`
-  padding: 0.625rem;
-  border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    color: rgba(255, 255, 255, 0.5);
   }
 `;
 

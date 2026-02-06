@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { X, Settings, Trash2, AlertTriangle, Calendar, MapPin, FileText } from 'lucide-react';
 import styled from 'styled-components';
 import type { Trip } from '../types/photo';

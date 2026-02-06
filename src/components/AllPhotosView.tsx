@@ -539,9 +539,9 @@ export default function AllPhotosView({
             <X />
           </CloseButton>
         </Header>
-        <Content onClick={(e) => e.stopPropagation()}>
+        <ScrollArea onClick={(e: React.MouseEvent) => e.stopPropagation()}>
           <EmptyState>No photos yet. Upload some memories to get started!</EmptyState>
-        </Content>
+        </ScrollArea>
       </Overlay>
     );
   }

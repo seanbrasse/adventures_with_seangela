@@ -209,15 +209,6 @@ const ScrollableContent = styled.div`
   }
 `;
 
-const SectionTitle = styled.h3`
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.35);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 1rem;
-`;
-
 const LocationsList = styled.div`
   display: flex;
   flex-direction: column;
@@ -292,33 +283,6 @@ const LocationMeta = styled.div`
 
 const MetaDot = styled.span`
   color: rgba(255, 255, 255, 0.2);
-`;
-
-const SectionHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-`;
-
-const AddButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.9);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
 `;
 
 const PlannedTripCard = styled.button`
@@ -525,13 +489,6 @@ const ToggleButton = styled.button<{ $active: boolean }>`
   }
 `;
 
-const SectionHeaderWithAdd = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-`;
-
 const PlannedTripsEmpty = styled.div`
   display: flex;
   flex-direction: column;
@@ -666,8 +623,9 @@ export default function Sidebar({
   onAddPlannedTrip,
   onAddPhotos,
   isAuthenticated = false,
-  onLoginClick,
+  onLoginClick: _onLoginClick,
 }: SidebarProps) {
+  void _onLoginClick; // Suppress unused warning
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
     const locs: { key: string; lat: number; lng: number; photos: Photo[]; latestDate: Date }[] = [];

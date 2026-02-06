@@ -797,11 +797,11 @@ export default function MapboxGlobe({
   }, [homeBases, isMobile, mapPadding]);
 
   // Handle clicks on the flight line layers
-  const handleMapClick = useCallback((e: { features?: Array<{ properties?: { id?: string } }> }) => {
+  const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent & { features?: mapboxgl.GeoJSONFeature[] }) => {
     if (!e.features || e.features.length === 0) return;
 
     const feature = e.features[0];
-    const lineId = feature.properties?.id;
+    const lineId = feature.properties?.id as string | undefined;
     if (lineId) {
       // Handle both visible line and hit area clicks
       const actualLineId = lineId.replace('-hit', '');
