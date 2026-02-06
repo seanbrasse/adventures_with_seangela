@@ -235,8 +235,7 @@ export default function WelcomeLetterModal({
   }, [isOpen]);
 
   const handleClose = () => {
-    setIsEnvelopeOpen(false);
-    setTimeout(onClose, 400);
+    onClose();
   };
 
   if (!isOpen) return null;
