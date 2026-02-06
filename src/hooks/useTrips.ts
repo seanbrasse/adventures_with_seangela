@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { Photo, Trip, HomeBase } from '../types/photo';
-import { groupPhotosByLocation } from '../utils/exif';
 
 const TRIPS_KEY = 'photo-map-trips';
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
@@ -14,6 +13,10 @@ interface StoredTrip extends Omit<Trip, 'startDate' | 'endDate'> {
 // Minimum distance (in km) for a trip to be considered a "real" trip
 // Trips shorter than this are local movement within the same city/metro
 const MIN_TRIP_DISTANCE_KM = 40;
+
+// Maximum distance (in km) to consider photos part of the same trip
+// This handles day trips to nearby cities (e.g., Dubai to Abu Dhabi ~130km)
+const MAX_TRIP_RADIUS_KM = 200;
 
 // Normalize city names for route consolidation
 // Extracts the primary city name and normalizes variations
@@ -204,8 +207,21 @@ function generateStableTripId(locationKey: string, startDate: Date): string {
   return `trip-${locationKey}-${dateKey}`;
 }
 
+// Calculate centroid of a set of coordinates
+function calculateCentroid(photos: Photo[]): { lat: number; lng: number } {
+  if (photos.length === 0) return { lat: 0, lng: 0 };
+  if (photos.length === 1) return { lat: photos[0].location.lat, lng: photos[0].location.lng };
+
+  const sum = photos.reduce(
+    (acc, p) => ({ lat: acc.lat + p.location.lat, lng: acc.lng + p.location.lng }),
+    { lat: 0, lng: 0 }
+  );
+  return { lat: sum.lat / photos.length, lng: sum.lng / photos.length };
+}
+
 // Auto-generate trips from photos based on date proximity and location
 // Preserves existing trip customizations (name, description) when regenerating
+// Uses distance-based grouping to merge nearby locations (e.g., Dubai + Abu Dhabi = one trip)
 function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips: Trip[] = []): Trip[] {
   if (photos.length === 0) return [];
 
@@ -263,49 +279,55 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
   const trips: Trip[] = [];
   let currentTrip: {
     photos: Photo[];
-    locationKey: string;
-    lat: number;
-    lng: number;
+    centroid: { lat: number; lng: number };
   } | null = null;
 
   for (const photo of sortedPhotos) {
-    const locationKey = `${photo.location.lat.toFixed(1)},${photo.location.lng.toFixed(1)}`;
-
     if (!currentTrip) {
       // Start a new trip
       currentTrip = {
         photos: [photo],
-        locationKey,
-        lat: photo.location.lat,
-        lng: photo.location.lng,
+        centroid: { lat: photo.location.lat, lng: photo.location.lng },
       };
     } else {
       const lastPhotoDate = currentTrip.photos[currentTrip.photos.length - 1].date;
       const timeDiff = photo.date.getTime() - lastPhotoDate.getTime();
-      const isSameLocation = locationKey === currentTrip.locationKey;
       const isWithinTwoWeeks = timeDiff <= TWO_WEEKS_MS;
 
-      if (isSameLocation && isWithinTwoWeeks) {
-        // Add to current trip
+      // Check if the new photo is within the trip radius from the centroid
+      const distanceFromCentroid = getDistanceKm(
+        currentTrip.centroid.lat,
+        currentTrip.centroid.lng,
+        photo.location.lat,
+        photo.location.lng
+      );
+      const isWithinTripRadius = distanceFromCentroid <= MAX_TRIP_RADIUS_KM;
+
+      if (isWithinTripRadius && isWithinTwoWeeks) {
+        // Add to current trip and update centroid
         currentTrip.photos.push(photo);
+        currentTrip.centroid = calculateCentroid(currentTrip.photos);
       } else {
         // Finalize current trip and start a new one
         const startDate = currentTrip.photos[0].date;
         const travelers = determineTravelers(
-          currentTrip.lat,
-          currentTrip.lng,
+          currentTrip.centroid.lat,
+          currentTrip.centroid.lng,
           startDate,
           homeBases
         );
         const endDate = currentTrip.photos[currentTrip.photos.length - 1].date;
+
+        // Use the first photo's location name as the primary location
         const locationName =
           currentTrip.photos[0].location.name ||
-          `${currentTrip.lat.toFixed(2)}, ${currentTrip.lng.toFixed(2)}`;
+          `${currentTrip.centroid.lat.toFixed(2)}, ${currentTrip.centroid.lng.toFixed(2)}`;
 
         // Check if we have an existing trip with customizations
         const photoIds = currentTrip.photos.map((p) => p.id);
         const existingTrip = findBestExistingTrip(photoIds, locationName, startDate);
-        const stableId = generateStableTripId(currentTrip.locationKey, startDate);
+        const locationKey = `${currentTrip.centroid.lat.toFixed(1)},${currentTrip.centroid.lng.toFixed(1)}`;
+        const stableId = generateStableTripId(locationKey, startDate);
 
         trips.push({
           id: existingTrip?.id || stableId,
@@ -319,14 +341,14 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
           endDate,
           photoIds,
           travelers,
+          // Store the centroid for flight line purposes
+          centroid: currentTrip.centroid,
         });
 
         // Start new trip
         currentTrip = {
           photos: [photo],
-          locationKey,
-          lat: photo.location.lat,
-          lng: photo.location.lng,
+          centroid: { lat: photo.location.lat, lng: photo.location.lng },
         };
       }
     }
@@ -336,20 +358,21 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
   if (currentTrip && currentTrip.photos.length > 0) {
     const startDate = currentTrip.photos[0].date;
     const travelers = determineTravelers(
-      currentTrip.lat,
-      currentTrip.lng,
+      currentTrip.centroid.lat,
+      currentTrip.centroid.lng,
       startDate,
       homeBases
     );
     const endDate = currentTrip.photos[currentTrip.photos.length - 1].date;
     const locationName =
       currentTrip.photos[0].location.name ||
-      `${currentTrip.lat.toFixed(2)}, ${currentTrip.lng.toFixed(2)}`;
+      `${currentTrip.centroid.lat.toFixed(2)}, ${currentTrip.centroid.lng.toFixed(2)}`;
 
     // Check if we have an existing trip with customizations
     const photoIds = currentTrip.photos.map((p) => p.id);
     const existingTrip = findBestExistingTrip(photoIds, locationName, startDate);
-    const stableId = generateStableTripId(currentTrip.locationKey, startDate);
+    const locationKey = `${currentTrip.centroid.lat.toFixed(1)},${currentTrip.centroid.lng.toFixed(1)}`;
+    const stableId = generateStableTripId(locationKey, startDate);
 
     trips.push({
       id: existingTrip?.id || stableId,
@@ -363,6 +386,8 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
       endDate,
       photoIds,
       travelers,
+      // Store the centroid for flight line purposes
+      centroid: currentTrip.centroid,
     });
   }
 
@@ -498,38 +523,9 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
   );
 
   // Compute flight lines based on trips and home bases
+  // Uses trip centroid for destination (handles multi-location trips like Dubai + Abu Dhabi)
   // Consolidate multiple trips to same destination into single lines
   const flightLines = useMemo(() => {
-    // Helper function to check if a point is within a home base radius (for privacy)
-    const isWithinHomeBase = (lat: number, lng: number): HomeBase | null => {
-      for (const homeBase of homeBases) {
-        const distance = getDistanceKm(lat, lng, homeBase.lat, homeBase.lng);
-        if (distance <= homeBase.radius) {
-          return homeBase;
-        }
-      }
-      return null;
-    };
-
-    // Group all photos to find where markers are actually displayed
-    // This ensures flight lines go to the exact marker positions
-    const photoGroups = groupPhotosByLocation(photos);
-
-    // Create a map from photo ID to its marker coordinates (with privacy generalization)
-    const photoToMarkerCoords = new Map<string, { lat: number; lng: number }>();
-    for (const [key, groupPhotos] of photoGroups) {
-      const [lat, lng] = key.split(',').map(Number);
-
-      // Check if this location should be generalized to a home base for privacy
-      const nearbyHomeBase = isWithinHomeBase(lat, lng);
-      const finalLat = nearbyHomeBase ? nearbyHomeBase.lat : lat;
-      const finalLng = nearbyHomeBase ? nearbyHomeBase.lng : lng;
-
-      for (const photo of groupPhotos) {
-        photoToMarkerCoords.set(photo.id, { lat: finalLat, lng: finalLng });
-      }
-    }
-
     // First, collect all individual flight line data
     const rawLines: {
       tripId: string;
@@ -545,11 +541,10 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       const tripPhotos = photos.filter((p) => trip.photoIds.includes(p.id));
       if (tripPhotos.length === 0) continue;
 
-      // Get the marker coordinates for this trip's photos
-      // Use the coordinates where the marker is actually displayed (with privacy)
-      const markerCoords = photoToMarkerCoords.get(tripPhotos[0].id);
-      const destLat = markerCoords?.lat ?? tripPhotos[0].location.lat;
-      const destLng = markerCoords?.lng ?? tripPhotos[0].location.lng;
+      // Use the trip's centroid for flight line destination
+      // This ensures one flight line per trip, even if photos are in multiple locations
+      const destLat = trip.centroid?.lat ?? tripPhotos[0].location.lat;
+      const destLng = trip.centroid?.lng ?? tripPhotos[0].location.lng;
 
       // Create lines for each traveler (now using personId)
       for (const personId of trip.travelers) {

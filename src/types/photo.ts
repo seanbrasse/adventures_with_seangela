@@ -52,6 +52,7 @@ export interface Trip {
     name: string;
   }[];
   convertedFromPlannedTripId?: string; // If converted from a planned trip
+  centroid?: { lat: number; lng: number }; // Center point for multi-location trips (used for flight lines)
 }
 
 export interface PlannedTrip {
