@@ -803,9 +803,10 @@ function App() {
     if (editingPlannedTrip) {
       // Store the planned trip being converted
       setConvertingPlannedTrip(editingPlannedTrip);
-      // Close the planned trip modal
+      // Close all modals that might be open
       setShowPlannedTripModal(false);
       setEditingPlannedTrip(undefined);
+      setShowPlacesView(false);
       // Open the photo upload modal
       setShowUpload(true);
     }
