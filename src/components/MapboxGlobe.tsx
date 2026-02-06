@@ -249,6 +249,7 @@ const PhotoCount = styled.div`
 
 const LocationPopup = styled.div`
   padding: 0.5rem;
+  cursor: pointer;
 `;
 
 const PopupImageGrid = styled.div`
@@ -1072,7 +1073,7 @@ export default function MapboxGlobe({
             closeOnClick={false}
             offset={20}
           >
-            <LocationPopup>
+            <LocationPopup onClick={() => handleMarkerClick(hoveredPoint)}>
               <PopupImageGrid>
                 {hoveredPoint.photos.slice(0, 3).map((photo, i) => (
                   <PopupThumbnail
@@ -1103,7 +1104,7 @@ export default function MapboxGlobe({
                   </PopupTripCount>
                 ) : null;
               })()}
-              <PopupHint>Click to view</PopupHint>
+              <PopupHint>Tap to view</PopupHint>
             </LocationPopup>
           </Popup>
         )}
