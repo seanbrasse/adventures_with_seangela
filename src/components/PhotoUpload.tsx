@@ -18,6 +18,7 @@ interface PhotoUploadProps {
   mapboxToken?: string;
   targetLocation?: TargetLocation | null;
   convertingFromPlannedTrip?: PlannedTrip;
+  existingPhotos?: Photo[]; // For duplicate detection
 }
 
 interface PendingPhoto extends ExtractedPhotoData {
@@ -26,6 +27,8 @@ interface PendingPhoto extends ExtractedPhotoData {
     photoLocation: string;
   };
   needsLocationConfirmation?: boolean; // For photos without GPS when converting planned trip
+  isDuplicate?: boolean; // Photo matches an existing photo
+  duplicateOf?: Photo; // The existing photo this is a duplicate of
 }
 
 interface GeocodingResult {
@@ -494,6 +497,11 @@ const NeedsLocationCount = styled.span`
   margin-left: 1rem;
 `;
 
+const DuplicateCount = styled.span`
+  color: #ef4444;
+  margin-left: 1rem;
+`;
+
 const FooterButtons = styled.div`
   display: flex;
   gap: 1rem;
@@ -818,6 +826,75 @@ const WarningButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
   `}
 `;
 
+const DuplicateWarning = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.75rem;
+  margin-top: 0.75rem;
+`;
+
+const DuplicateHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  svg {
+    color: #ef4444;
+  }
+
+  span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #ef4444;
+  }
+`;
+
+const DuplicateText = styled.p`
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+`;
+
+const DuplicateActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const DuplicateButton = styled.button<{ $variant?: 'discard' | 'keep' }>`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  ${({ $variant }) =>
+    $variant === 'discard'
+      ? `
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+  `
+      : `
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.8);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  `}
+`;
+
 // Location autocomplete component
 function LocationAutocomplete({
   onSelect,
@@ -930,7 +1007,48 @@ function getDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): 
 // Threshold for considering a photo "at" the target location (in km)
 const LOCATION_MATCH_THRESHOLD = 50;
 
-export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLocation, convertingFromPlannedTrip }: PhotoUploadProps) {
+// Check if two dates are within a time threshold (in seconds)
+// Photos taken within 1 minute are considered the same
+const DUPLICATE_TIME_THRESHOLD_MS = 60 * 1000;
+
+// Check if a photo is a duplicate of an existing photo
+// A photo is considered a duplicate if it has:
+// - Same filename AND same date (within threshold)
+// - OR same date AND same location (within 100m)
+function findDuplicate(
+  newPhoto: { description: string; date: Date; location?: { lat: number; lng: number } },
+  existingPhotos: Photo[]
+): Photo | undefined {
+  const newFilename = newPhoto.description?.toLowerCase() || '';
+  const newDate = newPhoto.date.getTime();
+
+  for (const existing of existingPhotos) {
+    const existingFilename = (existing.description || '').toLowerCase();
+    const existingDate = existing.date.getTime();
+    const timeDiff = Math.abs(newDate - existingDate);
+
+    // Same filename and same date (within threshold)
+    if (newFilename && existingFilename && newFilename === existingFilename) {
+      if (timeDiff < DUPLICATE_TIME_THRESHOLD_MS) {
+        return existing;
+      }
+    }
+
+    // Same date and very close location (within 100m)
+    if (timeDiff < DUPLICATE_TIME_THRESHOLD_MS && newPhoto.location && existing.location) {
+      const latDiff = Math.abs(newPhoto.location.lat - existing.location.lat);
+      const lngDiff = Math.abs(newPhoto.location.lng - existing.location.lng);
+      // Roughly 0.001 degrees = 111m
+      if (latDiff < 0.001 && lngDiff < 0.001) {
+        return existing;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLocation, convertingFromPlannedTrip, existingPhotos = [] }: PhotoUploadProps) {
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -1038,6 +1156,21 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
             };
           }
         }
+
+        // Check for duplicates against existing photos
+        const duplicate = findDuplicate(
+          {
+            description: pendingPhoto.description || '',
+            date: pendingPhoto.date,
+            location: pendingPhoto.needsLocation ? undefined : pendingPhoto.location,
+          },
+          existingPhotos
+        );
+        if (duplicate) {
+          pendingPhoto.isDuplicate = true;
+          pendingPhoto.duplicateOf = duplicate;
+        }
+
         newPhotos.push(pendingPhoto);
       }
     }
@@ -1050,7 +1183,7 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
     if (firstNeedsLocation) {
       setEditingLocation(firstNeedsLocation.id);
     }
-  }, [mapboxToken, targetLocation]);
+  }, [mapboxToken, targetLocation, existingPhotos]);
 
   const handlePaste = useCallback(async (e: ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -1187,10 +1320,22 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
     );
   };
 
-  const needsLocationCount = pendingPhotos.filter((p) => p.needsLocation).length;
+  // Handle duplicate: dismiss warning and keep the photo anyway
+  const handleKeepDuplicate = (id: string) => {
+    setPendingPhotos((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? { ...p, isDuplicate: false, duplicateOf: undefined }
+          : p
+      )
+    );
+  };
 
-  // All photos must have locations before upload is allowed
-  const canSubmit = pendingPhotos.length > 0 && needsLocationCount === 0 && !isUploading;
+  const needsLocationCount = pendingPhotos.filter((p) => p.needsLocation).length;
+  const duplicateCount = pendingPhotos.filter((p) => p.isDuplicate).length;
+
+  // All photos must have locations and no unresolved duplicates before upload is allowed
+  const canSubmit = pendingPhotos.length > 0 && needsLocationCount === 0 && duplicateCount === 0 && !isUploading;
 
   const handleSubmit = async () => {
     // All photos must have locations - no partial uploads allowed
@@ -1404,6 +1549,27 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
                         </>
                       )}
 
+                      {photo.isDuplicate && photo.duplicateOf && (
+                        <DuplicateWarning>
+                          <DuplicateHeader>
+                            <AlertCircle size={16} />
+                            <span>Possible duplicate</span>
+                          </DuplicateHeader>
+                          <DuplicateText>
+                            This photo appears to match an existing photo from {photo.duplicateOf.date.toLocaleDateString()}.
+                            You can discard it or add it anyway.
+                          </DuplicateText>
+                          <DuplicateActions>
+                            <DuplicateButton $variant="discard" onClick={() => handleRemove(photo.id)}>
+                              Discard duplicate
+                            </DuplicateButton>
+                            <DuplicateButton onClick={() => handleKeepDuplicate(photo.id)}>
+                              Add anyway
+                            </DuplicateButton>
+                          </DuplicateActions>
+                        </DuplicateWarning>
+                      )}
+
                       <DateSection>
                         {editingDate === photo.id ? (
                           <DateEditWrapper>
@@ -1449,6 +1615,9 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
             )}
             {needsLocationCount > 0 && (
               <NeedsLocationCount>{needsLocationCount} photo{needsLocationCount !== 1 ? 's' : ''} need location</NeedsLocationCount>
+            )}
+            {duplicateCount > 0 && (
+              <DuplicateCount>{duplicateCount} duplicate{duplicateCount !== 1 ? 's' : ''}</DuplicateCount>
             )}
           </FooterStatus>
           <FooterButtons>

@@ -1089,6 +1089,7 @@ function AppContent() {
             mapboxToken={apiKey}
             targetLocation={uploadTargetLocation}
             convertingFromPlannedTrip={convertingPlannedTrip}
+            existingPhotos={photos}
           />
         )}
 
