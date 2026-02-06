@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "refresh": "git fetch && git pull && npm run dev",
+    "deploy": "npm run build && vercel --prod",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
