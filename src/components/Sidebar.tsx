@@ -16,7 +16,6 @@ interface SidebarProps {
   onPlannedTripClick?: (trip: PlannedTrip) => void;
   onAddPlannedTrip?: () => void;
   onAddPhotos?: () => void;
-  onAddTrip?: () => void;
 }
 
 // Styled Components
@@ -656,7 +655,6 @@ export default function Sidebar({
   onPlannedTripClick,
   onAddPlannedTrip,
   onAddPhotos,
-  onAddTrip,
 }: SidebarProps) {
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
@@ -829,12 +827,12 @@ export default function Sidebar({
                     Start your journey
                   </TripsEmptyTitle>
                   <TripsEmptyText>
-                    Add a trip manually or upload photos to create memories on your map
+                    Upload photos from your adventures to start building your map
                   </TripsEmptyText>
-                  {onAddTrip && (
-                    <AddTripsButton onClick={onAddTrip}>
+                  {onAddPhotos && (
+                    <AddTripsButton onClick={onAddPhotos}>
                       <Plus size={16} />
-                      Add Trip
+                      Add Photos
                     </AddTripsButton>
                   )}
                 </TripsEmpty>

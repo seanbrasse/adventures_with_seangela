@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, X, MapPin, Check, AlertCircle, Loader2, Clipboard, Search, Calendar } from 'lucide-react';
+import { Upload, X, MapPin, Check, AlertCircle, Loader2, Clipboard, Search, Calendar, Plane } from 'lucide-react';
 import styled, { keyframes } from 'styled-components';
-import type { Photo } from '../types/photo';
+import type { Photo, PlannedTrip } from '../types/photo';
 import { extractPhotoData, uploadPhotoToStorage } from '../utils/exif';
 import { reverseGeocode } from '../utils/geocoding';
 import type { ExtractedPhotoData } from '../utils/exif';
@@ -17,6 +17,7 @@ interface PhotoUploadProps {
   onClose: () => void;
   mapboxToken?: string;
   targetLocation?: TargetLocation | null;
+  convertingFromPlannedTrip?: PlannedTrip;
 }
 
 interface PendingPhoto extends ExtractedPhotoData {
@@ -668,6 +669,38 @@ const TargetLocationText = styled.div`
   }
 `;
 
+const ConvertingBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 0.875rem;
+  margin-bottom: 1.5rem;
+
+  svg {
+    color: #34d399;
+    flex-shrink: 0;
+  }
+`;
+
+const ConvertingText = styled.div`
+  flex: 1;
+
+  p {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.125rem;
+  }
+
+  strong {
+    font-size: 1rem;
+    color: #ffffff;
+    font-weight: 600;
+  }
+`;
+
 const LocationMismatchWarning = styled.div`
   display: flex;
   flex-direction: column;
@@ -849,7 +882,7 @@ function getDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): 
 // Threshold for considering a photo "at" the target location (in km)
 const LOCATION_MATCH_THRESHOLD = 50;
 
-export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLocation }: PhotoUploadProps) {
+export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLocation, convertingFromPlannedTrip }: PhotoUploadProps) {
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -1138,8 +1171,12 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
       <Modal>
         <Header>
           <HeaderContent>
-            <Title>Add Photos</Title>
-            <Subtitle>Upload photos to add them to your map</Subtitle>
+            <Title>{convertingFromPlannedTrip ? 'Add Trip Photos' : 'Add Photos'}</Title>
+            <Subtitle>
+              {convertingFromPlannedTrip
+                ? 'Upload photos from your trip to convert it from a plan to a real trip'
+                : 'Upload photos to add them to your map'}
+            </Subtitle>
           </HeaderContent>
           <CloseButton onClick={onClose} disabled={isUploading}>
             <X />
@@ -1162,6 +1199,16 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
                 <ProgressFill $progress={uploadProgress} />
               </ProgressBar>
             </UploadingBanner>
+          )}
+
+          {convertingFromPlannedTrip && (
+            <ConvertingBanner>
+              <Plane size={20} />
+              <ConvertingText>
+                <p>Converting planned trip to real trip</p>
+                <strong>{convertingFromPlannedTrip.destinationName}</strong>
+              </ConvertingText>
+            </ConvertingBanner>
           )}
 
           {targetLocation && (

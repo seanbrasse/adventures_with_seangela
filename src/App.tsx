@@ -635,6 +635,7 @@ function App() {
   const [showUpload, setShowUpload] = useState(false);
   const [showPlannedTripModal, setShowPlannedTripModal] = useState(false);
   const [editingPlannedTrip, setEditingPlannedTrip] = useState<PlannedTrip | undefined>(undefined);
+  const [convertingPlannedTrip, setConvertingPlannedTrip] = useState<PlannedTrip | undefined>(undefined);
   const [showTripModal, setShowTripModal] = useState(false);
   const [editingTrip, setEditingTrip] = useState<Trip | undefined>(undefined);
   const [showGallery, setShowGallery] = useState(false);
@@ -695,8 +696,14 @@ function App() {
     (newPhotos: Photo[]) => {
       addPhotos(newPhotos);
       setUploadTargetLocation(null);
+
+      // If we were converting a planned trip, delete it now that photos are added
+      if (convertingPlannedTrip) {
+        deletePlannedTrip(convertingPlannedTrip.id);
+        setConvertingPlannedTrip(undefined);
+      }
     },
-    [addPhotos]
+    [addPhotos, convertingPlannedTrip, deletePlannedTrip]
   );
 
   const handleAddPhotoToLocation = useCallback((location: LocationContext) => {
@@ -792,35 +799,19 @@ function App() {
   }, [editingPlannedTrip, deletePlannedTrip]);
 
   const handleConvertPlannedTrip = useCallback(() => {
-    // Convert planned trip to a real trip
+    // Convert planned trip to a real trip by prompting for photo upload
     if (editingPlannedTrip) {
-      const tripData: Omit<Trip, 'id'> = {
-        name: editingPlannedTrip.destinationName,
-        locationName: editingPlannedTrip.destinationName,
-        lat: editingPlannedTrip.lat,
-        lng: editingPlannedTrip.lng,
-        description: editingPlannedTrip.description,
-        notes: editingPlannedTrip.notes,
-        startDate: editingPlannedTrip.potentialStartDate || new Date(),
-        endDate: editingPlannedTrip.potentialEndDate || new Date(),
-        photoIds: [],
-        travelers: ['angela', 'sean'],
-        convertedFromPlannedTripId: editingPlannedTrip.id,
-      };
-      createTrip(tripData);
-      // Delete the planned trip
-      deletePlannedTrip(editingPlannedTrip.id);
+      // Store the planned trip being converted
+      setConvertingPlannedTrip(editingPlannedTrip);
+      // Close the planned trip modal
       setShowPlannedTripModal(false);
       setEditingPlannedTrip(undefined);
+      // Open the photo upload modal
+      setShowUpload(true);
     }
-  }, [editingPlannedTrip, deletePlannedTrip, createTrip]);
+  }, [editingPlannedTrip]);
 
   // Trip handlers
-  const handleAddTrip = useCallback(() => {
-    setEditingTrip(undefined);
-    setShowTripModal(true);
-  }, []);
-
   const handleEditTrip = useCallback((trip: Trip) => {
     setEditingTrip(trip);
     setShowTripModal(true);
@@ -907,7 +898,6 @@ function App() {
               onPlannedTripClick={handlePlannedTripClick}
               onAddPlannedTrip={handleAddPlannedTrip}
               onAddPhotos={() => setShowUpload(true)}
-              onAddTrip={handleAddTrip}
             />
           </SidebarContent>
         </MobileSidebarContainer>
@@ -933,7 +923,6 @@ function App() {
                 onPlannedTripClick={handlePlannedTripClick}
                 onAddPlannedTrip={handleAddPlannedTrip}
                 onAddPhotos={() => setShowUpload(true)}
-                onAddTrip={handleAddTrip}
               />
             </SidebarContent>
 
@@ -1003,9 +992,12 @@ function App() {
             onClose={() => {
               setShowUpload(false);
               setUploadTargetLocation(null);
+              // Clear converting state if user cancels
+              setConvertingPlannedTrip(undefined);
             }}
             mapboxToken={apiKey}
             targetLocation={uploadTargetLocation}
+            convertingFromPlannedTrip={convertingPlannedTrip}
           />
         )}
 
@@ -1082,7 +1074,6 @@ function App() {
             onLocationSelect={handleLocationClick}
             onPlannedTripClick={handlePlannedTripClick}
             onAddPlannedTrip={handleAddPlannedTrip}
-            onAddTrip={handleAddTrip}
             onTripClick={handleEditTrip}
             onAddPhotos={() => setShowUpload(true)}
           />

@@ -13,7 +13,6 @@ interface PlacesViewProps {
   onLocationSelect: (photos: Photo[]) => void;
   onPlannedTripClick?: (trip: PlannedTrip) => void;
   onAddPlannedTrip?: () => void;
-  onAddTrip?: () => void;
   onTripClick?: (trip: Trip) => void;
   onAddPhotos?: () => void;
 }
@@ -640,7 +639,6 @@ export default function PlacesView({
   onLocationSelect,
   onPlannedTripClick,
   onAddPlannedTrip,
-  onAddTrip,
   onTripClick,
   onAddPhotos,
 }: PlacesViewProps) {
@@ -936,12 +934,6 @@ export default function PlacesView({
               Planned
             </ToggleButton>
           </ToggleContainer>
-          {viewMode === 'past' && onAddTrip && (
-            <AddPlannedButton onClick={onAddTrip}>
-              <Plus />
-              Add
-            </AddPlannedButton>
-          )}
           {viewMode === 'planned' && onAddPlannedTrip && (
             <AddPlannedButton onClick={onAddPlannedTrip}>
               <Plus />
