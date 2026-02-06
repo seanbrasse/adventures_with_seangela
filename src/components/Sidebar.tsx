@@ -180,7 +180,20 @@ const Divider = styled.div`
 
 const LocationsSection = styled.div`
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const ToggleHeader = styled.div`
+  padding: 1.25rem 1.25rem 0.75rem;
+  flex-shrink: 0;
+`;
+
+const ScrollableContent = styled.div`
+  flex: 1;
   overflow-y: auto;
+  padding: 0 1.25rem 1.25rem;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -194,10 +207,6 @@ const LocationsSection = styled.div`
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
   }
-`;
-
-const LocationsInner = styled.div`
-  padding: 1.25rem;
 `;
 
 const SectionTitle = styled.h3`
@@ -487,7 +496,6 @@ const ToggleContainer = styled.div`
   padding: 0.25rem;
   background: rgba(255, 255, 255, 0.04);
   border-radius: 0.625rem;
-  margin-bottom: 1rem;
 `;
 
 const ToggleButton = styled.button<{ $active: boolean }>`
@@ -768,7 +776,7 @@ export default function Sidebar({
       <Divider />
 
       <LocationsSection>
-        <LocationsInner>
+        <ToggleHeader>
           <ToggleContainer>
             <ToggleButton
               $active={viewMode === 'trips'}
@@ -785,7 +793,9 @@ export default function Sidebar({
               Planned
             </ToggleButton>
           </ToggleContainer>
+        </ToggleHeader>
 
+        <ScrollableContent>
           {viewMode === 'trips' ? (
             <>
               {locations.length > 0 ? (
@@ -948,7 +958,7 @@ export default function Sidebar({
               )}
             </>
           )}
-        </LocationsInner>
+        </ScrollableContent>
       </LocationsSection>
     </Container>
   );
