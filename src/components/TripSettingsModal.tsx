@@ -22,6 +22,11 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   padding: 2rem;
+
+  @media (max-width: 640px) {
+    padding: 0;
+    align-items: flex-end;
+  }
 `;
 
 const Modal = styled.div`
@@ -35,6 +40,11 @@ const Modal = styled.div`
   flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+
+  @media (max-width: 640px) {
+    max-height: 95vh;
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
 `;
 
 const Header = styled.div`
@@ -43,6 +53,10 @@ const Header = styled.div`
   justify-content: space-between;
   padding: 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  @media (max-width: 640px) {
+    padding: 1.25rem;
+  }
 `;
 
 const HeaderLeft = styled.div`
@@ -98,6 +112,11 @@ const Content = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+
+  @media (max-width: 640px) {
+    padding: 1.25rem;
+    gap: 1.25rem;
+  }
 `;
 
 const FormGroup = styled.div`
@@ -318,6 +337,10 @@ const Footer = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    padding: 1rem 1.25rem;
+  }
 `;
 
 const CancelButton = styled.button`

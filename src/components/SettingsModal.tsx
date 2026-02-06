@@ -45,6 +45,11 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   padding: 2rem;
+
+  @media (max-width: 640px) {
+    padding: 0;
+    align-items: flex-end;
+  }
 `;
 
 const Modal = styled.div`
@@ -58,6 +63,11 @@ const Modal = styled.div`
   flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  @media (max-width: 640px) {
+    max-height: 95vh;
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
 `;
 
 const Header = styled.div`
@@ -67,6 +77,10 @@ const Header = styled.div`
   padding: 2rem 2.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.02);
+
+  @media (max-width: 640px) {
+    padding: 1.25rem 1.25rem;
+  }
 `;
 
 const HeaderContent = styled.div`
@@ -79,6 +93,11 @@ const Title = styled.h2`
   color: #ffffff;
   letter-spacing: -0.02em;
   margin-bottom: 0.5rem;
+
+  @media (max-width: 640px) {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+  }
 `;
 
 const Subtitle = styled.p`
@@ -122,6 +141,10 @@ const Content = styled.div`
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
   }
+
+  @media (max-width: 640px) {
+    padding: 1.25rem;
+  }
 `;
 
 const SectionHeader = styled.div`
@@ -129,6 +152,8 @@ const SectionHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 `;
 
 const SectionTitle = styled.h3`
@@ -481,6 +506,10 @@ const Footer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    padding: 1rem 1.25rem;
+  }
 `;
 
 const DoneButton = styled.button`

@@ -49,6 +49,10 @@ const Header = styled.div`
   padding: 1.75rem 2.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.5);
+
+  @media (max-width: 640px) {
+    padding: 1rem 1rem;
+  }
 `;
 
 const HeaderLeft = styled.div`
@@ -71,6 +75,17 @@ const HeaderIcon = styled.div`
     height: 1.75rem;
     color: #f472b6;
   }
+
+  @media (max-width: 640px) {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+
+    svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+  }
 `;
 
 const HeaderText = styled.div``;
@@ -81,6 +96,11 @@ const Title = styled.h2`
   color: #ffffff;
   letter-spacing: -0.01em;
   margin-bottom: 0.375rem;
+
+  @media (max-width: 640px) {
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+  }
 `;
 
 const TitleRow = styled.div`
@@ -95,6 +115,10 @@ const TitleText = styled.h2`
   font-weight: 600;
   color: #ffffff;
   letter-spacing: -0.01em;
+
+  @media (max-width: 640px) {
+    font-size: 1.125rem;
+  }
 `;
 
 const EditButton = styled.button`
@@ -370,6 +394,21 @@ const DetailsSection = styled.div`
     z-index: 5;
     width: 300px;
   }
+
+  @media (max-width: 640px) {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    max-height: 50vh;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem 1.5rem 0 0;
+    background: rgba(10, 10, 20, 0.95);
+    backdrop-filter: blur(12px);
+  }
 `;
 
 const NavButton = styled.button<{ $position: 'left' | 'right' }>`
@@ -399,6 +438,17 @@ const NavButton = styled.button<{ $position: 'left' | 'right' }>`
     height: 2.5rem;
     color: #ffffff;
   }
+
+  @media (max-width: 640px) {
+    ${({ $position }) => ($position === 'left' ? 'left: 0.5rem;' : 'right: 0.5rem;')}
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+
+    svg {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+  }
 `;
 
 const ImageContainer = styled.div`
@@ -408,6 +458,10 @@ const ImageContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+
+  @media (max-width: 640px) {
+    padding: 1rem;
+  }
 `;
 
 const MainImage = styled.img`
@@ -416,6 +470,11 @@ const MainImage = styled.img`
   object-fit: contain;
   border-radius: 1rem;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+
+  @media (max-width: 640px) {
+    max-height: 45vh;
+    border-radius: 0.75rem;
+  }
 `;
 
 const ImageInfo = styled.div`

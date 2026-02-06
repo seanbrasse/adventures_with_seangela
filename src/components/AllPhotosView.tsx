@@ -95,6 +95,11 @@ const FiltersBar = styled.div`
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+  }
 `;
 
 const FilterLabel = styled.div`
@@ -109,12 +114,22 @@ const FilterLabel = styled.div`
     width: 1rem;
     height: 1rem;
   }
+
+  @media (max-width: 640px) {
+    font-size: 0;
+    gap: 0;
+
+    svg {
+      font-size: 1rem;
+    }
+  }
 `;
 
 const FilterGroup = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
 const FilterSelect = styled.div`
@@ -142,6 +157,17 @@ const FilterButton = styled.button<{ $active?: boolean }>`
   svg {
     width: 0.875rem;
     height: 0.875rem;
+  }
+
+  @media (max-width: 640px) {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.75rem;
+    gap: 0.375rem;
+
+    svg {
+      width: 0.75rem;
+      height: 0.75rem;
+    }
   }
 `;
 

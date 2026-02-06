@@ -52,6 +52,11 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   padding: 2rem;
+
+  @media (max-width: 640px) {
+    padding: 1rem;
+    align-items: flex-end;
+  }
 `;
 
 const Modal = styled.div`
@@ -65,6 +70,11 @@ const Modal = styled.div`
   flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  @media (max-width: 640px) {
+    max-height: 95vh;
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
 `;
 
 const Header = styled.div`
@@ -74,6 +84,10 @@ const Header = styled.div`
   padding: 2rem 2.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.02);
+
+  @media (max-width: 640px) {
+    padding: 1.25rem 1.25rem;
+  }
 `;
 
 const HeaderContent = styled.div`
@@ -86,6 +100,11 @@ const Title = styled.h2`
   color: #ffffff;
   letter-spacing: -0.02em;
   margin-bottom: 0.5rem;
+
+  @media (max-width: 640px) {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+  }
 `;
 
 const Subtitle = styled.p`
@@ -133,6 +152,10 @@ const Content = styled.div`
   &::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 1.25rem;
   }
 `;
 
@@ -448,6 +471,12 @@ const Footer = styled.div`
   align-items: center;
   justify-content: space-between;
   background: rgba(255, 255, 255, 0.02);
+
+  @media (max-width: 640px) {
+    padding: 1rem 1.25rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
 `;
 
 const FooterStatus = styled.div`
@@ -467,6 +496,10 @@ const NeedsLocationCount = styled.span`
 const FooterButtons = styled.div`
   display: flex;
   gap: 1rem;
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
 `;
 
 const CancelButton = styled.button`
@@ -488,6 +521,12 @@ const CancelButton = styled.button`
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  @media (max-width: 640px) {
+    flex: 1;
+    padding: 0.875rem 1rem;
+    font-size: 0.9375rem;
+  }
 `;
 
 const SubmitButton = styled.button`
@@ -501,6 +540,7 @@ const SubmitButton = styled.button`
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
   transition: all 0.2s ease;
   box-shadow: 0 8px 24px rgba(236, 72, 153, 0.3);
@@ -517,6 +557,12 @@ const SubmitButton = styled.button`
 
   svg {
     animation: ${spin} 1s linear infinite;
+  }
+
+  @media (max-width: 640px) {
+    flex: 1;
+    padding: 0.875rem 1rem;
+    font-size: 0.9375rem;
   }
 `;
 

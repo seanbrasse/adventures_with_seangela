@@ -579,10 +579,24 @@ export default function MapboxGlobe({
     return points;
   }, [photos, homeBases]);
 
+  // Track if we're on mobile
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Focus on selected location
   // Padding to offset for sidebar (380px sidebar + 24px toggle = 404px)
+  // On mobile, sidebar is a drawer so no left padding needed
   const SIDEBAR_WIDTH = 404;
-  const mapPadding = { left: sidebarCollapsed ? 0 : SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0 };
+  const mapPadding = { left: (isMobile || sidebarCollapsed) ? 0 : SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0 };
 
   useEffect(() => {
     if (mapRef.current && selectedLocation) {
@@ -774,13 +788,13 @@ export default function MapboxGlobe({
         );
         mapRef.current.flyTo({
           center: [midpoint.lng, midpoint.lat],
-          zoom: 1.5,
+          zoom: isMobile ? 1 : 1.5,
           duration: 2000,
-          padding: { left: sidebarCollapsed ? 0 : SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0 },
+          padding: mapPadding,
         });
       }
     }
-  }, [homeBases, sidebarCollapsed]);
+  }, [homeBases, isMobile, mapPadding]);
 
   // Handle clicks on the flight line layers
   const handleMapClick = useCallback((e: { features?: Array<{ properties?: { id?: string } }> }) => {
@@ -848,8 +862,8 @@ export default function MapboxGlobe({
         initialViewState={{
           longitude: 0,
           latitude: 20,
-          zoom: 1.5,
-          padding: { left: sidebarCollapsed ? 0 : SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0 },
+          zoom: isMobile ? 1 : 1.5,
+          padding: mapPadding,
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={isMinimalStyle ? MAP_STYLES.minimal : MAP_STYLES.detailed}
