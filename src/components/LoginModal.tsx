@@ -296,7 +296,7 @@ export default function LoginModal() {
 
         <Content>
           <Description>
-            Sign in to add photos, edit trips, and manage your adventures together.
+            Sign in to add photos, edit trips, and manage our adventures together.
           </Description>
 
           <Form onSubmit={handleSubmit}>

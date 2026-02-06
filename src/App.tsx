@@ -423,38 +423,6 @@ const AuthButton = styled.button<{ $authenticated?: boolean }>`
   }
 `;
 
-const LockedPrimaryButton = styled.button`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem;
-  border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  svg {
-    width: 1rem;
-    height: 1rem;
-  }
-
-  svg:last-child {
-    width: 0.875rem;
-    height: 0.875rem;
-    opacity: 0.6;
-  }
-`;
-
 const MainContent = styled.main`
   flex: 1;
   position: relative;
@@ -1061,17 +1029,10 @@ function AppContent() {
                   </SecondaryButton>
                 </>
               ) : (
-                <>
-                  <LockedPrimaryButton onClick={() => setShowLoginModal(true)}>
-                    <Plus />
-                    Add Photos
-                    <Lock />
-                  </LockedPrimaryButton>
-                  <AuthButton onClick={() => setShowLoginModal(true)}>
-                    <Lock />
-                    Sign In
-                  </AuthButton>
-                </>
+                <AuthButton onClick={() => setShowLoginModal(true)}>
+                  <Lock />
+                  Sign In
+                </AuthButton>
               )}
             </SidebarFooter>
           </SidebarContainer>
