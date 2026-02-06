@@ -685,6 +685,39 @@ const CaptionSaveButton = styled.button`
   }
 `;
 
+const DeletePhotoSection = styled.div`
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const DeletePhotoButton = styled.button<{ $confirm: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  border: 1px solid ${({ $confirm }) => ($confirm ? '#ef4444' : 'rgba(239, 68, 68, 0.3)')};
+  background: ${({ $confirm }) => ($confirm ? '#ef4444' : 'rgba(239, 68, 68, 0.1)')};
+  color: ${({ $confirm }) => ($confirm ? '#ffffff' : '#f87171')};
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${({ $confirm }) => ($confirm ? '#dc2626' : 'rgba(239, 68, 68, 0.2)')};
+    border-color: ${({ $confirm }) => ($confirm ? '#dc2626' : 'rgba(239, 68, 68, 0.5)')};
+  }
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+`;
+
 const FullscreenCloseButton = styled.button`
   position: absolute;
   top: 1rem;
@@ -1287,6 +1320,15 @@ export default function PhotoGallery({
                   </CaptionDisplay>
                 )}
               </CaptionRow>
+              <DeletePhotoSection>
+                <DeletePhotoButton
+                  $confirm={deleteConfirm === allPhotos[selectedIndex].id}
+                  onClick={() => handleDelete(allPhotos[selectedIndex].id)}
+                >
+                  <Trash2 />
+                  {deleteConfirm === allPhotos[selectedIndex].id ? 'Click again to confirm' : 'Delete Photo'}
+                </DeletePhotoButton>
+              </DeletePhotoSection>
             </PhotoDetailsPanel>
           </DetailsSection>
 
