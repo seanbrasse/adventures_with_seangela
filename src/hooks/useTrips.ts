@@ -277,75 +277,6 @@ function calculateCentroid(photos: Photo[]): { lat: number; lng: number } {
   return { lat: sum.lat / photos.length, lng: sum.lng / photos.length };
 }
 
-// Find the dominant photo cluster location for a set of photos
-// This matches how groupPhotosByLocation works in MapboxGlobe
-// Returns the coordinates of the first photo in the largest cluster
-function findDominantClusterLocation(photos: Photo[]): { lat: number; lng: number } {
-  if (photos.length === 0) return { lat: 0, lng: 0 };
-  if (photos.length === 1) return { lat: photos[0].location.lat, lng: photos[0].location.lng };
-
-  const DISTANCE_THRESHOLD = 50; // km, same as groupPhotosByLocation default
-  const groups: { key: { lat: number; lng: number }; photos: Photo[] }[] = [];
-
-  for (const photo of photos) {
-    let foundGroup = false;
-    const photoName = photo.location.name;
-
-    // First, try to match by city name if available
-    if (photoName) {
-      const normalizedName = normalizeCityName(photoName);
-      for (const group of groups) {
-        const firstPhoto = group.photos[0];
-        if (firstPhoto.location.name) {
-          const groupNormalizedName = normalizeCityName(firstPhoto.location.name);
-          if (groupNormalizedName === normalizedName) {
-            group.photos.push(photo);
-            foundGroup = true;
-            break;
-          }
-        }
-      }
-    }
-
-    // If no name match found, fall back to distance-based grouping
-    if (!foundGroup) {
-      for (const group of groups) {
-        const distance = getDistanceKm(
-          photo.location.lat,
-          photo.location.lng,
-          group.key.lat,
-          group.key.lng
-        );
-        if (distance < DISTANCE_THRESHOLD) {
-          group.photos.push(photo);
-          foundGroup = true;
-          break;
-        }
-      }
-    }
-
-    if (!foundGroup) {
-      // Start a new group with this photo's location as the key
-      groups.push({
-        key: { lat: photo.location.lat, lng: photo.location.lng },
-        photos: [photo],
-      });
-    }
-  }
-
-  // Find the largest group
-  let largestGroup = groups[0];
-  for (const group of groups) {
-    if (group.photos.length > largestGroup.photos.length) {
-      largestGroup = group;
-    }
-  }
-
-  // Return the key coordinates (first photo's location in this group)
-  // This matches what MapboxGlobe uses for marker positions
-  return largestGroup.key;
-}
-
 // Auto-generate trips from photos based on date proximity and location
 // Preserves existing trip customizations (name, description) when regenerating
 // Uses distance-based grouping to merge nearby locations (e.g., Dubai + Abu Dhabi = one trip)
@@ -654,10 +585,101 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
   );
 
   // Compute flight lines based on trips and home bases
-  // Uses trip centroid for destination (handles multi-location trips like Dubai + Abu Dhabi)
+  // Flight lines end at the exact marker positions on the map
   // Consolidate multiple trips to same destination into single lines
   const flightLines = useMemo(() => {
-    // First, collect all individual flight line data
+    // STEP 1: Group ALL photos the same way MapboxGlobe does
+    // This ensures we use the exact same marker positions
+    const DISTANCE_THRESHOLD = 50; // km, same as groupPhotosByLocation
+    const allGroups: { key: { lat: number; lng: number }; photoIds: Set<string> }[] = [];
+
+    for (const photo of photos) {
+      let foundGroup = false;
+      const photoName = photo.location.name;
+
+      // First, try to match by city name
+      if (photoName) {
+        const normalizedName = normalizeCityName(photoName);
+        for (const group of allGroups) {
+          // Find a photo in this group to get its name
+          const groupPhotoId = Array.from(group.photoIds)[0];
+          const groupPhoto = photos.find(p => p.id === groupPhotoId);
+          if (groupPhoto?.location.name) {
+            const groupNormalizedName = normalizeCityName(groupPhoto.location.name);
+            if (groupNormalizedName === normalizedName) {
+              group.photoIds.add(photo.id);
+              foundGroup = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Fall back to distance-based grouping
+      if (!foundGroup) {
+        for (const group of allGroups) {
+          const distance = getDistanceKm(
+            photo.location.lat,
+            photo.location.lng,
+            group.key.lat,
+            group.key.lng
+          );
+          if (distance < DISTANCE_THRESHOLD) {
+            group.photoIds.add(photo.id);
+            foundGroup = true;
+            break;
+          }
+        }
+      }
+
+      if (!foundGroup) {
+        // Create new group with this photo's location as the key
+        // This key is where the map marker will be placed
+        allGroups.push({
+          key: { lat: photo.location.lat, lng: photo.location.lng },
+          photoIds: new Set([photo.id]),
+        });
+      }
+    }
+
+    // STEP 2: Create a mapping from photo ID to its group's marker position
+    const photoToMarkerPosition = new Map<string, { lat: number; lng: number }>();
+    for (const group of allGroups) {
+      for (const photoId of group.photoIds) {
+        photoToMarkerPosition.set(photoId, group.key);
+      }
+    }
+
+    // STEP 3: For each trip, find which marker has the most of its photos
+    const getTripMarkerPosition = (tripPhotoIds: string[]): { lat: number; lng: number } => {
+      const markerCounts = new Map<string, { count: number; position: { lat: number; lng: number } }>();
+
+      for (const photoId of tripPhotoIds) {
+        const position = photoToMarkerPosition.get(photoId);
+        if (position) {
+          const key = `${position.lat},${position.lng}`;
+          const existing = markerCounts.get(key);
+          if (existing) {
+            existing.count++;
+          } else {
+            markerCounts.set(key, { count: 1, position });
+          }
+        }
+      }
+
+      // Find the marker with the most photos from this trip
+      let bestMarker = { lat: 0, lng: 0 };
+      let maxCount = 0;
+      for (const { count, position } of markerCounts.values()) {
+        if (count > maxCount) {
+          maxCount = count;
+          bestMarker = position;
+        }
+      }
+      return bestMarker;
+    };
+
+    // STEP 4: Collect flight line data
     const rawLines: {
       tripId: string;
       tripName: string;
@@ -672,13 +694,10 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       const tripPhotos = photos.filter((p) => trip.photoIds.includes(p.id));
       if (tripPhotos.length === 0) continue;
 
-      // Use the dominant cluster location for flight line destination
-      // This matches where the photo markers are actually placed on the map
-      // (groupPhotosByLocation groups photos by city name or proximity,
-      // and uses the first photo's coordinates as the marker position)
-      const clusterLocation = findDominantClusterLocation(tripPhotos);
-      const destLat = clusterLocation.lat;
-      const destLng = clusterLocation.lng;
+      // Get the marker position that contains most of this trip's photos
+      const markerPosition = getTripMarkerPosition(trip.photoIds);
+      const destLat = markerPosition.lat;
+      const destLng = markerPosition.lng;
 
       // Create lines for each traveler (now using personId)
       for (const personId of trip.travelers) {
