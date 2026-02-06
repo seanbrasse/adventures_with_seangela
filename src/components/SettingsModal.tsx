@@ -363,6 +363,11 @@ const AddHomeBaseForm = styled.div`
   border-radius: 1.25rem;
   padding: 1.75rem;
   border: 2px dashed rgba(255, 255, 255, 0.12);
+
+  @media (max-width: 640px) {
+    padding: 1.25rem;
+    border-radius: 1rem;
+  }
 `;
 
 const FormTitle = styled.h4`
@@ -434,6 +439,11 @@ const Select = styled.select`
 const DateRow = styled.div`
   display: flex;
   gap: 1rem;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 `;
 
 const FormActions = styled.div`
@@ -441,6 +451,16 @@ const FormActions = styled.div`
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 0.5rem;
+
+  @media (max-width: 640px) {
+    flex-direction: row;
+    justify-content: center;
+
+    & > button {
+      flex: 1;
+      padding: 0.75rem 1rem;
+    }
+  }
 `;
 
 const CancelButton = styled.button`
