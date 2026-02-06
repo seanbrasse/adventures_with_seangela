@@ -731,4 +731,4 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
   };
 }
 
-export { getDistanceKm, isAtHomeBase, getActiveHomeBase, getUniquePersonIds };
+export { getDistanceKm, isAtHomeBase, getActiveHomeBase, getUniquePersonIds, getDisplayCityName };

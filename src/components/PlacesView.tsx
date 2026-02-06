@@ -4,6 +4,7 @@ import { X, MapPin, Calendar, Plane, Image, ChevronRight, Plus, Lightbulb, Searc
 import styled from 'styled-components';
 import type { Photo, Trip, PlannedTrip } from '../types/photo';
 import { groupPhotosByLocation } from '../utils/exif';
+import { getDisplayCityName } from '../hooks/useTrips';
 
 interface PlacesViewProps {
   photos: Photo[];
@@ -683,8 +684,10 @@ export default function PlacesView({
         const sortedPhotos = [...groupPhotos].sort(
           (a, b) => b.date.getTime() - a.date.getTime()
         );
-        const locationName =
+        const rawLocationName =
           sortedPhotos[0].location.name || `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+        // Convert neighborhood names to city names (e.g., "Outram" -> "Singapore")
+        const locationName = getDisplayCityName(rawLocationName);
 
         // Find trips that have photos in this location
         const photoIds = sortedPhotos.map((p) => p.id);
