@@ -44,7 +44,7 @@ const spin = keyframes`
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 60;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(12px);
   display: flex;

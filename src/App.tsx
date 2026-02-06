@@ -803,11 +803,16 @@ function App() {
     if (editingPlannedTrip) {
       // Store the planned trip being converted
       setConvertingPlannedTrip(editingPlannedTrip);
-      // Close all modals that might be open
+      // Set target location to the planned trip's location for mismatch detection
+      setUploadTargetLocation({
+        lat: editingPlannedTrip.lat,
+        lng: editingPlannedTrip.lng,
+        name: editingPlannedTrip.destinationName,
+      });
+      // Close the planned trip modal
       setShowPlannedTripModal(false);
       setEditingPlannedTrip(undefined);
-      setShowPlacesView(false);
-      // Open the photo upload modal
+      // Open the photo upload modal (PlacesView stays open underneath)
       setShowUpload(true);
     }
   }, [editingPlannedTrip]);
