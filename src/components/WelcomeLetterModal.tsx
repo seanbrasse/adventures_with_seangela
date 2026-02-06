@@ -30,8 +30,8 @@ const Overlay = styled.div<{ $visible: boolean }>`
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.9);
-  backdrop-filter: blur(20px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
