@@ -15,6 +15,7 @@ interface PlacesViewProps {
   onAddPlannedTrip?: () => void;
   onTripClick?: (trip: Trip) => void;
   onAddPhotos?: () => void;
+  isAuthenticated?: boolean;
 }
 
 const Overlay = styled.div`
@@ -641,6 +642,7 @@ export default function PlacesView({
   onAddPlannedTrip,
   onTripClick,
   onAddPhotos,
+  isAuthenticated = false,
 }: PlacesViewProps) {
   const [viewMode, setViewMode] = useState<'past' | 'planned'>('past');
 
@@ -860,7 +862,7 @@ export default function PlacesView({
           <EmptyPlannedText>
             Start dreaming about your next adventure together!
           </EmptyPlannedText>
-          {onAddPlannedTrip && (
+          {isAuthenticated && onAddPlannedTrip && (
             <EmptyAddButton onClick={onAddPlannedTrip}>
               <Plus />
               Plan a Trip
@@ -934,7 +936,7 @@ export default function PlacesView({
               Planned
             </ToggleButton>
           </ToggleContainer>
-          {viewMode === 'planned' && onAddPlannedTrip && (
+          {viewMode === 'planned' && isAuthenticated && onAddPlannedTrip && (
             <AddPlannedButton onClick={onAddPlannedTrip}>
               <Plus />
               Add

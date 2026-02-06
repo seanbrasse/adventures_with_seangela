@@ -16,6 +16,8 @@ interface SidebarProps {
   onPlannedTripClick?: (trip: PlannedTrip) => void;
   onAddPlannedTrip?: () => void;
   onAddPhotos?: () => void;
+  isAuthenticated?: boolean;
+  onLoginClick?: () => void;
 }
 
 // Styled Components
@@ -655,6 +657,8 @@ export default function Sidebar({
   onPlannedTripClick,
   onAddPlannedTrip,
   onAddPhotos,
+  isAuthenticated = false,
+  onLoginClick,
 }: SidebarProps) {
   const locations = useMemo(() => {
     const groups = groupPhotosByLocation(photos);
@@ -829,7 +833,7 @@ export default function Sidebar({
                   <TripsEmptyText>
                     Upload photos from your adventures to start building your map
                   </TripsEmptyText>
-                  {onAddPhotos && (
+                  {isAuthenticated && onAddPhotos && (
                     <AddTripsButton onClick={onAddPhotos}>
                       <Plus size={16} />
                       Add Photos
@@ -931,7 +935,7 @@ export default function Sidebar({
                   <PlannedTripsEmptyText>
                     Dream up your next trip together and keep track of all the details
                   </PlannedTripsEmptyText>
-                  {onAddPlannedTrip && (
+                  {isAuthenticated && onAddPlannedTrip && (
                     <AddPlannedTripButton onClick={onAddPlannedTrip}>
                       <Plus size={16} />
                       Start Planning

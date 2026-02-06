@@ -24,6 +24,7 @@ interface PhotoGalleryProps {
   onAddPhoto?: (location: LocationContext) => void;
   locationName?: string;
   mapboxToken?: string;
+  isAuthenticated?: boolean;
 }
 
 // Styled Components
@@ -922,6 +923,7 @@ export default function PhotoGallery({
   onAddPhoto,
   locationName,
   mapboxToken,
+  isAuthenticated = false,
 }: PhotoGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -1207,7 +1209,7 @@ export default function PhotoGallery({
           </HeaderText>
         </HeaderLeft>
         <HeaderActions>
-          {trip && onUpdateTrip && onDeleteTrip && (
+          {isAuthenticated && trip && onUpdateTrip && onDeleteTrip && (
             <SettingsButton
               onClick={() => setShowTripSettings(true)}
               title="Trip settings"
@@ -1215,7 +1217,7 @@ export default function PhotoGallery({
               <Settings />
             </SettingsButton>
           )}
-          {onAddPhoto && photos.length > 0 && (
+          {isAuthenticated && onAddPhoto && photos.length > 0 && (
             <AddPhotoButton
               onClick={() => {
                 const firstPhoto = photos[0];
@@ -1346,15 +1348,17 @@ export default function PhotoGallery({
                   </CaptionDisplay>
                 )}
               </CaptionRow>
-              <DeletePhotoSection>
-                <DeletePhotoButton
-                  $confirm={deleteConfirm === allPhotos[selectedIndex].id}
-                  onClick={() => handleDelete(allPhotos[selectedIndex].id)}
-                >
-                  <Trash2 />
-                  {deleteConfirm === allPhotos[selectedIndex].id ? 'Click again to confirm' : 'Delete Photo'}
-                </DeletePhotoButton>
-              </DeletePhotoSection>
+              {isAuthenticated && (
+                <DeletePhotoSection>
+                  <DeletePhotoButton
+                    $confirm={deleteConfirm === allPhotos[selectedIndex].id}
+                    onClick={() => handleDelete(allPhotos[selectedIndex].id)}
+                  >
+                    <Trash2 />
+                    {deleteConfirm === allPhotos[selectedIndex].id ? 'Click again to confirm' : 'Delete Photo'}
+                  </DeletePhotoButton>
+                </DeletePhotoSection>
+              )}
             </PhotoDetailsPanel>
           </DetailsSection>
 
@@ -1384,17 +1388,21 @@ export default function PhotoGallery({
                         alt={photo.description || 'Photo'}
                       />
                       <PhotoOverlay />
-                      <DeleteButton
-                        $confirm={deleteConfirm === photo.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(photo.id);
-                        }}
-                      >
-                        <Trash2 />
-                      </DeleteButton>
-                      {deleteConfirm === photo.id && (
-                        <DeleteTooltip>Click again to delete</DeleteTooltip>
+                      {isAuthenticated && (
+                        <>
+                          <DeleteButton
+                            $confirm={deleteConfirm === photo.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(photo.id);
+                            }}
+                          >
+                            <Trash2 />
+                          </DeleteButton>
+                          {deleteConfirm === photo.id && (
+                            <DeleteTooltip>Click again to delete</DeleteTooltip>
+                          )}
+                        </>
                       )}
                     </PhotoItem>
                   );

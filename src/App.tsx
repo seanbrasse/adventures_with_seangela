@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Menu, X, Heart, Key, Settings, ChevronLeft, ChevronRight, Lock, LogOut } from 'lucide-react';
 import styled, { createGlobalStyle } from 'styled-components';
 import MapboxGlobe from './components/MapboxGlobe';
 import PhotoGallery, { type LocationContext } from './components/PhotoGallery';
@@ -10,6 +10,8 @@ import PlacesView from './components/PlacesView';
 import AllPhotosView from './components/AllPhotosView';
 import PlannedTripModal from './components/PlannedTripModal';
 import TripModal from './components/TripModal';
+import LoginModal from './components/LoginModal';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { usePhotoStorage } from './hooks/usePhotoStorage';
 import { useSettings } from './hooks/useSettings';
 import { useTrips } from './hooks/useTrips';
@@ -115,6 +117,44 @@ const AddButton = styled.button`
     width: 1.25rem;
     height: 1.25rem;
     color: #ffffff;
+  }
+`;
+
+const LoginButton = styled.button`
+  padding: 0.625rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #ffffff;
+  }
+`;
+
+const LockedAddButton = styled.button`
+  padding: 0.625rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: rgba(255, 255, 255, 0.5);
   }
 `;
 
@@ -353,6 +393,59 @@ const SecondaryButton = styled.button`
   svg {
     width: 1rem;
     height: 1rem;
+  }
+`;
+
+const AuthButton = styled.button<{ $authenticated?: boolean }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 0.625rem;
+  background: ${({ $authenticated }) => ($authenticated ? 'transparent' : 'rgba(236, 72, 153, 0.1)')};
+  border: none;
+  color: ${({ $authenticated }) => ($authenticated ? 'rgba(255, 255, 255, 0.5)' : '#f472b6')};
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: ${({ $authenticated }) => ($authenticated ? 'rgba(255, 255, 255, 0.06)' : 'rgba(236, 72, 153, 0.2)')};
+    color: ${({ $authenticated }) => ($authenticated ? 'rgba(255, 255, 255, 0.8)' : '#ec4899')};
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+`;
+
+const LockedPrimaryButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
   }
 `;
 
@@ -615,7 +708,8 @@ const LoadingText = styled.p`
   color: rgba(255, 255, 255, 0.6);
 `;
 
-function App() {
+function AppContent() {
+  const { isAuthenticated, logout, showLoginModal, setShowLoginModal } = useAuth();
   const { photos, isLoading, addPhotos, removePhoto, updatePhoto } = usePhotoStorage();
   const {
     settings,
@@ -865,17 +959,29 @@ function App() {
             <IconButton onClick={() => setSidebarOpen(true)}>
               <Menu />
             </IconButton>
-            <IconButton onClick={() => setShowSettings(true)}>
-              <Settings />
-            </IconButton>
+            {isAuthenticated ? (
+              <IconButton onClick={() => setShowSettings(true)}>
+                <Settings />
+              </IconButton>
+            ) : (
+              <LoginButton onClick={() => setShowLoginModal(true)} title="Sign in">
+                <Lock />
+              </LoginButton>
+            )}
           </MobileHeaderButtons>
           <MobileTitle>
             <Heart size={20} />
             Adventures with Seangela
           </MobileTitle>
-          <AddButton onClick={() => setShowUpload(true)}>
-            <Plus />
-          </AddButton>
+          {isAuthenticated ? (
+            <AddButton onClick={() => setShowUpload(true)}>
+              <Plus />
+            </AddButton>
+          ) : (
+            <LockedAddButton onClick={() => setShowLoginModal(true)} title="Sign in to add photos">
+              <Lock />
+            </LockedAddButton>
+          )}
         </MobileHeader>
 
         {/* Mobile sidebar overlay */}
@@ -904,6 +1010,8 @@ function App() {
               onPlannedTripClick={handlePlannedTripClick}
               onAddPlannedTrip={handleAddPlannedTrip}
               onAddPhotos={() => setShowUpload(true)}
+              isAuthenticated={isAuthenticated}
+              onLoginClick={() => setShowLoginModal(true)}
             />
           </SidebarContent>
         </MobileSidebarContainer>
@@ -929,18 +1037,39 @@ function App() {
                 onPlannedTripClick={handlePlannedTripClick}
                 onAddPlannedTrip={handleAddPlannedTrip}
                 onAddPhotos={() => setShowUpload(true)}
+                isAuthenticated={isAuthenticated}
+                onLoginClick={() => setShowLoginModal(true)}
               />
             </SidebarContent>
 
             <SidebarFooter>
-              <PrimaryButton onClick={() => setShowUpload(true)}>
-                <Plus />
-                Add Photos
-              </PrimaryButton>
-              <SecondaryButton onClick={() => setShowSettings(true)}>
-                <Settings />
-                Settings
-              </SecondaryButton>
+              {isAuthenticated ? (
+                <>
+                  <PrimaryButton onClick={() => setShowUpload(true)}>
+                    <Plus />
+                    Add Photos
+                  </PrimaryButton>
+                  <SecondaryButton onClick={() => setShowSettings(true)}>
+                    <Settings />
+                    Settings
+                  </SecondaryButton>
+                  <AuthButton $authenticated onClick={logout}>
+                    <LogOut />
+                    Sign Out
+                  </AuthButton>
+                </>
+              ) : (
+                <>
+                  <LockedPrimaryButton onClick={() => setShowLoginModal(true)}>
+                    <Lock />
+                    Sign in to Add Photos
+                  </LockedPrimaryButton>
+                  <AuthButton onClick={() => setShowLoginModal(true)}>
+                    <Lock />
+                    Sign In
+                  </AuthButton>
+                </>
+              )}
             </SidebarFooter>
           </SidebarContainer>
 
@@ -1026,6 +1155,7 @@ function App() {
             onAddPhoto={handleAddPhotoToLocation}
             locationName={selectedPhotos[0]?.location.name}
             mapboxToken={apiKey}
+            isAuthenticated={isAuthenticated}
           />
         )}
 
@@ -1082,6 +1212,7 @@ function App() {
             onAddPlannedTrip={handleAddPlannedTrip}
             onTripClick={handleEditTrip}
             onAddPhotos={() => setShowUpload(true)}
+            isAuthenticated={isAuthenticated}
           />
         )}
 
@@ -1135,8 +1266,19 @@ function App() {
             mapboxToken={apiKey}
           />
         )}
+
+        {/* Login modal */}
+        {showLoginModal && <LoginModal />}
       </AppContainer>
     </>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
