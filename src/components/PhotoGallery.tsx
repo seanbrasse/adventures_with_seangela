@@ -418,6 +418,8 @@ const DetailsSection = styled.div`
 
 const NavButton = styled.button<{ $position: 'left' | 'right' }>`
   position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   ${({ $position }) => ($position === 'left' ? 'left: 1.75rem;' : 'right: 1.75rem;')}
   padding: 1.125rem;
   border-radius: 1rem;
@@ -445,6 +447,7 @@ const NavButton = styled.button<{ $position: 'left' | 'right' }>`
   }
 
   @media (max-width: 640px) {
+    top: calc(25vh + 1rem); /* Center in the photo area (photo is ~50vh max, so center at 25vh plus header offset) */
     ${({ $position }) => ($position === 'left' ? 'left: 0.5rem;' : 'right: 0.5rem;')}
     padding: 0.75rem;
     border-radius: 0.75rem;

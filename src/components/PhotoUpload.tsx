@@ -54,7 +54,7 @@ const Overlay = styled.div`
   padding: 2rem;
 
   @media (max-width: 640px) {
-    padding: 1rem;
+    padding: 0;
     align-items: flex-end;
   }
 `;

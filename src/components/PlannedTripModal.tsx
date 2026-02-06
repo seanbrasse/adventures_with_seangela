@@ -36,6 +36,11 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   padding: 2rem;
+
+  @media (max-width: 640px) {
+    padding: 0;
+    align-items: flex-end;
+  }
 `;
 
 const Modal = styled.div`
@@ -49,6 +54,11 @@ const Modal = styled.div`
   flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  @media (max-width: 640px) {
+    max-height: 95vh;
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
 `;
 
 const Header = styled.div`
@@ -58,6 +68,10 @@ const Header = styled.div`
   padding: 2rem 2.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.02);
+
+  @media (max-width: 640px) {
+    padding: 1.25rem;
+  }
 `;
 
 const HeaderContent = styled.div`
@@ -81,6 +95,17 @@ const HeaderIcon = styled.div`
     height: 1.75rem;
     color: #fbbf24;
   }
+
+  @media (max-width: 640px) {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+
+    svg {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+  }
 `;
 
 const HeaderText = styled.div``;
@@ -91,6 +116,10 @@ const Title = styled.h2`
   color: #ffffff;
   letter-spacing: -0.02em;
   margin-bottom: 0.25rem;
+
+  @media (max-width: 640px) {
+    font-size: 1.25rem;
+  }
 `;
 
 const Subtitle = styled.p`
@@ -133,6 +162,10 @@ const Content = styled.div`
   &::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 1.25rem;
   }
 `;
 
@@ -286,6 +319,12 @@ const DateRow = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
 `;
 
 const DateInput = styled.input`
@@ -308,11 +347,19 @@ const DateInput = styled.input`
 const DateSeparator = styled.span`
   color: rgba(255, 255, 255, 0.4);
   font-size: 1rem;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 
 const StatusGrid = styled.div`
   display: flex;
   gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    flex-wrap: wrap;
+  }
 `;
 
 const StatusButton = styled.button<{ $active: boolean; $color: string }>`
@@ -340,6 +387,18 @@ const StatusButton = styled.button<{ $active: boolean; $color: string }>`
     width: 1.125rem;
     height: 1.125rem;
     color: ${({ $active, $color }) => ($active ? $color : 'inherit')};
+  }
+
+  @media (max-width: 640px) {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+    gap: 0.375rem;
+    min-width: 0;
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
   }
 `;
 
@@ -443,12 +502,21 @@ const Footer = styled.div`
   padding: 1.75rem 2.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.02);
+
+  @media (max-width: 640px) {
+    padding: 1rem 1.25rem;
+  }
 `;
 
 const FooterButtons = styled.div`
   display: flex;
   align-items: center;
   gap: 0.875rem;
+
+  @media (max-width: 640px) {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
 `;
 
 const DeleteButton = styled.button`
@@ -464,6 +532,11 @@ const DeleteButton = styled.button`
 
   &:hover {
     background: rgba(248, 113, 113, 0.1);
+  }
+
+  @media (max-width: 640px) {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
   }
 `;
 
@@ -481,10 +554,19 @@ const ConvertButton = styled.button`
   &:hover {
     background: rgba(34, 197, 94, 0.25);
   }
+
+  @media (max-width: 640px) {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
 `;
 
 const Spacer = styled.div`
   flex: 1;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 
 const CancelButton = styled.button`
@@ -501,6 +583,11 @@ const CancelButton = styled.button`
   &:hover {
     background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
+  }
+
+  @media (max-width: 640px) {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9375rem;
   }
 `;
 
@@ -524,6 +611,11 @@ const SubmitButton = styled.button`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  @media (max-width: 640px) {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9375rem;
   }
 `;
 
