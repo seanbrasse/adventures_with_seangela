@@ -18,63 +18,121 @@ const MIN_TRIP_DISTANCE_KM = 40;
 // This handles day trips to nearby cities (e.g., Dubai to Abu Dhabi ~130km)
 const MAX_TRIP_RADIUS_KM = 200;
 
-// Normalize city names for route consolidation
-// Extracts the primary city name and normalizes variations
+// Known cities for normalization
+const knownCities = [
+  'dubai',
+  'abu dhabi',
+  'jakarta',
+  'new york',
+  'nyc',
+  'singapore',
+  'tokyo',
+  'london',
+  'paris',
+  'bali',
+  'bangkok',
+  'hong kong',
+  'los angeles',
+  'san francisco',
+  'chicago',
+  'miami',
+  'seattle',
+];
+
+// Neighborhood to city mappings
+const neighborhoodToCityMap: Record<string, string> = {
+  // NYC neighborhoods
+  'manhattan': 'New York',
+  'brooklyn': 'New York',
+  'queens': 'New York',
+  'bronx': 'New York',
+  'staten island': 'New York',
+  'harlem': 'New York',
+  'williamsburg': 'New York',
+  'bushwick': 'New York',
+  'greenpoint': 'New York',
+  'astoria': 'New York',
+  'flushing': 'New York',
+  'soho': 'New York',
+  'tribeca': 'New York',
+  'chelsea': 'New York',
+  'midtown': 'New York',
+  'dumbo': 'New York',
+  'park slope': 'New York',
+  'long island city': 'New York',
+  // Singapore neighborhoods
+  'outram': 'Singapore',
+  'orchard': 'Singapore',
+  'marina bay': 'Singapore',
+  'sentosa': 'Singapore',
+  'chinatown': 'Singapore',
+  'little india': 'Singapore',
+  'bugis': 'Singapore',
+  'clarke quay': 'Singapore',
+  'raffles place': 'Singapore',
+  'tanjong pagar': 'Singapore',
+  'tiong bahru': 'Singapore',
+  'holland village': 'Singapore',
+  'jurong': 'Singapore',
+  'tampines': 'Singapore',
+  'bedok': 'Singapore',
+  'changi': 'Singapore',
+  // Dubai/UAE neighborhoods
+  'dubai marina': 'Dubai',
+  'jumeirah': 'Dubai',
+  'downtown dubai': 'Dubai',
+  'deira': 'Dubai',
+  'bur dubai': 'Dubai',
+  'palm jumeirah': 'Dubai',
+  'business bay': 'Dubai',
+  'al barsha': 'Dubai',
+  'jlt': 'Dubai',
+  'grayteesah': 'Dubai',
+  'margham': 'Dubai',
+  'al lisaili': 'Dubai',
+};
+
+// Get a display-friendly city name from a location string
+function getDisplayCityName(locationName: string): string {
+  const parts = locationName.split(',').map((p) => p.trim());
+
+  // Check each part against our mappings
+  for (const part of parts) {
+    const lowerPart = part.toLowerCase();
+
+    // Check neighborhood mappings first
+    if (neighborhoodToCityMap[lowerPart]) {
+      return neighborhoodToCityMap[lowerPart];
+    }
+
+    // Check if it's a known city
+    if (knownCities.includes(lowerPart)) {
+      // Return with proper capitalization
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    }
+  }
+
+  // If we have a country in the location, use "City, Country" format
+  // e.g., "Some Place, United Arab Emirates" -> keep as is but use first part
+  if (parts.length >= 2) {
+    const lastPart = parts[parts.length - 1];
+    // Check if last part looks like a country
+    const countryIndicators = ['emirates', 'states', 'kingdom', 'republic', 'islands'];
+    if (countryIndicators.some(c => lastPart.toLowerCase().includes(c))) {
+      // Return first part + country
+      return `${parts[0]}, ${lastPart}`;
+    }
+  }
+
+  // Default: return first part (usually the most specific location)
+  return parts[0];
+}
+
+// Normalize city names for route consolidation (internal use, lowercase)
 function normalizeCityName(name: string): string {
   // First, extract the primary city (usually first part before comma)
   const parts = name.split(',').map((p) => p.trim());
   let city = parts[0];
-
-  // Check if any part is a known major city (handle cases like "Dubai Marina, Dubai")
-  const knownCities = [
-    'dubai',
-    'jakarta',
-    'new york',
-    'nyc',
-    'singapore',
-    'tokyo',
-    'london',
-    'paris',
-    'bali',
-    'bangkok',
-    'hong kong',
-  ];
-
-  // NYC neighborhoods that should normalize to "new york"
-  const nycNeighborhoods = [
-    'manhattan',
-    'brooklyn',
-    'queens',
-    'bronx',
-    'staten island',
-    'harlem',
-    'williamsburg',
-    'bushwick',
-    'greenpoint',
-    'astoria',
-    'flushing',
-    'soho',
-    'tribeca',
-    'chelsea',
-    'midtown',
-    'lower east side',
-    'upper east side',
-    'upper west side',
-    'east village',
-    'west village',
-    'financial district',
-    'dumbo',
-    'park slope',
-    'cobble hill',
-    'carroll gardens',
-    'prospect heights',
-    'crown heights',
-    'bed-stuy',
-    'bedford-stuyvesant',
-    'fort greene',
-    'clinton hill',
-    'long island city',
-  ];
 
   for (const part of parts) {
     const lowerPart = part.toLowerCase().trim();
@@ -82,9 +140,9 @@ function normalizeCityName(name: string): string {
       city = part;
       break;
     }
-    // Check for NYC neighborhoods
-    if (nycNeighborhoods.includes(lowerPart)) {
-      return 'new york';
+    // Check neighborhood mappings
+    if (neighborhoodToCityMap[lowerPart]) {
+      return neighborhoodToCityMap[lowerPart].toLowerCase();
     }
   }
 
@@ -319,24 +377,26 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
         const endDate = currentTrip.photos[currentTrip.photos.length - 1].date;
 
         // Use the first photo's location name as the primary location
-        const locationName =
+        const rawLocationName =
           currentTrip.photos[0].location.name ||
           `${currentTrip.centroid.lat.toFixed(2)}, ${currentTrip.centroid.lng.toFixed(2)}`;
+        // Get a display-friendly city name (e.g., "Outram" -> "Singapore")
+        const displayCityName = getDisplayCityName(rawLocationName);
 
         // Check if we have an existing trip with customizations
         const photoIds = currentTrip.photos.map((p) => p.id);
-        const existingTrip = findBestExistingTrip(photoIds, locationName, startDate);
+        const existingTrip = findBestExistingTrip(photoIds, rawLocationName, startDate);
         const locationKey = `${currentTrip.centroid.lat.toFixed(1)},${currentTrip.centroid.lng.toFixed(1)}`;
         const stableId = generateStableTripId(locationKey, startDate);
 
         trips.push({
           id: existingTrip?.id || stableId,
-          name: existingTrip?.name || `${locationName} - ${startDate.toLocaleDateString('en-US', {
+          name: existingTrip?.name || `${displayCityName} - ${startDate.toLocaleDateString('en-US', {
             month: 'short',
             year: 'numeric',
           })}`,
           description: existingTrip?.description,
-          locationName,
+          locationName: rawLocationName,
           startDate,
           endDate,
           photoIds,
@@ -364,24 +424,26 @@ function autoGenerateTrips(photos: Photo[], homeBases: HomeBase[], existingTrips
       homeBases
     );
     const endDate = currentTrip.photos[currentTrip.photos.length - 1].date;
-    const locationName =
+    const rawLocationName =
       currentTrip.photos[0].location.name ||
       `${currentTrip.centroid.lat.toFixed(2)}, ${currentTrip.centroid.lng.toFixed(2)}`;
+    // Get a display-friendly city name (e.g., "Outram" -> "Singapore")
+    const displayCityName = getDisplayCityName(rawLocationName);
 
     // Check if we have an existing trip with customizations
     const photoIds = currentTrip.photos.map((p) => p.id);
-    const existingTrip = findBestExistingTrip(photoIds, locationName, startDate);
+    const existingTrip = findBestExistingTrip(photoIds, rawLocationName, startDate);
     const locationKey = `${currentTrip.centroid.lat.toFixed(1)},${currentTrip.centroid.lng.toFixed(1)}`;
     const stableId = generateStableTripId(locationKey, startDate);
 
     trips.push({
       id: existingTrip?.id || stableId,
-      name: existingTrip?.name || `${locationName} - ${startDate.toLocaleDateString('en-US', {
+      name: existingTrip?.name || `${displayCityName} - ${startDate.toLocaleDateString('en-US', {
         month: 'short',
         year: 'numeric',
       })}`,
       description: existingTrip?.description,
-      locationName,
+      locationName: rawLocationName,
       startDate,
       endDate,
       photoIds,
