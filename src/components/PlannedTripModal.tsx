@@ -57,6 +57,7 @@ const Modal = styled.div`
 
   @media (max-width: 640px) {
     max-height: 95vh;
+    min-height: 95vh;
     border-radius: 1.5rem 1.5rem 0 0;
   }
 `;
