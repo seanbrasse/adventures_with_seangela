@@ -118,13 +118,13 @@ const HeartSeal = styled.div<{ $isOpen: boolean }>`
 
 const Card = styled.div<{ $isVisible: boolean }>`
   position: absolute;
-  top: 5%;
+  top: 3%;
   left: 5%;
   right: 5%;
-  bottom: 5%;
+  bottom: 3%;
   background: linear-gradient(180deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%);
   border-radius: 0.75rem;
-  padding: 2rem 1.5rem;
+  padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -137,27 +137,25 @@ const Card = styled.div<{ $isVisible: boolean }>`
   z-index: 1;
 
   @media (max-width: 640px) {
-    padding: 1.25rem 1rem 1.5rem;
-    top: 3%;
-    bottom: 3%;
+    padding: 1rem 1rem 1.25rem;
   }
 `;
 
 const CardHeartDecor = styled.div`
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 
   svg {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2rem;
+    height: 2rem;
     color: #ec4899;
   }
 
   @media (max-width: 640px) {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 
     svg {
-      width: 2rem;
-      height: 2rem;
+      width: 1.75rem;
+      height: 1.75rem;
     }
   }
 `;
@@ -182,12 +180,12 @@ const CardGreeting = styled.h2`
 const CardRecipient = styled.p`
   font-size: 1.125rem;
   color: #9d174d;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   font-weight: 500;
 
   @media (max-width: 640px) {
     font-size: 1rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 `;
 
@@ -204,13 +202,13 @@ const CardMessage = styled.p`
 `;
 
 const CardSignature = styled.p`
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   font-size: 0.875rem;
   color: #9d174d;
   font-style: italic;
 
   @media (max-width: 640px) {
-    margin-top: 0.75rem;
+    margin-top: 0.5rem;
   }
 `;
 
