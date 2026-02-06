@@ -119,6 +119,7 @@ const LetterButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-left: auto;
 
   svg {
     width: 1.25rem;
@@ -934,12 +935,12 @@ function AppContent() {
             <Logo>
               <Heart />
               Adventures with Seangela
-              {hasSeenWelcomeLetter && isAuthenticated && (
-                <LetterButton onClick={() => { handleOpenWelcomeLetter(); setSidebarOpen(false); }} title="Open love letter">
-                  <Mail />
-                </LetterButton>
-              )}
             </Logo>
+            {hasSeenWelcomeLetter && isAuthenticated && (
+              <LetterButton onClick={() => { handleOpenWelcomeLetter(); setSidebarOpen(false); }} title="Open love letter">
+                <Mail />
+              </LetterButton>
+            )}
             <CloseButton onClick={() => setSidebarOpen(false)}>
               <X />
             </CloseButton>
@@ -989,12 +990,12 @@ function AppContent() {
               <Logo>
                 <Heart />
                 Adventures with Seangela
-                {hasSeenWelcomeLetter && isAuthenticated && (
-                  <LetterButton onClick={handleOpenWelcomeLetter} title="Open love letter">
-                    <Mail />
-                  </LetterButton>
-                )}
               </Logo>
+              {hasSeenWelcomeLetter && isAuthenticated && (
+                <LetterButton onClick={handleOpenWelcomeLetter} title="Open love letter">
+                  <Mail />
+                </LetterButton>
+              )}
             </SidebarHeader>
 
             <SidebarContent>

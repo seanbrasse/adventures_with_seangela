@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { X, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 
 interface WelcomeLetterModalProps {
   isOpen: boolean;
@@ -203,29 +203,6 @@ const CardSignature = styled.p`
   }
 `;
 
-const CloseButton = styled.button`
-  position: absolute;
-  top: -3rem;
-  right: 0;
-  padding: 0.75rem;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  svg {
-    width: 1.5rem;
-    height: 1.5rem;
-    color: rgba(255, 255, 255, 0.8);
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
-  }
-`;
-
 const ContinueHint = styled.p<{ $visible: boolean }>`
   position: absolute;
   bottom: -2.5rem;
@@ -266,11 +243,7 @@ export default function WelcomeLetterModal({
 
   return (
     <Overlay $visible={isOpen} onClick={handleClose}>
-      <EnvelopeContainer onClick={(e) => e.stopPropagation()}>
-        <CloseButton onClick={handleClose} aria-label="Close">
-          <X />
-        </CloseButton>
-
+      <EnvelopeContainer>
         <Envelope>
           <EnvelopeFlap $isOpen={isEnvelopeOpen}>
             <EnvelopeFlapInner />
