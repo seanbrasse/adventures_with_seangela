@@ -287,7 +287,7 @@ export default function LoginModal() {
             <IconWrapper>
               <Lock />
             </IconWrapper>
-            <Title>Welcome Back</Title>
+            <Title>Welcome</Title>
           </HeaderContent>
           <CloseButton onClick={handleSkip} title="Skip login">
             <X />

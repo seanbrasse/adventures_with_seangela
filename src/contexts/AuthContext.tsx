@@ -12,7 +12,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 // Simple password for the shared account
 // In production, this would be handled by a backend
-const SHARED_PASSWORD = 'seangela2024';
+const SHARED_PASSWORD = 'seangela071124';
 
 const AUTH_STORAGE_KEY = 'adventures_auth';
 const FIRST_VISIT_KEY = 'adventures_first_visit';
