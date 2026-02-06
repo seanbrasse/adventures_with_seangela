@@ -579,7 +579,9 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       }
     }
 
-    // Now consolidate lines with same from->to route for same traveler
+    // Consolidate ALL lines that go to the same general area into ONE flight line
+    // Uses distance-based grouping (within MAX_TRIP_RADIUS_KM)
+    // This means Dubai + Abu Dhabi = one line, regardless of who traveled
     const consolidatedMap = new Map<
       string,
       {
@@ -592,12 +594,21 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       }
     >();
 
+    // Helper to find an existing route that's close enough to consolidate with (any traveler)
+    const findNearbyRoute = (destLat: number, destLng: number) => {
+      for (const [key, route] of consolidatedMap) {
+        const distance = getDistanceKm(route.to.lat, route.to.lng, destLat, destLng);
+        if (distance <= MAX_TRIP_RADIUS_KM) {
+          return key;
+        }
+      }
+      return null;
+    };
+
     for (const line of rawLines) {
-      // Create a key based on normalized city names and traveler
-      // This ensures "Dubai Marina, Dubai" and "Dubai, UAE" consolidate together
-      const normalizedFrom = normalizeCityName(line.from.name);
-      const normalizedTo = normalizeCityName(line.to.name);
-      const routeKey = `${normalizedFrom}->${normalizedTo}::${line.travelerId}`;
+      // Try to find an existing route going to the same area (regardless of traveler)
+      const existingRouteKey = findNearbyRoute(line.to.lat, line.to.lng);
+      const routeKey = existingRouteKey || `route-${line.to.lat.toFixed(1)}-${line.to.lng.toFixed(1)}`;
 
       if (consolidatedMap.has(routeKey)) {
         // Add this visit to existing route
@@ -610,7 +621,7 @@ export function useTrips(photos: Photo[], homeBases: HomeBase[]) {
       } else {
         // Create new consolidated route
         consolidatedMap.set(routeKey, {
-          id: `route-${normalizedFrom}-${normalizedTo}-${line.travelerId}`,
+          id: routeKey,
           from: line.from,
           to: line.to,
           color: line.color,
