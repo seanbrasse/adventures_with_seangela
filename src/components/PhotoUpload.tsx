@@ -1297,15 +1297,23 @@ export default function PhotoUpload({ onUpload, onClose, mapboxToken, targetLoca
                               </WarningHeader>
                               <WarningText>
                                 This photo was taken {photo.locationMismatch.distance}km away in {photo.locationMismatch.photoLocation}.
-                                Would you like to add it to {targetLocation.name} anyway?
+                                {convertingFromPlannedTrip
+                                  ? ` Use the planned destination or discard this photo.`
+                                  : ` Would you like to add it to ${targetLocation.name} anyway?`}
                               </WarningText>
                               <WarningActions>
                                 <WarningButton $variant="primary" onClick={() => handleUseTargetLocation(photo.id)}>
                                   Use {targetLocation.name}
                                 </WarningButton>
-                                <WarningButton onClick={() => handleKeepPhotoLocation(photo.id)}>
-                                  Keep original location
-                                </WarningButton>
+                                {convertingFromPlannedTrip ? (
+                                  <WarningButton onClick={() => handleRemove(photo.id)}>
+                                    Discard photo
+                                  </WarningButton>
+                                ) : (
+                                  <WarningButton onClick={() => handleKeepPhotoLocation(photo.id)}>
+                                    Keep original location
+                                  </WarningButton>
+                                )}
                               </WarningActions>
                             </LocationMismatchWarning>
                           )}
