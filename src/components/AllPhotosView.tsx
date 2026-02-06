@@ -84,11 +84,15 @@ const CloseButton = styled.button`
 `;
 
 const FiltersBar = styled.div`
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 1.5rem;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(10, 10, 15, 0.95);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   overflow-x: auto;
 
@@ -237,10 +241,10 @@ const ClearFiltersButton = styled.button`
   }
 `;
 
-const Content = styled.div`
+const ScrollArea = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  position: relative;
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -254,6 +258,10 @@ const Content = styled.div`
     background: rgba(255, 255, 255, 0.15);
     border-radius: 4px;
   }
+`;
+
+const PhotosContent = styled.div`
+  padding: 1.5rem;
 `;
 
 const PhotoGrid = styled.div`
@@ -536,167 +544,168 @@ export default function AllPhotosView({
         </CloseButton>
       </Header>
 
-      <FiltersBar onClick={(e) => { e.stopPropagation(); closeAllDropdowns(); }}>
-        <FilterLabel>
-          <SlidersHorizontal />
-          Filters:
-        </FilterLabel>
+      <ScrollArea onClick={(e) => e.stopPropagation()}>
+        <FiltersBar onClick={(e) => { e.stopPropagation(); closeAllDropdowns(); }}>
+          <FilterLabel>
+            <SlidersHorizontal />
+            Filters:
+          </FilterLabel>
 
-        <FilterGroup>
-          {/* Trip Filter */}
-          <FilterSelect onClick={(e) => e.stopPropagation()}>
-            <FilterButton
-              $active={!!tripFilter}
-              onClick={() => {
-                closeAllDropdowns();
-                setTripDropdownOpen(!tripDropdownOpen);
-              }}
-            >
-              <Plane />
-              {getSelectedTripName()}
-              <ChevronDown />
-            </FilterButton>
-            <Dropdown $visible={tripDropdownOpen}>
-              <DropdownItem
-                $selected={!tripFilter}
-                onClick={() => { setTripFilter(null); setTripDropdownOpen(false); }}
+          <FilterGroup>
+            {/* Trip Filter */}
+            <FilterSelect onClick={(e) => e.stopPropagation()}>
+              <FilterButton
+                $active={!!tripFilter}
+                onClick={() => {
+                  closeAllDropdowns();
+                  setTripDropdownOpen(!tripDropdownOpen);
+                }}
               >
-                <DropdownIcon><Plane /></DropdownIcon>
-                All Trips
-              </DropdownItem>
-              <DropdownItem
-                $selected={tripFilter === 'no-trip'}
-                onClick={() => { setTripFilter('no-trip'); setTripDropdownOpen(false); }}
-              >
-                <DropdownIcon><Image /></DropdownIcon>
-                No Trip Assigned
-              </DropdownItem>
-              {trips.map((trip) => (
+                <Plane />
+                {getSelectedTripName()}
+                <ChevronDown />
+              </FilterButton>
+              <Dropdown $visible={tripDropdownOpen}>
                 <DropdownItem
-                  key={trip.id}
-                  $selected={tripFilter === trip.id}
-                  onClick={() => { setTripFilter(trip.id); setTripDropdownOpen(false); }}
+                  $selected={!tripFilter}
+                  onClick={() => { setTripFilter(null); setTripDropdownOpen(false); }}
                 >
                   <DropdownIcon><Plane /></DropdownIcon>
-                  {trip.name || trip.locationName}
+                  All Trips
                 </DropdownItem>
-              ))}
-            </Dropdown>
-          </FilterSelect>
-
-          {/* Location Filter */}
-          <FilterSelect onClick={(e) => e.stopPropagation()}>
-            <FilterButton
-              $active={!!locationFilter}
-              onClick={() => {
-                closeAllDropdowns();
-                setLocationDropdownOpen(!locationDropdownOpen);
-              }}
-            >
-              <MapPin />
-              {getSelectedLocationName()}
-              <ChevronDown />
-            </FilterButton>
-            <Dropdown $visible={locationDropdownOpen}>
-              <DropdownItem
-                $selected={!locationFilter}
-                onClick={() => { setLocationFilter(null); setLocationDropdownOpen(false); }}
-              >
-                <DropdownIcon><MapPin /></DropdownIcon>
-                All Locations
-              </DropdownItem>
-              {uniqueLocations.map((loc) => (
                 <DropdownItem
-                  key={loc.key}
-                  $selected={locationFilter === loc.key}
-                  onClick={() => { setLocationFilter(loc.key); setLocationDropdownOpen(false); }}
+                  $selected={tripFilter === 'no-trip'}
+                  onClick={() => { setTripFilter('no-trip'); setTripDropdownOpen(false); }}
+                >
+                  <DropdownIcon><Image /></DropdownIcon>
+                  No Trip Assigned
+                </DropdownItem>
+                {trips.map((trip) => (
+                  <DropdownItem
+                    key={trip.id}
+                    $selected={tripFilter === trip.id}
+                    onClick={() => { setTripFilter(trip.id); setTripDropdownOpen(false); }}
+                  >
+                    <DropdownIcon><Plane /></DropdownIcon>
+                    {trip.name || trip.locationName}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+            </FilterSelect>
+
+            {/* Location Filter */}
+            <FilterSelect onClick={(e) => e.stopPropagation()}>
+              <FilterButton
+                $active={!!locationFilter}
+                onClick={() => {
+                  closeAllDropdowns();
+                  setLocationDropdownOpen(!locationDropdownOpen);
+                }}
+              >
+                <MapPin />
+                {getSelectedLocationName()}
+                <ChevronDown />
+              </FilterButton>
+              <Dropdown $visible={locationDropdownOpen}>
+                <DropdownItem
+                  $selected={!locationFilter}
+                  onClick={() => { setLocationFilter(null); setLocationDropdownOpen(false); }}
                 >
                   <DropdownIcon><MapPin /></DropdownIcon>
-                  {loc.key}
+                  All Locations
                 </DropdownItem>
-              ))}
-            </Dropdown>
-          </FilterSelect>
+                {uniqueLocations.map((loc) => (
+                  <DropdownItem
+                    key={loc.key}
+                    $selected={locationFilter === loc.key}
+                    onClick={() => { setLocationFilter(loc.key); setLocationDropdownOpen(false); }}
+                  >
+                    <DropdownIcon><MapPin /></DropdownIcon>
+                    {loc.key}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+            </FilterSelect>
 
-          {/* Year Filter */}
-          <FilterSelect onClick={(e) => e.stopPropagation()}>
-            <FilterButton
-              $active={!!yearFilter}
-              onClick={() => {
-                closeAllDropdowns();
-                setYearDropdownOpen(!yearDropdownOpen);
-              }}
-            >
-              <Calendar />
-              {yearFilter || 'All Years'}
-              <ChevronDown />
-            </FilterButton>
-            <Dropdown $visible={yearDropdownOpen}>
-              <DropdownItem
-                $selected={!yearFilter}
-                onClick={() => { setYearFilter(null); setYearDropdownOpen(false); }}
+            {/* Year Filter */}
+            <FilterSelect onClick={(e) => e.stopPropagation()}>
+              <FilterButton
+                $active={!!yearFilter}
+                onClick={() => {
+                  closeAllDropdowns();
+                  setYearDropdownOpen(!yearDropdownOpen);
+                }}
               >
-                <DropdownIcon><Calendar /></DropdownIcon>
-                All Years
-              </DropdownItem>
-              {uniqueYears.map((year) => (
+                <Calendar />
+                {yearFilter || 'All Years'}
+                <ChevronDown />
+              </FilterButton>
+              <Dropdown $visible={yearDropdownOpen}>
                 <DropdownItem
-                  key={year}
-                  $selected={yearFilter === year}
-                  onClick={() => { setYearFilter(year); setYearDropdownOpen(false); }}
+                  $selected={!yearFilter}
+                  onClick={() => { setYearFilter(null); setYearDropdownOpen(false); }}
                 >
                   <DropdownIcon><Calendar /></DropdownIcon>
-                  {year}
+                  All Years
                 </DropdownItem>
-              ))}
-            </Dropdown>
-          </FilterSelect>
+                {uniqueYears.map((year) => (
+                  <DropdownItem
+                    key={year}
+                    $selected={yearFilter === year}
+                    onClick={() => { setYearFilter(year); setYearDropdownOpen(false); }}
+                  >
+                    <DropdownIcon><Calendar /></DropdownIcon>
+                    {year}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+            </FilterSelect>
 
-          {/* Sort */}
-          <FilterSelect onClick={(e) => e.stopPropagation()}>
-            <FilterButton
-              onClick={() => {
-                closeAllDropdowns();
-                setSortDropdownOpen(!sortDropdownOpen);
-              }}
-            >
-              <Filter />
-              {sortBy === 'date-desc' ? 'Newest First' : sortBy === 'date-asc' ? 'Oldest First' : 'By Location'}
-              <ChevronDown />
-            </FilterButton>
-            <Dropdown $visible={sortDropdownOpen}>
-              <DropdownItem
-                $selected={sortBy === 'date-desc'}
-                onClick={() => { setSortBy('date-desc'); setSortDropdownOpen(false); }}
+            {/* Sort */}
+            <FilterSelect onClick={(e) => e.stopPropagation()}>
+              <FilterButton
+                onClick={() => {
+                  closeAllDropdowns();
+                  setSortDropdownOpen(!sortDropdownOpen);
+                }}
               >
-                Newest First
-              </DropdownItem>
-              <DropdownItem
-                $selected={sortBy === 'date-asc'}
-                onClick={() => { setSortBy('date-asc'); setSortDropdownOpen(false); }}
-              >
-                Oldest First
-              </DropdownItem>
-              <DropdownItem
-                $selected={sortBy === 'location'}
-                onClick={() => { setSortBy('location'); setSortDropdownOpen(false); }}
-              >
-                By Location
-              </DropdownItem>
-            </Dropdown>
-          </FilterSelect>
-        </FilterGroup>
+                <Filter />
+                {sortBy === 'date-desc' ? 'Newest First' : sortBy === 'date-asc' ? 'Oldest First' : 'By Location'}
+                <ChevronDown />
+              </FilterButton>
+              <Dropdown $visible={sortDropdownOpen}>
+                <DropdownItem
+                  $selected={sortBy === 'date-desc'}
+                  onClick={() => { setSortBy('date-desc'); setSortDropdownOpen(false); }}
+                >
+                  Newest First
+                </DropdownItem>
+                <DropdownItem
+                  $selected={sortBy === 'date-asc'}
+                  onClick={() => { setSortBy('date-asc'); setSortDropdownOpen(false); }}
+                >
+                  Oldest First
+                </DropdownItem>
+                <DropdownItem
+                  $selected={sortBy === 'location'}
+                  onClick={() => { setSortBy('location'); setSortDropdownOpen(false); }}
+                >
+                  By Location
+                </DropdownItem>
+              </Dropdown>
+            </FilterSelect>
+          </FilterGroup>
 
-        {hasActiveFilters && (
-          <ClearFiltersButton onClick={clearFilters}>
-            <X />
-            Clear Filters
-          </ClearFiltersButton>
-        )}
-      </FiltersBar>
+          {hasActiveFilters && (
+            <ClearFiltersButton onClick={clearFilters}>
+              <X />
+              Clear Filters
+            </ClearFiltersButton>
+          )}
+        </FiltersBar>
 
-      <Content onClick={(e) => e.stopPropagation()}>
-        <ResultsCount>
+        <PhotosContent>
+          <ResultsCount>
           Showing {filteredPhotos.length} of {photos.length} photos
           {hasActiveFilters && ' (filtered)'}
         </ResultsCount>
@@ -736,7 +745,8 @@ export default function AllPhotosView({
             })}
           </PhotoGrid>
         )}
-      </Content>
+        </PhotosContent>
+      </ScrollArea>
     </Overlay>
   );
 }
