@@ -425,6 +425,27 @@ const HeaderActions = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    /* Hide toggle and add button in header on mobile */
+    & > *:not(:last-child) {
+      display: none;
+    }
+  }
+`;
+
+const MobileActionsBar = styled.div`
+  display: none;
+  padding: 0.75rem 1rem;
+  gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  justify-content: center;
+  align-items: center;
+
+  @media (max-width: 640px) {
+    display: flex;
+  }
 `;
 
 const AddPlannedButton = styled.button`
@@ -947,6 +968,30 @@ export default function PlacesView({
           </CloseButton>
         </HeaderActions>
       </Header>
+
+      {/* Mobile actions bar - shows toggle and add button below header on mobile */}
+      <MobileActionsBar onClick={(e) => e.stopPropagation()}>
+        <ToggleContainer>
+          <ToggleButton
+            $active={viewMode === 'past'}
+            onClick={() => setViewMode('past')}
+          >
+            Past
+          </ToggleButton>
+          <ToggleButton
+            $active={viewMode === 'planned'}
+            onClick={() => setViewMode('planned')}
+          >
+            Planned
+          </ToggleButton>
+        </ToggleContainer>
+        {viewMode === 'planned' && isAuthenticated && onAddPlannedTrip && (
+          <AddPlannedButton onClick={onAddPlannedTrip}>
+            <Plus />
+            Add
+          </AddPlannedButton>
+        )}
+      </MobileActionsBar>
 
       <Content onClick={(e) => e.stopPropagation()}>
         {viewMode === 'past' ? renderPastTrips() : renderPlannedTrips()}
