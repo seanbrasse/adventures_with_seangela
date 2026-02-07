@@ -819,14 +819,22 @@ function AppContent() {
 
   // Planned trip handlers
   const handleAddPlannedTrip = useCallback(() => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
     setEditingPlannedTrip(undefined);
     setShowPlannedTripModal(true);
-  }, []);
+  }, [isAuthenticated, setShowLoginModal]);
 
   const handlePlannedTripClick = useCallback((trip: PlannedTrip) => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
     setEditingPlannedTrip(trip);
     setShowPlannedTripModal(true);
-  }, []);
+  }, [isAuthenticated, setShowLoginModal]);
 
   const handleSavePlannedTrip = useCallback((tripData: Omit<PlannedTrip, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingPlannedTrip) {
