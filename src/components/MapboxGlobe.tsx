@@ -428,6 +428,11 @@ function generateArcPoints(
     )
   );
 
+  // Handle edge case where points are the same or very close
+  if (d < 1e-10) {
+    return [[startLng, startLat], [endLng, endLat]];
+  }
+
   for (let i = 0; i <= numPoints; i++) {
     const f = i / numPoints;
 
@@ -440,7 +445,16 @@ function generateArcPoints(
     const z = A * Math.sin(lat1) + B * Math.sin(lat2);
 
     const lat = Math.atan2(z, Math.sqrt(x * x + y * y)) * (180 / Math.PI);
-    const lng = Math.atan2(y, x) * (180 / Math.PI);
+    let lng = Math.atan2(y, x) * (180 / Math.PI);
+
+    // Ensure longitude continuity across antimeridian (prevent wrapping)
+    // When path crosses 180°, consecutive points can jump from +180 to -180,
+    // causing Mapbox to draw erratic segments. Keep longitude continuous instead.
+    if (points.length > 0) {
+      const prevLng = points[points.length - 1][0];
+      while (lng - prevLng > 180) lng -= 360;
+      while (lng - prevLng < -180) lng += 360;
+    }
 
     points.push([lng, lat]);
   }
