@@ -285,7 +285,7 @@ const MetaDot = styled.span`
   color: rgba(255, 255, 255, 0.2);
 `;
 
-const PlannedTripCard = styled.button`
+const PlannedTripCard = styled.button<{ $clickable?: boolean }>`
   width: 100%;
   display: flex;
   align-items: flex-start;
@@ -296,17 +296,21 @@ const PlannedTripCard = styled.button`
   border-radius: 1rem;
   transition: all 0.15s ease;
   text-align: left;
-  cursor: pointer;
+  cursor: ${({ $clickable }) => $clickable ? 'pointer' : 'default'};
   margin-bottom: 0.625rem;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
+    ${({ $clickable }) => $clickable && `
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.1);
+    `}
   }
 
   &:active {
-    background: rgba(255, 255, 255, 0.08);
-    transform: scale(0.99);
+    ${({ $clickable }) => $clickable && `
+      background: rgba(255, 255, 255, 0.08);
+      transform: scale(0.99);
+    `}
   }
 
   &:last-child {
@@ -842,7 +846,8 @@ export default function Sidebar({
                   return (
                     <PlannedTripCard
                       key={trip.id}
-                      onClick={() => onPlannedTripClick?.(trip)}
+                      $clickable={isAuthenticated}
+                      onClick={isAuthenticated ? () => onPlannedTripClick?.(trip) : undefined}
                     >
                       <PlannedTripIcon $status={trip.bookingStatus}>
                         <StatusIcon />
@@ -907,7 +912,7 @@ export default function Sidebar({
                           </PlannedTripDetails>
                         )}
 
-                        <EditHint>Click to edit</EditHint>
+                        <EditHint>{isAuthenticated ? 'Click to edit' : 'Login to edit'}</EditHint>
                       </PlannedTripInfo>
                     </PlannedTripCard>
                   );
