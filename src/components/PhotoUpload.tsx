@@ -415,7 +415,7 @@ const DateInput = styled.input`
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 0.625rem;
   color: #ffffff;
-  font-size: 0.875rem;
+  font-size: 1rem; /* 16px prevents iOS auto-zoom */
 
   &:focus {
     outline: none;
@@ -594,7 +594,7 @@ const SearchInput = styled.input`
   border: 1px solid rgba(251, 191, 36, 0.3);
   border-radius: 0.625rem;
   color: #ffffff;
-  font-size: 0.9375rem;
+  font-size: 1rem; /* 16px prevents iOS auto-zoom */
 
   &::placeholder {
     color: rgba(255, 255, 255, 0.5);

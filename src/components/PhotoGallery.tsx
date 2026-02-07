@@ -442,7 +442,7 @@ const DateInput = styled.input`
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.5rem;
   color: #ffffff;
-  font-size: 0.875rem;
+  font-size: 1rem; /* 16px prevents iOS auto-zoom */
   color-scheme: dark;
 
   &:focus {
@@ -457,8 +457,8 @@ const TimeInput = styled.input`
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.5rem;
   color: #ffffff;
-  font-size: 0.875rem;
-  width: 110px;
+  font-size: 1rem; /* 16px prevents iOS auto-zoom */
+  width: 120px;
   color-scheme: dark;
 
   &:focus {
