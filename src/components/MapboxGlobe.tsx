@@ -784,10 +784,10 @@ export default function MapboxGlobe({
         center: [line.to.lng, line.to.lat],
         zoom: 6,
         duration: 2000,
-        padding: { left: sidebarCollapsed ? 0 : SIDEBAR_WIDTH, top: 0, right: 0, bottom: 0 },
+        padding: mapPadding,
       });
     }
-  }, [sidebarCollapsed]);
+  }, [mapPadding]);
 
   // Recenter to midpoint between home bases
   const handleRecenter = useCallback(() => {
