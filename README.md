@@ -2,6 +2,9 @@
 
 A beautiful interactive 3D globe application for mapping photos from your adventures together. Upload photos with GPS data and watch them appear as pins on a rotating globe!
 
+<img width="2560" height="1357" alt="image" src="https://github.com/user-attachments/assets/afcc2ef0-8694-4c58-960d-9b757d0d95d6" />
+
+
 ## Features
 
 - **Interactive 3D Globe** - Explore your memories on a beautiful rotating Earth
